@@ -1,26 +1,70 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+
 @import "tailwindcss";
+@config "../../tailwind.config.ts";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #1C1C1E;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background-image-app-gradient: linear-gradient(135deg, #FAF8F2 0%, #F1EAE0 50%, #E2D3B8 100%);
+  --background-image-table-header: linear-gradient(90deg, #185C4D 0%, #30836B 100%);
 }
 
 body {
-  background: var(--background);
+  background: linear-gradient(135deg, #FAF8F2 0%, #F1EAE0 50%, #E2D3B8 100%);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Plus Jakarta Sans", "Noto Sans Lao", sans-serif;
+  min-height: 100vh;
+}
+
+.glass-panel {
+  background-color: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* ✅ เพิ่ม CSS พิเศษเพื่อปรับแต่ง Ant Design Table ให้ดูเข้ากับ Glassmorphism */
+.custom-glass-table .ant-table {
+  background: transparent !important;
+}
+
+.custom-glass-table .ant-table-thead>tr>th {
+  background: linear-gradient(90deg, #185C4D 0%, #25705a 100%) !important;
+  color: white !important;
+  border-bottom: none !important;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+/* ทำให้ขอบ Header มนสวยงาม */
+.custom-glass-table .ant-table-thead>tr>th:first-child {
+  border-top-left-radius: 16px !important;
+  border-bottom-left-radius: 16px !important;
+}
+
+.custom-glass-table .ant-table-thead>tr>th:last-child {
+  border-top-right-radius: 16px !important;
+  border-bottom-right-radius: 16px !important;
+}
+
+.custom-glass-table .ant-table-tbody>tr>td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.4) !important;
+  background: rgba(255, 255, 255, 0.3); /* โปร่งแสง */
+}
+
+/* Hover Effect สำหรับแถวในตาราง */
+.custom-glass-table .ant-table-tbody>tr:hover>td {
+  background: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Custom Pagination ให้ดูเข้ากับ Theme */
+.custom-glass-table .ant-pagination-item-active {
+  border-color: #185C4D !important;
+  background: #185C4D !important;
+}
+
+.custom-glass-table .ant-pagination-item-active a {
+  color: white !important;
 }

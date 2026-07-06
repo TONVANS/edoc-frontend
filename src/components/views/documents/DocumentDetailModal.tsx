@@ -1,0 +1,276 @@
+"use client";
+import React from 'react';
+import { Modal, Button, Divider } from 'antd';
+import { Document } from '@/types/prisma-mapped';
+import { useFolderStore } from '@/store/useFolderStore';
+import { useDocumentTypeStore } from '@/store/useDocumentTypeStore';
+import { QRCodeSVG } from 'qrcode.react';
+import { 
+  FileText, 
+  X, 
+  Calendar, 
+  Paperclip, 
+  FolderOpen, 
+  Scale, 
+  Download,
+  Info,
+  QrCode,
+  Layers,
+  ShieldAlert,
+  ArrowDownToLine
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import api from '@/lib/api';
+
+interface DocumentDetailModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  document: Document | null;
+}
+
+export default function DocumentDetailModal({
+  isOpen,
+  onClose,
+  document: doc,
+}: DocumentDetailModalProps) {
+  const { folders } = useFolderStore();
+  const { documentTypes } = useDocumentTypeStore();
+
+  if (!doc) return null;
+
+  const docTypeName = doc.documentType?.name || documentTypes.find(t => t.id === doc.documentTypeId)?.name || 'ບໍ່ລະບຸ';
+  const folderName = doc.folder?.name || folders.find(f => f.id === doc.folderId)?.name || folders.find(f => f.id === doc.folderId)?.code || 'ບໍ່ລະບຸ';
+
+  const getRetentionLabel = (status: string) => {
+    switch (status) {
+      case 'ACTIVE':
+        return { text: 'ເອກະສານທົ່ວໄປ', color: 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20' };
+      case 'DESTROYABLE':
+        return { text: 'ສາມາດທຳລາຍໄດ້ (Destroyable)', color: 'text-amber-600 bg-amber-500/10 border-amber-500/20' };
+      case 'DESTROYABLE_HOLD':
+        return { text: 'ຕິດສັນຍາ ຫ້າມທຳລາຍ (Destroyable Hold)', color: 'text-rose-600 bg-rose-500/10 border-rose-500/20' };
+      case 'EXPIRED':
+        return { text: 'ໝົດອາຍຸ ເຖິງກຳນົດທຳລາຍ (Expired)', color: 'text-rose-600 bg-rose-500/10 border-rose-500/20' };
+      default:
+        return { text: status, color: 'text-slate-600 bg-slate-500/10 border-slate-500/20' };
+    }
+  };
+
+  const retention = getRetentionLabel(doc.retentionStatus);
+
+  const getAttachmentDownloadUrl = (attachmentId: string) => {
+    const baseUrl = api.defaults.baseURL || 'http://localhost:3000/api';
+    return `${baseUrl}/documents/attachments/${attachmentId}`;
+  };
+
+  return (
+    <Modal
+      open={isOpen}
+      onCancel={onClose}
+      footer={null}
+      width={750}
+      centered
+      title={null}
+      closable={false}
+      className={cn(
+        '[&_.ant-modal-content]:p-0',
+        '[&_.ant-modal-content]:bg-transparent',
+        '[&_.ant-modal-content]:shadow-none',
+        '[&_.ant-modal-content]:rounded-[32px]'
+      )}
+      wrapClassName="backdrop-blur-md"
+    >
+      <div className="bg-white/75 backdrop-blur-3xl rounded-[32px] overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.12)] border border-white/60 relative flex flex-col max-h-[90vh]">
+        
+        {/* ══ HEADER ══════════════════════════════════════════ */}
+        <header className="relative px-10 pt-10 pb-14 overflow-hidden bg-linear-to-br from-[#185C4D] via-[#1c6958] to-[#257c66] shrink-0">
+          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] bg-size-[20px_20px]" />
+          
+          <button
+            onClick={onClose}
+            className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/20 transition-all duration-300 z-20 active:scale-90 cursor-pointer"
+          >
+            <X size={22} strokeWidth={2.5} />
+          </button>
+
+          <div className="flex items-center gap-6 relative z-10">
+            <div className="w-16 h-16 bg-white/10 backdrop-blur-xl rounded-2xl flex items-center justify-center shrink-0 border border-white/20 shadow-xl shadow-black/5">
+              <FileText className="w-8 h-8 text-white" strokeWidth={2.5} />
+            </div>
+            <div>
+              <span className="inline-flex items-center font-mono font-bold text-[12px] text-emerald-200 bg-white/10 border border-white/15 px-3 py-1 rounded-lg shadow-sm mb-2">
+                {doc.docNo}
+              </span>
+              <h2 className="text-white font-black text-2xl tracking-tight leading-tight truncate max-w-[450px]" title={doc.title}>
+                {doc.title}
+              </h2>
+            </div>
+          </div>
+        </header>
+
+        {/* ══ BODY ════════════════════════════════════════════ */}
+        <main className="px-10 py-8 -mt-8 bg-white/85 backdrop-blur-2xl rounded-t-[32px] border-t border-white shadow-[0_-12px_40px_rgba(0,0,0,0.03)] relative z-10 overflow-y-auto flex-1">
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            
+            {/* Left Column: Metadata details (2 cols) */}
+            <div className="md:col-span-2 space-y-6">
+              <div>
+                <h3 className="flex items-center gap-2 text-[#185C4D] font-bold text-[14px] mb-3 border-b border-slate-100 pb-1.5">
+                  <Info size={15} /> ລາຍລະອຽດເອກະສານ
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-400 block uppercase">ຊື່ຫຍໍ້ເອກະສານ</span>
+                    <span className="text-slate-700 font-bold text-[14px]">{doc.shortName || '-'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-400 block uppercase">ວັນທີເອກະສານ</span>
+                    <span className="text-slate-700 font-bold text-[14px] flex items-center gap-1">
+                      <Calendar size={14} className="text-slate-400" />
+                      {new Date(doc.docDate).toLocaleDateString('lo-LA')}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-400 block uppercase">ເລກທີເອກະສານຍ່ອຍ</span>
+                    <span className="text-slate-700 font-semibold text-[14px]">{doc.subDocNo || '-'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-400 block uppercase">ວັນທີເອກະສານຍ່ອຍ</span>
+                    <span className="text-slate-700 font-semibold text-[14px]">
+                      {doc.subDocDate ? new Date(doc.subDocDate).toLocaleDateString('lo-LA') : '-'}
+                    </span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-[11px] font-bold text-slate-400 block uppercase">ວັນທີໝົດອາຍຸ</span>
+                    <span className={cn("font-bold text-[14px]", doc.docExpire ? "text-rose-500" : "text-slate-700")}>
+                      {doc.docExpire ? new Date(doc.docExpire).toLocaleDateString('lo-LA') : 'ບໍ່ມີວັນໝົດອາຍຸ'}
+                    </span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-[11px] font-bold text-slate-400 block uppercase">ຄຳອະທິບາຍ/ລາຍລະອຽດ</span>
+                    <p className="text-slate-600 font-medium text-[13.5px] mt-1 bg-slate-50 p-3 rounded-xl border border-slate-100/50 leading-relaxed whitespace-pre-wrap">
+                      {doc.description || 'ບໍ່ມີລາຍລະອຽດເພີ່ມເຕີມ'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="flex items-center gap-2 text-[#185C4D] font-bold text-[14px] mb-3 border-b border-slate-100 pb-1.5">
+                  <FolderOpen size={15} /> ໝວດໝູ່ ແລະ ບ່ອນຈັດເກັບ
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-400 block uppercase">ປະເພດເອກະສານ</span>
+                    <span className="text-slate-700 font-bold text-[14px] flex items-center gap-1.5 mt-1">
+                      <Layers size={14} className="text-[#185C4D]" /> {docTypeName}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-400 block uppercase">ແຟ້ມເອກະສານຈັດເກັບ</span>
+                    <span className="text-slate-700 font-bold text-[14px] flex items-center gap-1.5 mt-1">
+                      <FolderOpen size={14} className="text-[#185C4D]" /> {folderName}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-400 block uppercase">ສະຖານະການເກັບຮັກສາ</span>
+                    <span className={cn("inline-block font-bold text-[12px] px-2.5 py-0.5 rounded-full border mt-1.5", retention.color)}>
+                      {retention.text}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-400 block uppercase">ຜູກພັນສັນຍາ</span>
+                    <span className="inline-block mt-1.5">
+                      {doc.isContractBound ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                          <Scale size={11} /> ຜູກພັນສັນຍາ
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-500/10 text-slate-500 border border-slate-500/10">
+                          ເອກະສານທົ່ວໄປ
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: QR Code & Attachments (1 col) */}
+            <div className="space-y-6">
+              {/* QR Code Container */}
+              <div className="bg-white/60 border border-white p-5 rounded-2xl shadow-sm flex flex-col items-center justify-center text-center">
+                <h4 className="text-[12px] font-bold text-slate-400 flex items-center gap-1 mb-3 uppercase">
+                  <QrCode size={13} /> QR Code Reference
+                </h4>
+                
+                {/* Dynamically Generate QR Code containing the Document code or ID */}
+                <div className="bg-white p-3.5 rounded-2xl shadow-soft border border-slate-100">
+                  <QRCodeSVG 
+                    value={doc.qrCode || `EDOC-DOC-${doc.id}`}
+                    size={110} 
+                    bgColor="#ffffff"
+                    fgColor="#185C4D"
+                    level="Q"
+                  />
+                </div>
+                <span className="text-[12px] font-bold font-mono text-slate-500 mt-3 bg-slate-100/80 px-2.5 py-1 rounded-lg border border-slate-200/30">
+                  {doc.qrCode || `REF-${doc.docNo}`}
+                </span>
+              </div>
+
+              {/* Attachments list */}
+              <div>
+                <h4 className="text-[13px] font-bold text-[#185C4D] flex items-center gap-1.5 mb-2.5">
+                  <Paperclip size={14} /> ເອກະສານຄັດຕິດ ({doc.attachments?.length || 0})
+                </h4>
+                
+                {doc.attachments && doc.attachments.length > 0 ? (
+                  <div className="flex flex-col gap-2 max-h-[180px] overflow-y-auto pr-1">
+                    {doc.attachments.map(att => (
+                      <a 
+                        key={att.id}
+                        href={getAttachmentDownloadUrl(att.id)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between bg-white/70 hover:bg-white border border-slate-100 hover:border-[#185C4D]/30 p-2.5 rounded-xl shadow-xs transition-all text-slate-600 hover:text-[#185C4D] group cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2 overflow-hidden min-w-0">
+                          <FileText size={15} className="text-slate-400 group-hover:text-[#185C4D]" />
+                          <span className="text-[12px] font-semibold truncate" title={att.fileName}>
+                            {att.fileName}
+                          </span>
+                        </div>
+                        <ArrowDownToLine size={14} className="text-slate-400 group-hover:text-[#185C4D] shrink-0 ml-1.5" />
+                      </a>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-6 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-[12px] font-semibold">
+                    ບໍ່ມີໄຟລ໌ຄັດຕິດ
+                  </div>
+                )}
+              </div>
+            </div>
+
+          </div>
+
+          <Divider className="my-6 border-slate-100" />
+
+          {/* Action controls */}
+          <footer className="flex items-center justify-end gap-3 pt-2">
+            <Button 
+              type="primary" 
+              onClick={onClose} 
+              className="h-11 px-8 rounded-2xl bg-linear-to-r from-[#185C4D] to-[#206E5B] border-none font-bold text-white shadow-md hover:shadow-lg transition-all cursor-pointer"
+            >
+              ປິດໜ້າຕ່າງ
+            </Button>
+          </footer>
+
+        </main>
+      </div>
+    </Modal>
+  );
+}

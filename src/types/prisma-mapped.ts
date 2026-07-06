@@ -1,0 +1,376 @@
+// src/types/prisma-mapped.ts
+
+// ── Common / Shared ──────────────────────────────────────────
+
+export interface DropdownOption {
+  id: string | number;
+  code?: string;
+  name: string;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages?: number;
+}
+
+// ── Branch ───────────────────────────────────────────────────
+
+export interface Branch {
+  id: number;
+  code?: string;
+  name: string;
+  status?: string;
+}
+
+// ── Address ──────────────────────────────────────────────────
+// API: POST /addresses requires code, name, departmentId, divisionId
+
+export interface Address {
+  id: string;
+  code: string;
+  name: string;
+  details: string;
+  status: string;
+  departmentId: number;
+  divisionId: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateAddressPayload {
+  code: string;
+  name: string;
+  details?: string;
+  departmentId: number;
+  divisionId?: number | null;
+}
+
+// ── Warehouse ────────────────────────────────────────────────
+// API: Warehouse only has addressId (no branchId or divisionId)
+
+export interface Warehouse {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  status: string;
+  addressId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  // Optional relation
+  address?: Address;
+}
+
+export interface CreateWarehousePayload {
+  code?: string;
+  name: string;
+  description?: string;
+  addressId?: string;
+}
+
+// ── Locker ───────────────────────────────────────────────────
+
+export interface Locker {
+  id: string;
+  code: string;
+  name: string | null;
+  description: string | null;
+  status: string;
+  warehouseId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  // Optional relation
+  warehouse?: Warehouse;
+}
+
+export interface CreateLockerPayload {
+  code: string;
+  name?: string;
+  description?: string;
+  warehouseId?: string;
+}
+
+// ── Shelf ────────────────────────────────────────────────────
+
+export interface Shelf {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  status: string;
+  maxQty: number;
+  lockerId: string;
+  createdAt: string;
+  updatedAt: string;
+  // Optional relation
+  locker?: Locker;
+}
+
+export interface CreateShelfPayload {
+  code?: string;
+  name: string;
+  description?: string;
+  maxQty: number;
+  lockerId: string;
+}
+
+// ── Folder / Kono ────────────────────────────────────────────
+
+export interface Folder {
+  id: string;
+  code: string;
+  name: string;
+  status: string;
+  qrCode: string;
+  description?: string | null;
+  locationRef: string | null;
+  shelfId: string;
+  createdAt: string;
+  updatedAt: string;
+  // Optional relation
+  shelf?: Shelf;
+}
+
+export interface CreateFolderPayload {
+  code?: string;
+  name: string;
+  qrCode?: string;
+  description?: string;
+  shelfId: string;
+}
+
+export interface Kono {
+  id: string;
+  name: string;
+  folderId: string;
+  ownerId?: string | null;
+  status: 'AVAILABLE' | 'IN_USE';
+}
+
+// ── Document Type ────────────────────────────────────────────
+
+export interface DocumentType {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateDocumentTypePayload {
+  code?: string;
+  name: string;
+  description?: string;
+  isActive?: boolean;
+}
+
+// ── Attachment ───────────────────────────────────────────────
+
+export interface Attachment {
+  id: string;
+  documentId: string;
+  filePath: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ── Document ─────────────────────────────────────────────────
+
+export interface Document {
+  id: string;
+  docNo: string;
+  shortName: string | null;
+  docDate: string;
+  subDocNo: string | null;
+  subDocDate: string | null;
+  title: string;
+  description: string | null;
+  docExpire: string | null;
+  qrCode: string | null;
+  userId: string;
+  folderId: string;
+  documentTypeId: string;
+  isContractBound: boolean;
+  retentionStatus: string;
+  departmentId?: number | null;
+  divisionId?: number | null;
+  createdAt: string;
+  updatedAt: string;
+  attachments: Attachment[];
+
+  // Optional relations
+  folder?: Folder;
+  documentType?: DocumentType;
+}
+
+export interface CreateDocumentPayload {
+  docNo: string;
+  shortName?: string;
+  docDate: string;
+  subDocNo?: string;
+  subDocDate?: string;
+  title: string;
+  description?: string;
+  docExpire?: string;
+  qrCode?: string;
+  folderId: string;
+  documentTypeId: string;
+  isContractBound: boolean;
+  departmentId?: number;
+  divisionId?: number;
+  files?: File[];
+}
+
+export interface UpdateDocumentPayload {
+  docNo?: string;
+  shortName?: string;
+  docDate?: string;
+  subDocNo?: string;
+  subDocDate?: string;
+  title?: string;
+  description?: string;
+  docExpire?: string;
+  qrCode?: string;
+  folderId?: string;
+  documentTypeId?: string;
+  isContractBound?: boolean;
+  departmentId?: number;
+  divisionId?: number;
+}
+
+// ── Document Borrow ──────────────────────────────────────────
+
+export interface DocumentBorrow {
+  id: string;
+  documentId: string | null;
+  folderId: string | null;
+  borrower: string;
+  purpose: string | null;
+  toDivisionId: number | null;
+  toLocation: string | null;
+  note: string | null;
+  createdAt: string;
+  returnedAt: string | null;
+
+  // Optional relations
+  document?: Document;
+  folder?: Folder;
+}
+
+export interface CreateDocumentBorrowPayload {
+  documentId?: string;
+  folderId?: string;
+  borrower: string;
+  purpose?: string;
+  toDivisionId?: number;
+  toLocation?: string;
+  note?: string;
+}
+
+// ── Global Search ────────────────────────────────────────────
+
+export interface GlobalSearchEntityResult<T = unknown> {
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+  data: T[];
+}
+
+export interface GlobalSearchResult {
+  documents?: GlobalSearchEntityResult<Document>;
+  folders?: GlobalSearchEntityResult<Folder>;
+  warehouses?: GlobalSearchEntityResult<Warehouse>;
+  lockers?: GlobalSearchEntityResult<Locker>;
+  shelves?: GlobalSearchEntityResult<Shelf>;
+  users?: GlobalSearchEntityResult<unknown>;
+  addresses?: GlobalSearchEntityResult<Address>;
+  departments?: GlobalSearchEntityResult<unknown>;
+  divisions?: GlobalSearchEntityResult<unknown>;
+}
+
+// ── QR Code Lookup ───────────────────────────────────────────
+
+export interface QRLookupResult {
+  type: 'folder' | 'document';
+  data: (Folder | Document) & {
+    shelf?: Shelf;
+    locker?: Locker;
+    warehouse?: Warehouse;
+    address?: Address;
+  };
+}
+
+// ── Audit Log ────────────────────────────────────────────────
+
+export interface AuditLog {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  userId: string;
+  timestamp: string;
+  details?: string | null;
+}
+
+export interface DocumentHistory {
+  id: string;
+  documentId: string;
+  action: string;
+  userId: string;
+  timestamp: string;
+  details?: string | null;
+}
+
+// ── HRM: Department ──────────────────────────────────────────
+
+export interface Department {
+  id: number;
+  code: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  status: string;
+}
+
+// ── HRM: Division ────────────────────────────────────────────
+
+export interface Division {
+  id: number;
+  code: string;
+  name: string;
+  shortName?: string;
+  status: string;
+  departmentId: number;
+  branchId?: number;
+}
+
+// ── HRM: Office ──────────────────────────────────────────────
+
+export interface Office {
+  id: number;
+  code: string;
+  name: string;
+  status: string;
+  divisionId?: number;
+}
+
+// ── HRM: Unit ────────────────────────────────────────────────
+
+export interface Unit {
+  id: number;
+  code: string;
+  name: string;
+  type?: string;
+  status: string;
+  officeId?: number | null;
+  divisionId?: number;
+}
