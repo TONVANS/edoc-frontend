@@ -46,3 +46,5 @@ edl-e-document.postman_collection.json
 E-Document_Collection.postman_collection.json
 .agent
 design-system
+Dockerfile
+.dockerignore
