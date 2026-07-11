@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useMemo, Suspense } from 'react';
 import { Plus, Layers } from 'lucide-react';
 import { Button, message, Modal } from 'antd';
+import { useAddressStore } from '@/store/useAddressStore';
 import { useShelfStore } from '@/store/useShelfStore';
 import { useLockerStore } from '@/store/useLockerStore';
 import { useWarehouseStore } from '@/store/useWarehouseStore';
@@ -12,17 +13,19 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 function ShelvesPageContent() {
   const { shelves, total, isLoading: isShelfLoading, fetchShelves, createShelf, updateShelf, deleteShelf } = useShelfStore();
-  const { lockers, fetchLockers } = useLockerStore();
-  const { warehouses, fetchWarehouses } = useWarehouseStore();
+  const { lockerDropdown, fetchLockerDropdown } = useLockerStore();
+  const { warehouseDropdown, fetchWarehouseDropdown } = useWarehouseStore();
+  const { addressDropdown, fetchAddressDropdown } = useAddressStore();
   
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialLockerId = searchParams.get('lockerId') || 'all';
   const initialWarehouseId = searchParams.get('warehouseId') || 'all';
+  const initialAddressId = searchParams.get('addressId') || 'all';
 
   const [filterLockerId, setFilterLockerId] = useState<string>(initialLockerId);
   const [filterWarehouseId, setFilterWarehouseId] = useState<string>(initialWarehouseId);
-  const [activeStatus, setActiveStatus] = useState('all');
+  const [filterAddressId, setFilterAddressId] = useState<string>(initialAddressId);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchName, setSearchName] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -46,27 +49,37 @@ function ShelvesPageContent() {
   }, [searchName]);
 
   useEffect(() => {
-    if (lockers.length === 0) fetchLockers();
-    if (warehouses.length === 0) fetchWarehouses();
-  }, [lockers.length, warehouses.length, fetchLockers, fetchWarehouses]);
+    fetchAddressDropdown();
+    if (filterAddressId && filterAddressId !== 'all') {
+      fetchWarehouseDropdown({ addressId: filterAddressId });
+    } else {
+      fetchWarehouseDropdown();
+    }
+  }, [fetchAddressDropdown, fetchWarehouseDropdown, filterAddressId]);
+
+  useEffect(() => {
+    fetchLockerDropdown({ warehouseId: filterWarehouseId !== 'all' ? filterWarehouseId : undefined });
+  }, [filterWarehouseId, fetchLockerDropdown]);
 
   useEffect(() => {
     fetchShelves({
       page: currentPage,
-      limit: 5,
+      limit: 8,
       lockerId: filterLockerId === 'all' ? undefined : filterLockerId,
       warehouseId: filterWarehouseId === 'all' ? undefined : filterWarehouseId,
-      status: activeStatus === 'all' ? undefined : activeStatus,
+      // Since address filtering isn't supported directly by fetchShelves usually, we rely on warehouseId
       search: debouncedSearch || undefined,
     });
-  }, [filterLockerId, filterWarehouseId, activeStatus, currentPage, debouncedSearch, fetchShelves]);
+  }, [filterLockerId, filterWarehouseId, currentPage, debouncedSearch, fetchShelves]);
 
   // Sync state if URL param changes
   useEffect(() => {
     const lockerParam = searchParams.get('lockerId') || 'all';
     const warehouseParam = searchParams.get('warehouseId') || 'all';
+    const addressParam = searchParams.get('addressId') || 'all';
     setFilterLockerId(lockerParam);
     setFilterWarehouseId(warehouseParam);
+    setFilterAddressId(addressParam);
     setCurrentPage(1);
   }, [searchParams]);
 
@@ -94,9 +107,9 @@ function ShelvesPageContent() {
         messageApi.success(editingShelf ? 'ແກ້ໄຂຂໍ້ມູນຊັ້ນວາງສຳເລັດແລ້ວ!' : 'ເພີ່ມຂໍ້ມູນຊັ້ນວາງໃໝ່ສຳເລັດແລ້ວ!');
         fetchShelves({
           page: currentPage,
-          limit: 5,
+          limit: 8,
           lockerId: filterLockerId === 'all' ? undefined : filterLockerId,
-          status: activeStatus === 'all' ? undefined : activeStatus,
+          warehouseId: filterWarehouseId === 'all' ? undefined : filterWarehouseId,
           search: debouncedSearch || undefined,
         });
       }
@@ -119,10 +132,9 @@ function ShelvesPageContent() {
           messageApi.success('ລຶບຂໍ້ມູນຊັ້ນວາງສຳເລັດແລ້ວ!');
           fetchShelves({
             page: currentPage,
-            limit: 5,
+            limit: 8,
             lockerId: filterLockerId === 'all' ? undefined : filterLockerId,
             warehouseId: filterWarehouseId === 'all' ? undefined : filterWarehouseId,
-            status: activeStatus === 'all' ? undefined : activeStatus,
             search: debouncedSearch || undefined,
           });
         }
@@ -194,26 +206,34 @@ function ShelvesPageContent() {
           }}
           onDelete={handleDelete}
           onManage={(shelf) => {
-            router.push(`/dashboard/folder?shelfId=${shelf.id}`);
+            router.push(`/dashboard/shelves/${shelf.id}`);
           }}
-          lockers={lockers}
+          addressOptions={addressDropdown.map(a => ({ value: String(a.id), label: a.name }))}
+          filterAddress={filterAddressId}
+          onFilterAddressChange={(id) => {
+            setFilterAddressId(id);
+            setFilterWarehouseId('all');
+            setFilterLockerId('all');
+            setCurrentPage(1);
+            router.replace(`/dashboard/shelves?addressId=${id}`);
+          }}
+          warehouses={warehouseDropdown}
+          filterWarehouse={filterWarehouseId}
+          onFilterWarehouseChange={(id) => {
+            setFilterWarehouseId(id);
+            setFilterLockerId('all'); // Reset locker filter when warehouse changes
+            setCurrentPage(1);
+            const addressParam = filterAddressId !== 'all' ? `addressId=${filterAddressId}&` : '';
+            router.replace(`/dashboard/shelves?${addressParam}warehouseId=${id}`);
+          }}
+          lockers={lockerDropdown}
           filterLocker={filterLockerId}
           onFilterLockerChange={(id) => {
             setFilterLockerId(id);
             setCurrentPage(1);
-            router.replace(`/dashboard/shelves?lockerId=${id}${filterWarehouseId !== 'all' ? `&warehouseId=${filterWarehouseId}` : ''}`);
-          }}
-          warehouses={warehouses}
-          filterWarehouse={filterWarehouseId}
-          onFilterWarehouseChange={(id) => {
-            setFilterWarehouseId(id);
-            setCurrentPage(1);
-            router.replace(`/dashboard/shelves?warehouseId=${id}${filterLockerId !== 'all' ? `&lockerId=${filterLockerId}` : ''}`);
-          }}
-          filterStatus={activeStatus}
-          onFilterStatusChange={(status) => {
-            setActiveStatus(status);
-            setCurrentPage(1);
+            const addressParam = filterAddressId !== 'all' ? `addressId=${filterAddressId}&` : '';
+            const warehouseParam = filterWarehouseId !== 'all' ? `warehouseId=${filterWarehouseId}&` : '';
+            router.replace(`/dashboard/shelves?${addressParam}${warehouseParam}lockerId=${id}`);
           }}
         />
       </div>

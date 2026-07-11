@@ -188,11 +188,11 @@ export default function AddressFormModal({
                 <Form.Item
                   label={
                     <span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1">
-                      <Building2 size={14} className="text-slate-400" /> ກົມ/ພະແນກ <span className="text-rose-500">*</span>
+                      <Building2 size={14} className="text-slate-400" /> ຝ່າຍ <span className="text-rose-500">*</span>
                     </span>
                   }
                   name="departmentId"
-                  rules={[{ required: true, message: 'ກະລຸນາເລືອກກົມ/ພະແນກ!' }]}
+                  rules={[{ required: true, message: 'ກະລຸນາເລືອກຝ່າຍ!' }]}
                   className="mb-0"
                 >
                   <AddressDepartmentSelect />
@@ -201,7 +201,7 @@ export default function AddressFormModal({
                 <Form.Item
                   label={
                     <span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1">
-                      <GitBranch size={14} className="text-slate-400" /> ພະແນກຍ່ອຍ/ສາຂາ <span className="text-slate-400 font-medium ml-1">(Optional)</span>
+                      <GitBranch size={14} className="text-slate-400" /> ພະແນກ/ສາຂາ <span className="text-slate-400 font-medium ml-1">(Optional)</span>
                     </span>
                   }
                   name="divisionId"
@@ -288,7 +288,7 @@ function AddressDepartmentSelect(props: any) {
       {...props}
       showSearch
       loading={isLoading}
-      placeholder="ເລືອກກົມ/ພະແນກ"
+      placeholder="ເລືອກຝ່າຍ"
       optionFilterProp="label"
       options={departments.map(d => ({ label: d.name, value: d.id }))}
       className="[&_.ant-select-selector]:rounded-2xl! [&_.ant-select-selector]:bg-white/40! [&_.ant-select-selector]:backdrop-blur-md [&_.ant-select-selector]:border-white/60! hover:[&_.ant-select-selector]:bg-white/60! focus-within:[&_.ant-select-selector]:bg-white! [&_.ant-select-selector]:shadow-sm! [&_.ant-select-selector]:h-12! [&_.ant-select-selection-item]:leading-[46px]! [&_.ant-select-selection-placeholder]:leading-[46px]!"
@@ -328,7 +328,7 @@ function AddressDivisionSelect({ form, ...props }: any) {
       allowClear
       loading={isLoading}
       disabled={!departmentId}
-      placeholder={departmentId ? "ເລືອກພະແນກຍ່ອຍ/ສາຂາ" : "ກະລຸນາເລືອກກົມ/ພະແນກກ່ອນ"}
+      placeholder={departmentId ? "ເລືອກພະແນກ/ສາຂາ" : "ກະລຸນາເລືອກຝ່າຍກ່ອນ"}
       optionFilterProp="label"
       options={divisions.map(d => ({ label: d.name, value: d.id }))}
       className="[&_.ant-select-selector]:rounded-2xl! [&_.ant-select-selector]:bg-white/40! [&_.ant-select-selector]:backdrop-blur-md [&_.ant-select-selector]:border-white/60! hover:[&_.ant-select-selector]:bg-white/60! focus-within:[&_.ant-select-selector]:bg-white! [&_.ant-select-selector]:shadow-sm! [&_.ant-select-selector]:h-12! [&_.ant-select-selection-item]:leading-[46px]! [&_.ant-select-selection-placeholder]:leading-[46px]!"

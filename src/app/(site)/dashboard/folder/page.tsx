@@ -2,6 +2,9 @@
 import React, { useEffect, useState, useMemo, Suspense } from 'react';
 import { Plus, Folder as FolderIcon } from 'lucide-react';
 import { Button, message, Modal } from 'antd';
+import { useAddressStore } from '@/store/useAddressStore';
+import { useWarehouseStore } from '@/store/useWarehouseStore';
+import { useLockerStore } from '@/store/useLockerStore';
 import { useFolderStore } from '@/store/useFolderStore';
 import { useShelfStore } from '@/store/useShelfStore';
 import { useDocumentStore } from '@/store/useDocumentStore';
@@ -15,14 +18,22 @@ import { useRouter, useSearchParams } from 'next/navigation';
 function FolderPageContent() {
   const { folders, total, isLoading: isFolderLoading, fetchFolders, createFolder, updateFolder, deleteFolder } = useFolderStore();
   const { shelves, fetchShelves } = useShelfStore();
+  const { lockerDropdown, fetchLockerDropdown } = useLockerStore();
+  const { warehouseDropdown, fetchWarehouseDropdown } = useWarehouseStore();
+  const { addressDropdown, fetchAddressDropdown } = useAddressStore();
   const { isLoading: isDocLoading, createDocument, uploadAttachments } = useDocumentStore();
   
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialShelfId = searchParams.get('shelfId') || 'all';
+  const initialLockerId = searchParams.get('lockerId') || 'all';
+  const initialWarehouseId = searchParams.get('warehouseId') || 'all';
+  const initialAddressId = searchParams.get('addressId') || 'all';
 
   const [filterShelfId, setFilterShelfId] = useState<string>(initialShelfId);
-  const [activeStatus, setActiveStatus] = useState('all');
+  const [filterLockerId, setFilterLockerId] = useState<string>(initialLockerId);
+  const [filterWarehouseId, setFilterWarehouseId] = useState<string>(initialWarehouseId);
+  const [filterAddressId, setFilterAddressId] = useState<string>(initialAddressId);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchName, setSearchName] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -54,23 +65,42 @@ function FolderPageContent() {
   }, [searchName]);
 
   useEffect(() => {
-    if (shelves.length === 0) fetchShelves();
-  }, [shelves.length, fetchShelves]);
+    fetchAddressDropdown();
+    if (filterAddressId && filterAddressId !== 'all') {
+      fetchWarehouseDropdown({ addressId: filterAddressId });
+    } else {
+      fetchWarehouseDropdown();
+    }
+  }, [fetchAddressDropdown, fetchWarehouseDropdown, filterAddressId]);
+
+  useEffect(() => {
+    fetchLockerDropdown({ warehouseId: filterWarehouseId !== 'all' ? filterWarehouseId : undefined });
+  }, [filterWarehouseId, fetchLockerDropdown]);
+
+  useEffect(() => {
+    fetchShelves({ lockerId: filterLockerId !== 'all' ? filterLockerId : undefined, limit: 1000 });
+  }, [filterLockerId, fetchShelves]);
 
   useEffect(() => {
     fetchFolders({
       page: currentPage,
       limit: 5,
       shelfId: filterShelfId === 'all' ? undefined : filterShelfId,
-      status: activeStatus === 'all' ? undefined : activeStatus,
+      // the backend doesn't take addressId etc for folders directly typically, so we just pass what it takes.
       search: debouncedSearch || undefined,
     });
-  }, [filterShelfId, activeStatus, currentPage, debouncedSearch, fetchFolders]);
+  }, [filterShelfId, currentPage, debouncedSearch, fetchFolders]);
 
   // Sync state if URL param changes
   useEffect(() => {
-    const paramId = searchParams.get('shelfId') || 'all';
-    setFilterShelfId(paramId);
+    const shelfParam = searchParams.get('shelfId') || 'all';
+    const lockerParam = searchParams.get('lockerId') || 'all';
+    const warehouseParam = searchParams.get('warehouseId') || 'all';
+    const addressParam = searchParams.get('addressId') || 'all';
+    setFilterShelfId(shelfParam);
+    setFilterLockerId(lockerParam);
+    setFilterWarehouseId(warehouseParam);
+    setFilterAddressId(addressParam);
     setCurrentPage(1);
   }, [searchParams]);
 
@@ -99,7 +129,6 @@ function FolderPageContent() {
       page: currentPage,
       limit: 5,
       shelfId: filterShelfId === 'all' ? undefined : filterShelfId,
-      status: activeStatus === 'all' ? undefined : activeStatus,
       search: debouncedSearch || undefined,
     });
   };
@@ -120,7 +149,6 @@ function FolderPageContent() {
           page: currentPage,
           limit: 5,
           shelfId: filterShelfId === 'all' ? undefined : filterShelfId,
-          status: activeStatus === 'all' ? undefined : activeStatus,
           search: debouncedSearch || undefined,
         });
       }
@@ -145,7 +173,6 @@ function FolderPageContent() {
             page: currentPage,
             limit: 5,
             shelfId: filterShelfId === 'all' ? undefined : filterShelfId,
-            status: activeStatus === 'all' ? undefined : activeStatus,
             search: debouncedSearch || undefined,
           });
         }
@@ -241,19 +268,47 @@ function FolderPageContent() {
           onUploadDocument={handleUploadDocument}
           onMove={handleOpenMoveModal}
           onManage={(folder) => {
-            router.push(`/dashboard/documents?folderId=${folder.id}`);
+            router.push(`/dashboard/folder/${folder.id}`);
+          }}
+          addressOptions={addressDropdown.map(a => ({ value: String(a.id), label: a.name }))}
+          filterAddress={filterAddressId}
+          onFilterAddressChange={(id) => {
+            setFilterAddressId(id);
+            setFilterWarehouseId('all');
+            setFilterLockerId('all');
+            setFilterShelfId('all');
+            setCurrentPage(1);
+            router.replace(`/dashboard/folder?addressId=${id}`);
+          }}
+          warehouseOptions={warehouseDropdown.map(w => ({ value: String(w.id), label: w.name }))}
+          filterWarehouse={filterWarehouseId}
+          onFilterWarehouseChange={(id) => {
+            setFilterWarehouseId(id);
+            setFilterLockerId('all');
+            setFilterShelfId('all');
+            setCurrentPage(1);
+            const addressParam = filterAddressId !== 'all' ? `addressId=${filterAddressId}&` : '';
+            router.replace(`/dashboard/folder?${addressParam}warehouseId=${id}`);
+          }}
+          lockerOptions={lockerDropdown.map(l => ({ value: String(l.id), label: l.name || l.code || '' }))}
+          filterLocker={filterLockerId}
+          onFilterLockerChange={(id) => {
+            setFilterLockerId(id);
+            setFilterShelfId('all');
+            setCurrentPage(1);
+            const addressParam = filterAddressId !== 'all' ? `addressId=${filterAddressId}&` : '';
+            const warehouseParam = filterWarehouseId !== 'all' ? `warehouseId=${filterWarehouseId}&` : '';
+            router.replace(`/dashboard/folder?${addressParam}${warehouseParam}lockerId=${id}`);
           }}
           shelves={shelves}
           filterShelf={filterShelfId}
           onFilterShelfChange={(id) => {
             setFilterShelfId(id);
             setCurrentPage(1);
-            router.replace(`/dashboard/folder?shelfId=${id}`);
-          }}
-          filterStatus={activeStatus}
-          onFilterStatusChange={(status) => {
-            setActiveStatus(status);
-            setCurrentPage(1);
+            const addressParam = filterAddressId !== 'all' ? `addressId=${filterAddressId}&` : '';
+            const warehouseParam = filterWarehouseId !== 'all' ? `warehouseId=${filterWarehouseId}&` : '';
+            const lockerParam = filterLockerId !== 'all' ? `lockerId=${filterLockerId}&` : '';
+            router.replace(`/dashboard/folder?${addressParam}${warehouseParam}${lockerParam}shelfId=${id}`);
           }}
         />
       </div>

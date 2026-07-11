@@ -41,8 +41,8 @@ export default function DepartmentsPage() {
               <Building2 className="text-[#185C4D] w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-800 tracking-tight">ຂໍ້ມູນກົມ/ພະແນກ (HRM)</h1>
-              <p className="text-slate-500 text-sm mt-0.5">ລາຍຊື່ກົມ/ພະແນກທີ່ດຶງຂໍ້ມູນມາຈາກລະບົບ HRM</p>
+              <h1 className="text-2xl font-bold text-slate-800 tracking-tight">ຂໍ້ມູນຝ່າຍ (HRM)</h1>
+              <p className="text-slate-500 text-sm mt-0.5">ລາຍຊື່ຝ່າຍທີ່ດຶງຂໍ້ມູນມາຈາກລະບົບ HRM</p>
             </div>
           </div>
 

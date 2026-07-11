@@ -14,9 +14,11 @@ interface AddressState {
   addressDropdown: DropdownOption[];
   total: number;
   isLoading: boolean;
+  currentAddress: Address | null;
 
   // ── Actions ──
-  fetchAddresses: (params?: { page?: number; limit?: number; search?: string; status?: string }) => Promise<void>;
+  fetchAddresses: (params?: { page?: number; limit?: number; search?: string; status?: string; departmentId?: number | string; divisionId?: number | string }) => Promise<void>;
+  fetchAddressById: (id: string) => Promise<void>;
   fetchAddressDropdown: (params?: { departmentId?: number; divisionId?: number }) => Promise<void>;
   createAddress: (payload: CreateAddressPayload) => Promise<boolean>;
   updateAddress: (id: string | number, payload: Partial<CreateAddressPayload & { status: string }>) => Promise<boolean>;
@@ -28,6 +30,7 @@ export const useAddressStore = create<AddressState>((set, get) => ({
   addressDropdown: [],
   total: 0,
   isLoading: false,
+  currentAddress: null,
 
   fetchAddresses: async (params = {}) => {
     set({ isLoading: true });
@@ -40,6 +43,17 @@ export const useAddressStore = create<AddressState>((set, get) => ({
     } catch (error) {
       set({ isLoading: false });
       console.error('Failed to fetch addresses:', error);
+    }
+  },
+
+  fetchAddressById: async (id: string) => {
+    set({ isLoading: true, currentAddress: null });
+    try {
+      const response = await api.get<{ data: Address }>(`/addresses/${id}`);
+      set({ currentAddress: response.data?.data || (response.data as any), isLoading: false });
+    } catch (error) {
+      set({ isLoading: false });
+      console.error('Failed to fetch address by id:', error);
     }
   },
 

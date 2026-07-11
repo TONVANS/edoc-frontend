@@ -22,7 +22,11 @@ import {
   Trash2,
   Download,
   Building2,
-  GitBranch
+  GitBranch,
+  MapPin,
+  Package,
+  Archive,
+  Server
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
@@ -88,11 +92,14 @@ export default function DocumentFormModal({
   }, [isOpen, initialData, form]);
 
   const handleFinish = (values: any) => {
+    // Remove temporary location fields used only for dropdown filtering
+    const { addressId, warehouseId, lockerId, shelfId, ...restValues } = values;
+
     const formattedValues = {
-      ...values,
-      docDate: values.docDate ? values.docDate.toISOString() : undefined,
-      docExpire: values.docExpire ? values.docExpire.toISOString() : undefined,
-      subDocDate: values.subDocDate ? values.subDocDate.toISOString() : undefined,
+      ...restValues,
+      docDate: restValues.docDate ? restValues.docDate.toISOString() : undefined,
+      docExpire: restValues.docExpire ? restValues.docExpire.toISOString() : undefined,
+      subDocDate: restValues.subDocDate ? restValues.subDocDate.toISOString() : undefined,
     };
 
     // Extract raw File objects from Ant Design Upload component list
@@ -249,27 +256,37 @@ export default function DocumentFormModal({
               </div>
             </div>
 
-            {/* ── Section 2: Storage & Classification ── */}
+            {/* ── Section 2: Source Department ── */}
+            <div>
+              <h3 className="flex items-center gap-2 text-[#185C4D] font-bold text-[15px] mb-4 border-b border-slate-100 pb-2">
+                <Building2 size={16} /> ມາຈາກພາກສ່ວນ
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <Form.Item
+                  label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1.5"><Building2 size={14} className="text-slate-400" /> ຝ່າຍ <span className="text-rose-500">*</span></span>}
+                  name="departmentId"
+                  rules={[{ required: true, message: 'ກະລຸນາເລືອກຝ່າຍ!' }]}
+                >
+                  <DocumentDepartmentSelect />
+                </Form.Item>
+
+                <Form.Item
+                  label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1.5"><GitBranch size={14} className="text-slate-400" /> ພະແນກ/ສາຂາ</span>}
+                  name="divisionId"
+                >
+                  <DocumentDivisionSelect form={form} />
+                </Form.Item>
+              </div>
+            </div>
+
+            {/* ── Section 3: Storage & Classification ── */}
             <div>
               <h3 className="flex items-center gap-2 text-[#185C4D] font-bold text-[15px] mb-4 border-b border-slate-100 pb-2">
                 <FolderOpen size={16} /> ໝວດໝູ່ & ການຈັດເກັບ
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <Form.Item
-                  label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1.5"><Building2 size={14} className="text-slate-400" /> ກົມ/ພະແນກ <span className="text-rose-500">*</span></span>}
-                  name="departmentId"
-                  rules={[{ required: true, message: 'ກະລຸນາເລືອກກົມ/ພະແນກ!' }]}
-                >
-                  <DocumentDepartmentSelect />
-                </Form.Item>
-
-                <Form.Item
-                  label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1.5"><GitBranch size={14} className="text-slate-400" /> ພະແນກຍ່ອຍ/ສາຂາ</span>}
-                  name="divisionId"
-                >
-                  <DocumentDivisionSelect form={form} />
-                </Form.Item>
 
                 <Form.Item
                   label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1"><Layers size={14} className="text-slate-400" /> ປະເພດເອກະສານ <span className="text-rose-500">*</span></span>}
@@ -283,17 +300,7 @@ export default function DocumentFormModal({
                   </Select>
                 </Form.Item>
 
-                <Form.Item
-                  label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1"><FolderOpen size={14} className="text-slate-400" /> ແຟ້ມເອກະສານ <span className="text-rose-500">*</span></span>}
-                  name="folderId"
-                  rules={[{ required: true, message: 'ກະລຸນາເລືອກແຟ້ມເອກະສານ!' }]}
-                >
-                  <Select placeholder="ເລືອກແຟ້ມເອກະສານ" className="w-full h-12 [&_.ant-select-selector]:rounded-2xl!" size="large">
-                    {folders.map(f => (
-                      <Select.Option key={f.id} value={f.id}>{f.name || f.code}</Select.Option>
-                    ))}
-                  </Select>
-                </Form.Item>
+                <DocumentStorageCascader form={form} folders={folders} />
 
                 {initialData && (
                   <Form.Item
@@ -301,9 +308,9 @@ export default function DocumentFormModal({
                     name="retentionStatus"
                   >
                     <Select className="w-full h-12 [&_.ant-select-selector]:rounded-2xl!" size="large" disabled>
-                      <Select.Option value="ACTIVE">ເອກະສານທົ່ວໄປ</Select.Option>
+                      <Select.Option value="ACTIVE">10ປີ ສາມາດທຳລາຍໄດ້</Select.Option>
                       <Select.Option value="DESTROYABLE">ສາມາດທຳລາຍໄດ້ (Destroyable)</Select.Option>
-                      <Select.Option value="DESTROYABLE_HOLD">ຕິດສັນຍາ ຫ້າມທຳລາຍ (Destroyable Hold)</Select.Option>
+                      <Select.Option value="DESTROYABLE_HOLD">10ປີ ຫ້າມທຳລາຍ</Select.Option>
                       <Select.Option value="EXPIRED">ໝົດອາຍຸ ເຖິງກຳນົດທຳລາຍ (Expired)</Select.Option>
                     </Select>
                   </Form.Item>
@@ -319,7 +326,7 @@ export default function DocumentFormModal({
                     <Form.Item noStyle shouldUpdate={(prev, curr) => prev.isContractBound !== curr.isContractBound}>
                       {() => (
                         <span className="text-slate-600 font-bold text-[14px]">
-                          {form.getFieldValue('isContractBound') ? 'ແມ່ນ (ຜູກພັນສັນຍາ)' : 'ບໍ່ແມ່ນ (ທົ່ວໄປ)'}
+                          {form.getFieldValue('isContractBound') ? '10ປີ (ຫ້າມທຳລາຍ)' : '10ປີ ທຳລາຍໄດ້'}
                         </span>
                       )}
                     </Form.Item>
@@ -328,7 +335,7 @@ export default function DocumentFormModal({
               </div>
             </div>
 
-            {/* ── Section 3: Attachments ── */}
+            {/* ── Section 4: Attachments ── */}
             <div>
               <h3 className="flex items-center gap-2 text-[#185C4D] font-bold text-[15px] mb-4 border-b border-slate-100 pb-2">
                 <Paperclip size={16} /> ໄຟລ໌ເອກະສານຄັດຕິດ
@@ -413,7 +420,7 @@ function DocumentDepartmentSelect(props: any) {
       {...props}
       showSearch
       loading={isLoading}
-      placeholder="ເລືອກກົມ/ພະແນກ"
+      placeholder="ເລືອກຝ່າຍ"
       optionFilterProp="label"
       options={departments.map(d => ({ label: d.name, value: d.id }))}
       className="w-full h-12 [&_.ant-select-selector]:rounded-2xl!"
@@ -454,11 +461,189 @@ function DocumentDivisionSelect({ form, ...props }: any) {
       allowClear
       loading={isLoading}
       disabled={!departmentId}
-      placeholder={departmentId ? "ເລືອກພະແນກຍ່ອຍ/ສາຂາ" : "ກະລຸນາເລືອກກົມ/ພະແນກກ່ອນ"}
+      placeholder={departmentId ? "ເລືອກພະແນກຍ່ອຍ" : "ກະລຸນາເລືອກຝ່າຍກ່ອນ"}
       optionFilterProp="label"
       options={divisions.map(d => ({ label: d.name, value: d.id }))}
       className="w-full h-12 [&_.ant-select-selector]:rounded-2xl!"
       size="large"
     />
+  );
+}
+
+function DocumentStorageCascader({ form, folders }: { form: any, folders: any[] }) {
+  const [addresses, setAddresses] = useState<any[]>([]);
+  const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [lockers, setLockers] = useState<any[]>([]);
+  const [shelves, setShelves] = useState<any[]>([]);
+  const [filteredFolders, setFilteredFolders] = useState<any[]>(folders);
+  
+  const [isLoading, setIsLoading] = useState({
+    address: false,
+    warehouse: false,
+    locker: false,
+    shelf: false,
+    folder: false
+  });
+
+  const addressId = Form.useWatch('addressId', form);
+  const warehouseId = Form.useWatch('warehouseId', form);
+  const lockerId = Form.useWatch('lockerId', form);
+  const shelfId = Form.useWatch('shelfId', form);
+
+  useEffect(() => {
+    setIsLoading(prev => ({ ...prev, address: true }));
+    api.get('/addresses/dropdown').then(res => {
+      setAddresses(res.data?.data || res.data || []);
+    }).finally(() => setIsLoading(prev => ({ ...prev, address: false })));
+  }, []);
+
+  useEffect(() => {
+    if (addressId) {
+      setIsLoading(prev => ({ ...prev, warehouse: true }));
+      api.get(`/warehouses/dropdown?addressId=${addressId}`).then(res => {
+        setWarehouses(res.data?.data || res.data || []);
+      }).finally(() => setIsLoading(prev => ({ ...prev, warehouse: false })));
+    } else {
+      setWarehouses([]);
+    }
+  }, [addressId]);
+
+  useEffect(() => {
+    if (warehouseId) {
+      setIsLoading(prev => ({ ...prev, locker: true }));
+      api.get(`/lockers/dropdown?warehouseId=${warehouseId}`).then(res => {
+        setLockers(res.data?.data || res.data || []);
+      }).finally(() => setIsLoading(prev => ({ ...prev, locker: false })));
+    } else {
+      setLockers([]);
+    }
+  }, [warehouseId]);
+
+  useEffect(() => {
+    if (lockerId) {
+      setIsLoading(prev => ({ ...prev, shelf: true }));
+      api.get(`/shelves`, {
+        params: {
+          page: 1,
+          limit: 100, // Using 100 to ensure dropdown has enough options
+          search: '',
+          lockerId: lockerId,
+          warehouseId: warehouseId || ''
+        }
+      }).then(res => {
+        const resData = res.data?.data;
+        const shelvesData = Array.isArray(resData) ? resData : (resData as any)?.data || [];
+        setShelves(shelvesData);
+      }).finally(() => setIsLoading(prev => ({ ...prev, shelf: false })));
+    } else {
+      setShelves([]);
+    }
+  }, [lockerId, warehouseId]);
+
+  useEffect(() => {
+    if (shelfId) {
+      setIsLoading(prev => ({ ...prev, folder: true }));
+      api.get(`/folders`, {
+        params: {
+          page: 1,
+          limit: 100,
+          shelfId: shelfId
+        }
+      }).then(res => {
+        const resData = res.data?.data;
+        const foldersData = Array.isArray(resData) ? resData : (resData as any)?.data || [];
+        setFilteredFolders(foldersData);
+      }).finally(() => setIsLoading(prev => ({ ...prev, folder: false })));
+    } else {
+      setFilteredFolders(folders);
+    }
+  }, [shelfId, folders]);
+
+  return (
+    <>
+      <Form.Item
+        label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1.5"><MapPin size={14} className="text-slate-400" /> ສະຖານທີ່ (Address)</span>}
+        name="addressId"
+      >
+        <Select 
+          showSearch
+          optionFilterProp="label"
+          placeholder="ເລືອກສະຖານທີ່" 
+          allowClear
+          loading={isLoading.address}
+          onChange={() => form.setFieldsValue({ warehouseId: undefined, lockerId: undefined, shelfId: undefined, folderId: undefined })}
+          options={addresses.map(a => ({ label: a.name, value: a.id }))}
+          className="w-full h-12 [&_.ant-select-selector]:rounded-2xl!" 
+          size="large" 
+        />
+      </Form.Item>
+      <Form.Item
+        label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1.5"><Package size={14} className="text-slate-400" /> ສາງ (Warehouse)</span>}
+        name="warehouseId"
+      >
+        <Select 
+          showSearch
+          optionFilterProp="label"
+          placeholder={addressId ? "ເລືອກສາງ" : "ກະລຸນາເລືອກສະຖານທີ່ກ່ອນ"}
+          allowClear
+          disabled={!addressId}
+          loading={isLoading.warehouse}
+          onChange={() => form.setFieldsValue({ lockerId: undefined, shelfId: undefined, folderId: undefined })}
+          options={warehouses.map(w => ({ label: w.name, value: w.id }))}
+          className="w-full h-12 [&_.ant-select-selector]:rounded-2xl!" 
+          size="large" 
+        />
+      </Form.Item>
+      <Form.Item
+        label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1.5"><Archive size={14} className="text-slate-400" /> ຕູ້ (Locker)</span>}
+        name="lockerId"
+      >
+        <Select 
+          showSearch
+          optionFilterProp="label"
+          placeholder={warehouseId ? "ເລືອກຕູ້" : "ກະລຸນາເລືອກສາງກ່ອນ"}
+          allowClear
+          disabled={!warehouseId}
+          loading={isLoading.locker}
+          onChange={() => form.setFieldsValue({ shelfId: undefined, folderId: undefined })}
+          options={lockers.map(l => ({ label: l.name, value: l.id }))}
+          className="w-full h-12 [&_.ant-select-selector]:rounded-2xl!" 
+          size="large" 
+        />
+      </Form.Item>
+      <Form.Item
+        label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1.5"><Server size={14} className="text-slate-400" /> ຊັ້ນ (Shelf)</span>}
+        name="shelfId"
+      >
+        <Select 
+          showSearch
+          optionFilterProp="label"
+          placeholder={lockerId ? "ເລືອກຊັ້ນ" : "ກະລຸນາເລືອກຕູ້ກ່ອນ"}
+          allowClear
+          disabled={!lockerId}
+          loading={isLoading.shelf}
+          onChange={() => form.setFieldsValue({ folderId: undefined })}
+          options={shelves.map(s => ({ label: s.name, value: s.id }))}
+          className="w-full h-12 [&_.ant-select-selector]:rounded-2xl!" 
+          size="large" 
+        />
+      </Form.Item>
+      <Form.Item
+        label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1"><FolderOpen size={14} className="text-slate-400" /> ແຟ້ມເອກະສານ <span className="text-rose-500">*</span></span>}
+        name="folderId"
+        rules={[{ required: true, message: 'ກະລຸນາເລືອກແຟ້ມເອກະສານ!' }]}
+      >
+        <Select 
+          showSearch
+          optionFilterProp="label"
+          placeholder={shelfId ? "ເລືອກແຟ້ມເອກະສານ" : "ເລືອກແຟ້ມເອກະສານ (ທັງໝົດ)"}
+          allowClear
+          loading={isLoading.folder}
+          options={filteredFolders.map(f => ({ label: f.name || f.code, value: f.id }))}
+          className="w-full h-12 [&_.ant-select-selector]:rounded-2xl!" 
+          size="large" 
+        />
+      </Form.Item>
+    </>
   );
 }

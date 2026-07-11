@@ -91,6 +91,10 @@ export default function DocumentListView() {
   const [folderFilter, setFolderFilter] = useState(initialFolderId);
   const [docTypeFilter, setDocTypeFilter] = useState('');
   const [contractFilter, setContractFilter] = useState('');
+  const [startDateFilter, setStartDateFilter] = useState('');
+  const [endDateFilter, setEndDateFilter] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState<number | undefined>(undefined);
+  const [divisionFilter, setDivisionFilter] = useState<number | undefined>(undefined);
 
   // Sync state if URL param changes
   useEffect(() => {
@@ -122,14 +126,22 @@ export default function DocumentListView() {
     if (activeTab === 'documents') {
       fetchDocuments({
         page: docPage,
-        limit: 5,
+        limit: 10,
         search: debouncedDocSearch || undefined,
         folderId: folderFilter || undefined,
         documentTypeId: docTypeFilter || undefined,
-        isContractBound: contractFilter === 'true' ? true : contractFilter === 'false' ? false : undefined,
+        startDate: startDateFilter || undefined,
+        endDate: endDateFilter || undefined,
+        departmentId: departmentFilter,
+        divisionId: divisionFilter,
+        retentionStatus: contractFilter || undefined,
       });
     }
-  }, [activeTab, fetchDocuments, docPage, debouncedDocSearch, folderFilter, docTypeFilter, contractFilter]);
+  }, [
+    activeTab, fetchDocuments, docPage, debouncedDocSearch, 
+    folderFilter, docTypeFilter, contractFilter, 
+    startDateFilter, endDateFilter, departmentFilter, divisionFilter
+  ]);
 
   // ── DocumentType CRUD Handlers ──
   const handleCreateDocType = () => {
@@ -221,11 +233,15 @@ export default function DocumentListView() {
   const handleMoveSuccess = () => {
     fetchDocuments({
       page: docPage,
-      limit: 5,
+      limit: 10,
       search: debouncedDocSearch || undefined,
       folderId: folderFilter || undefined,
       documentTypeId: docTypeFilter || undefined,
-      isContractBound: contractFilter === 'true' ? true : contractFilter === 'false' ? false : undefined,
+      startDate: startDateFilter || undefined,
+      endDate: endDateFilter || undefined,
+      departmentId: departmentFilter,
+      divisionId: divisionFilter,
+      retentionStatus: contractFilter || undefined,
     });
   };
 
@@ -259,11 +275,15 @@ export default function DocumentListView() {
       // Refresh documents
       fetchDocuments({
         page: docPage,
-        limit: 5,
+        limit: 10,
         search: debouncedDocSearch || undefined,
         folderId: folderFilter || undefined,
         documentTypeId: docTypeFilter || undefined,
-        isContractBound: contractFilter === 'true' ? true : contractFilter === 'false' ? false : undefined,
+        startDate: startDateFilter || undefined,
+        endDate: endDateFilter || undefined,
+        departmentId: departmentFilter,
+        divisionId: divisionFilter,
+        retentionStatus: contractFilter || undefined,
       });
     } else {
       messageApi.error('ເກີດຂໍ້ຜິດພາດໃນການບັນທຶກເອກະສານ');
@@ -295,16 +315,24 @@ export default function DocumentListView() {
           data={documents}
           total={docTotal}
           currentPage={docPage}
-          pageSize={5}
+          pageSize={10}
           onPageChange={setDocPage}
           searchTerm={docSearch}
           onSearchChange={setDocSearch}
           folderFilter={folderFilter}
           onFolderFilterChange={handleFolderFilterChange}
           docTypeFilter={docTypeFilter}
-          onDocTypeFilterChange={setDocTypeFilter}
+          onDocTypeFilterChange={(val) => { setDocTypeFilter(val); setDocPage(1); }}
           contractFilter={contractFilter}
-          onContractFilterChange={setContractFilter}
+          onContractFilterChange={(val) => { setContractFilter(val); setDocPage(1); }}
+          startDateFilter={startDateFilter}
+          onStartDateFilterChange={(val) => { setStartDateFilter(val); setDocPage(1); }}
+          endDateFilter={endDateFilter}
+          onEndDateFilterChange={(val) => { setEndDateFilter(val); setDocPage(1); }}
+          departmentFilter={departmentFilter}
+          onDepartmentFilterChange={(val) => { setDepartmentFilter(val); setDocPage(1); }}
+          divisionFilter={divisionFilter}
+          onDivisionFilterChange={(val) => { setDivisionFilter(val); setDocPage(1); }}
           isLoading={isDocLoading}
           onEdit={handleEditDoc}
           onDelete={handleDeleteDoc}

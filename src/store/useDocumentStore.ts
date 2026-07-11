@@ -1,11 +1,17 @@
 // src/store/useDocumentStore.ts
 import api from "@/lib/api";
-import { Document, CreateDocumentPayload, UpdateDocumentPayload } from "@/types/prisma-mapped";
+import {
+  Document,
+  CreateDocumentPayload,
+  UpdateDocumentPayload,
+} from "@/types/prisma-mapped";
 import { create } from "zustand";
 
 interface DocumentResponse {
   message: string;
-  data: Document[] | { data: Document[]; total: number; page: number; limit: number };
+  data:
+    | Document[]
+    | { data: Document[]; total: number; page: number; limit: number };
   meta?: {
     total: number;
     page: number;
@@ -25,6 +31,7 @@ interface FetchDocumentsParams {
   departmentId?: number;
   divisionId?: number;
   isContractBound?: boolean;
+  retentionStatus?: string;
 }
 
 interface DocumentState {
@@ -37,9 +44,17 @@ interface DocumentState {
   fetchDocuments: (params?: FetchDocumentsParams) => Promise<void>;
   fetchDocumentById: (id: string) => Promise<Document | null>;
   createDocument: (payload: CreateDocumentPayload) => Promise<boolean>;
-  updateDocument: (id: string, payload: UpdateDocumentPayload, files?: File[]) => Promise<boolean>;
+  updateDocument: (
+    id: string,
+    payload: UpdateDocumentPayload,
+    files?: File[],
+  ) => Promise<boolean>;
   uploadAttachments: (id: string, files: File[]) => Promise<boolean>;
-  downloadAttachment: (attachmentId: string) => Promise<void>;
+  downloadAttachment: (
+    attachmentId: string,
+    customFileName?: string,
+  ) => Promise<void>;
+  viewAttachment: (attachmentId: string) => Promise<void>;
   fetchExpiredDocuments: () => Promise<void>;
   deleteExpiredDocuments: () => Promise<boolean>;
 }
@@ -54,13 +69,21 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   fetchDocuments: async (params) => {
     set({ isLoading: true });
     try {
-      const response = await api.get<DocumentResponse>(`/documents`, { params });
+      const response = await api.get<DocumentResponse>(`/documents`, {
+        params,
+      });
       const resData = response.data.data;
-      
-      const documents = Array.isArray(resData) ? resData : (resData as any)?.data || [];
-      const total = response.data.meta?.total ?? (Array.isArray(resData) ? resData.length : (resData as any)?.total || 0);
+
+      const documents = Array.isArray(resData)
+        ? resData
+        : (resData as any)?.data || [];
+      const total =
+        response.data.meta?.total ??
+        (Array.isArray(resData)
+          ? resData.length
+          : (resData as any)?.total || 0);
       const totalPages = response.data.meta?.totalPages ?? 1;
-      
+
       set({ documents, total, totalPages, isLoading: false });
     } catch (error) {
       set({ isLoading: false });
@@ -82,21 +105,27 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     set({ isLoading: true });
     try {
       const formData = new FormData();
-      
+
       formData.append("docNo", payload.docNo);
       if (payload.shortName) formData.append("shortName", payload.shortName);
       formData.append("docDate", payload.docDate);
       if (payload.subDocNo) formData.append("subDocNo", payload.subDocNo);
       if (payload.subDocDate) formData.append("subDocDate", payload.subDocDate);
       formData.append("title", payload.title);
-      if (payload.description) formData.append("description", payload.description);
+      if (payload.description)
+        formData.append("description", payload.description);
       if (payload.docExpire) formData.append("docExpire", payload.docExpire);
       if (payload.qrCode) formData.append("qrCode", payload.qrCode);
       formData.append("folderId", payload.folderId);
       formData.append("documentTypeId", payload.documentTypeId);
-      formData.append("isContractBound", payload.isContractBound ? "true" : "false");
-      if (payload.departmentId) formData.append("departmentId", String(payload.departmentId));
-      if (payload.divisionId) formData.append("divisionId", String(payload.divisionId));
+      formData.append(
+        "isContractBound",
+        payload.isContractBound ? "true" : "false",
+      );
+      if (payload.departmentId)
+        formData.append("departmentId", String(payload.departmentId));
+      if (payload.divisionId)
+        formData.append("divisionId", String(payload.divisionId));
 
       if (payload.files && payload.files.length > 0) {
         payload.files.forEach((file) => {
@@ -113,27 +142,47 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       return true;
     } catch (error: any) {
       set({ isLoading: false });
-      console.error("Failed to create document:", error.response?.data || error);
+      console.error(
+        "Failed to create document:",
+        error.response?.data || error,
+      );
       return false;
     }
   },
 
-  updateDocument: async (id: string, payload: UpdateDocumentPayload, files?: File[]) => {
+  updateDocument: async (
+    id: string,
+    payload: UpdateDocumentPayload,
+    files?: File[],
+  ) => {
     set({ isLoading: true });
     try {
       // If files are included, use multipart/form-data
       if (files && files.length > 0) {
         const formData = new FormData();
-        
+
         const allowedKeys = [
-          'docNo', 'docDate', 'subDocNo', 'subDocDate', 'title', 'description',
-          'docExpire', 'qrCode', 'folderId', 'documentTypeId', 'isContractBound',
-          'departmentId', 'divisionId'
+          "docNo",
+          "docDate",
+          "subDocNo",
+          "subDocDate",
+          "title",
+          "description",
+          "docExpire",
+          "qrCode",
+          "folderId",
+          "documentTypeId",
+          "isContractBound",
+          "departmentId",
+          "divisionId",
         ];
 
         Object.entries(payload).forEach(([key, value]) => {
           if (allowedKeys.includes(key) && value !== undefined) {
-            formData.append(key, typeof value === 'boolean' ? String(value) : String(value));
+            formData.append(
+              key,
+              typeof value === "boolean" ? String(value) : String(value),
+            );
           }
         });
 
@@ -147,13 +196,25 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       } else {
         // JSON payload (no files)
         const allowedKeys = [
-          'docNo', 'docDate', 'subDocNo', 'subDocDate', 'title', 'description',
-          'docExpire', 'qrCode', 'folderId', 'documentTypeId', 'isContractBound',
-          'departmentId', 'divisionId'
+          "docNo",
+          "docDate",
+          "subDocNo",
+          "subDocDate",
+          "title",
+          "description",
+          "docExpire",
+          "qrCode",
+          "folderId",
+          "documentTypeId",
+          "isContractBound",
+          "departmentId",
+          "divisionId",
         ];
 
         const cleanPayload = Object.fromEntries(
-          Object.entries(payload).filter(([key, v]) => allowedKeys.includes(key) && v !== undefined)
+          Object.entries(payload).filter(
+            ([key, v]) => allowedKeys.includes(key) && v !== undefined,
+          ),
         );
 
         await api.put(`/documents/${id}`, cleanPayload);
@@ -189,27 +250,43 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     }
   },
 
-  downloadAttachment: async (attachmentId: string) => {
+  downloadAttachment: async (attachmentId: string, customFileName?: string) => {
     try {
       const response = await api.get(`/documents/attachments/${attachmentId}`, {
-        responseType: 'blob',
+        responseType: "blob",
       });
-      
-      // Extract filename from Content-Disposition header or use fallback
-      const contentDisposition = response.headers['content-disposition'];
-      let fileName = 'attachment';
-      if (contentDisposition) {
-        const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-        if (match && match[1]) {
-          fileName = match[1].replace(/['"]/g, '');
+
+      let fileName = customFileName || "attachment.pdf";
+      if (!customFileName) {
+        // Extract filename from Content-Disposition header or use fallback
+        const contentDisposition = response.headers["content-disposition"];
+        if (contentDisposition) {
+          const match = contentDisposition.match(
+            /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/,
+          );
+          if (match && match[1]) {
+            fileName = match[1].replace(/['"]/g, "");
+          }
         }
       }
 
-      // Create download link
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
+      // Force file extension to be .pdf
+      if (!fileName.toLowerCase().endsWith(".pdf")) {
+        const lastDotIndex = fileName.lastIndexOf(".");
+        if (lastDotIndex !== -1) {
+          fileName = fileName.substring(0, lastDotIndex) + ".pdf";
+        } else {
+          fileName += ".pdf";
+        }
+      }
+
+      // Create download link as PDF
+      const url = window.URL.createObjectURL(
+        new Blob([response.data], { type: "application/pdf" }),
+      );
+      const link = document.createElement("a");
       link.href = url;
-      link.setAttribute('download', fileName);
+      link.setAttribute("download", fileName);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -219,12 +296,33 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     }
   },
 
+  viewAttachment: async (attachmentId: string) => {
+    try {
+      const response = await api.get(`/documents/attachments/${attachmentId}`, {
+        responseType: "blob",
+      });
+
+      const file = new Blob([response.data], {
+        type: response.headers["content-type"] as string,
+      });
+      const url = window.URL.createObjectURL(file);
+      window.open(url, "_blank");
+
+      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      console.error("Failed to view attachment:", error);
+    }
+  },
+
   fetchExpiredDocuments: async () => {
     set({ isLoading: true });
     try {
       const response = await api.get(`/documents/expired`);
       const data = response.data?.data || response.data || [];
-      set({ expiredDocuments: Array.isArray(data) ? data : [], isLoading: false });
+      set({
+        expiredDocuments: Array.isArray(data) ? data : [],
+        isLoading: false,
+      });
     } catch (error) {
       set({ isLoading: false });
       console.error("Failed to fetch expired documents:", error);

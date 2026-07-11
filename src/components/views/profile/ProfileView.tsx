@@ -70,7 +70,7 @@ export default function ProfileView() {
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="text-xs font-bold text-[#737373] uppercase tracking-wider flex items-center gap-1.5"><Building2 size={14}/> ກົມ / ພະແນກ (Department)</span>
+              <span className="text-xs font-bold text-[#737373] uppercase tracking-wider flex items-center gap-1.5"><Building2 size={14}/> ຝ່າຍ (Department)</span>
               <p className="text-[#1C1C1E] font-medium text-[15px]">{user.department?.name || '—'}</p>
             </div>
 

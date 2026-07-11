@@ -26,7 +26,7 @@ export default function DivisionListView({ data, isLoading }: DivisionListViewPr
       ),
     },
     {
-      title: 'ຊື່ພະແນກຍ່ອຍ/ສາຂາ',
+      title: 'ຊື່ພະແນກ/ສາຂາ',
       dataIndex: 'name',
       key: 'name',
       render: (text) => (

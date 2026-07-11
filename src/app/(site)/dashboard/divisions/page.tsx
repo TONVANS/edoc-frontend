@@ -41,8 +41,8 @@ export default function DivisionsPage() {
               <GitBranch className="text-[#185C4D] w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-800 tracking-tight">ຂໍ້ມູນພະແນກຍ່ອຍ/ສາຂາ (HRM)</h1>
-              <p className="text-slate-500 text-sm mt-0.5">ລາຍຊື່ພະແນກຍ່ອຍ/ສາຂາທີ່ດຶງຂໍ້ມູນມາຈາກລະບົບ HRM</p>
+              <h1 className="text-2xl font-bold text-slate-800 tracking-tight">ຂໍ້ມູນພະແນກ/ສາຂາ (HRM)</h1>
+              <p className="text-slate-500 text-sm mt-0.5">ລາຍຊື່ພະແນກ/ສາຂາທີ່ດຶງຂໍ້ມູນມາຈາກລະບົບ HRM</p>
             </div>
           </div>
 

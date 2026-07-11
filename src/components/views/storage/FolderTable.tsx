@@ -4,12 +4,6 @@ import { Button, Input, Select, Tooltip, Dropdown, Pagination } from 'antd';
 import AddressStatusBadge from '../address/AddressStatusBadge';
 import { Folder } from '@/types/prisma-mapped';
 
-const STATUS_OPTIONS = [
-  { value: 'all', label: 'ທັງໝົດ (ສະຖານະ)' },
-  { value: 'A', label: 'Active' },
-  { value: 'I', label: 'Inactive' },
-];
-
 interface FolderTableProps {
   data: Folder[];
   total: number;
@@ -22,12 +16,20 @@ interface FolderTableProps {
   onDelete?: (id: string | number) => void;
   onUploadDocument?: (folder: Folder) => void;
   onMove?: (folder: Folder) => void;
+  addressOptions?: { value: string; label: string }[];
+  filterAddress?: string;
+  onFilterAddressChange?: (addressId: string) => void;
+  warehouseOptions?: { value: string; label: string }[];
+  filterWarehouse?: string;
+  onFilterWarehouseChange?: (warehouseId: string) => void;
+  lockerOptions?: { value: string; label: string }[];
+  filterLocker?: string;
+  onFilterLockerChange?: (lockerId: string) => void;
+  shelves?: { id: string; name: string; code: string }[];
   filterShelf?: string;
   onFilterShelfChange?: (shelfId: string) => void;
-  filterStatus?: string;
-  onFilterStatusChange?: (status: string) => void;
-  shelves?: { id: string; name: string; code: string }[];
   onManage?: (folder: Folder) => void;
+  hideFilters?: boolean;
 }
 
 export default function FolderTable({
@@ -42,12 +44,20 @@ export default function FolderTable({
   onDelete,
   onUploadDocument,
   onMove,
+  addressOptions = [],
+  filterAddress,
+  onFilterAddressChange,
+  warehouseOptions = [],
+  filterWarehouse,
+  onFilterWarehouseChange,
+  lockerOptions = [],
+  filterLocker,
+  onFilterLockerChange,
+  shelves = [],
   filterShelf,
   onFilterShelfChange,
-  filterStatus = 'all',
-  onFilterStatusChange,
-  shelves = [],
   onManage,
+  hideFilters = false,
 }: FolderTableProps) {
 
   const shelfOptions = useMemo(() => [
@@ -69,23 +79,46 @@ export default function FolderTable({
             className="flex-1 min-w-[240px] max-w-[320px] rounded-[16px] bg-white/60 border-white/80 hover:bg-white focus-within:bg-white shadow-sm transition-all duration-300 focus-within:border-[#185C4D] h-[48px]"
           />
 
-          <div className="flex items-center gap-3 shrink-0">
-            <SlidersHorizontal size={16} className="text-slate-400 mr-1" />
-            <Select
-              value={filterShelf || 'all'}
-              onChange={onFilterShelfChange}
-              options={shelfOptions}
-              size="large"
-              className="min-w-[160px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
-            />
-            <Select
-              value={filterStatus}
-              onChange={onFilterStatusChange}
-              options={STATUS_OPTIONS}
-              size="large"
-              className="min-w-[160px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
-            />
-          </div>
+          {!hideFilters && (
+            <div className="flex items-center gap-3 shrink-0 flex-wrap">
+              <SlidersHorizontal size={16} className="text-slate-400 mr-1" />
+
+              <Select
+                value={filterAddress || 'all'}
+                onChange={onFilterAddressChange}
+                options={[{ value: 'all', label: 'ທັງໝົດ (ສະຖານທີ່)' }, ...addressOptions]}
+                size="large"
+                className="min-w-[150px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
+              />
+
+              <Select
+                value={filterWarehouse || 'all'}
+                onChange={onFilterWarehouseChange}
+                options={[{ value: 'all', label: 'ທັງໝົດ (ສາງ)' }, ...warehouseOptions]}
+                size="large"
+                className="min-w-[150px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
+                disabled={warehouseOptions.length === 0 && !!filterAddress && filterAddress !== 'all'}
+              />
+
+              <Select
+                value={filterLocker || 'all'}
+                onChange={onFilterLockerChange}
+                options={[{ value: 'all', label: 'ທັງໝົດ (ຕູ້)' }, ...lockerOptions]}
+                size="large"
+                className="min-w-[150px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
+                disabled={lockerOptions.length === 0 && !!filterWarehouse && filterWarehouse !== 'all'}
+              />
+
+              <Select
+                value={filterShelf || 'all'}
+                onChange={onFilterShelfChange}
+                options={shelfOptions}
+                size="large"
+                className="min-w-[150px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
+                disabled={shelves.length === 0 && !!filterLocker && filterLocker !== 'all'}
+              />
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2 text-[15px] font-bold bg-[#185C4D]/5 px-5 py-3 rounded-[16px] border border-[#185C4D]/10 text-[#185C4D] shrink-0">
@@ -102,7 +135,7 @@ export default function FolderTable({
             <div className="col-span-4">ບ່ອນອ້າງອີງ / ສະຖານທີ່</div>
             <div className="col-span-1 text-center">ຈັດການ</div>
           </div>
-          
+
           {isLoading ? (
             <div className="flex justify-center items-center py-20 bg-white/20 rounded-2xl">
               <div className="flex flex-col items-center gap-3">
@@ -121,8 +154,8 @@ export default function FolderTable({
             <div className="flex flex-col gap-4">
               {data.map(item => {
                 return (
-                  <div 
-                    key={item.id} 
+                  <div
+                    key={item.id}
                     className="group bg-white/50 backdrop-blur-lg border border-white/80 grid grid-cols-12 gap-4 items-center py-5 px-8 rounded-[22px] shadow-sm transition-all duration-300 hover:bg-white/90 hover:-translate-y-1 hover:shadow-glass cursor-pointer"
                     onClick={() => onManage?.(item)}
                   >
@@ -131,7 +164,7 @@ export default function FolderTable({
                         {item.code}
                       </span>
                     </div>
-                    
+
                     <div className="col-span-3 flex items-center gap-4">
                       <div className="w-10 h-10 rounded-xl bg-linear-to-br from-orange-500/10 to-amber-600/10 flex items-center justify-center shrink-0 border border-orange-200/30 shadow-sm group-hover:scale-110 transition-transform duration-500">
                         <FolderIcon className="text-orange-600 w-5 h-5" strokeWidth={2.5} />
@@ -147,12 +180,24 @@ export default function FolderTable({
                     </div>
 
                     <div className="col-span-4 pr-4">
-                      <span className="text-slate-500 text-[14px] font-medium line-clamp-2 leading-relaxed italic">{item.locationRef || '—'}</span>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-slate-500 text-[14px] font-medium line-clamp-1 leading-relaxed italic">
+                          {item.locationRef || '—'}
+                        </span>
+                        {(item as any).shelf && (
+                          <div className="flex items-center flex-wrap text-xs text-slate-400 gap-1 mt-0.5">
+                            {(item as any).shelf?.locker?.warehouse?.address?.name && <span>{(item as any).shelf.locker.warehouse.address.name} <ChevronRight size={10} className="inline" /></span>}
+                            {(item as any).shelf?.locker?.warehouse?.name && <span>{(item as any).shelf.locker.warehouse.name} <ChevronRight size={10} className="inline" /></span>}
+                            {(item as any).shelf?.locker?.name && <span>ຕູ້ {(item as any).shelf.locker.name} <ChevronRight size={10} className="inline" /></span>}
+                            {(item as any).shelf?.name && <span className="text-slate-600 font-semibold">ຊັ້ນ {(item as any).shelf.name}</span>}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <div className="col-span-1 flex justify-center" onClick={(e) => e.stopPropagation()}>
-                      <Dropdown 
-                        menu={{ 
+                      <Dropdown
+                        menu={{
                           items: [
                             {
                               key: 'manage',
@@ -190,12 +235,12 @@ export default function FolderTable({
                             }
                           ],
                           className: "min-w-[180px] p-2 rounded-2xl border border-white/60 shadow-glass bg-white/80 backdrop-blur-xl"
-                        }} 
-                        trigger={['click']} 
+                        }}
+                        trigger={['click']}
                         placement="bottomRight"
                       >
-                        <Button 
-                          type="text" 
+                        <Button
+                          type="text"
                           className="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-[#185C4D]/5 transition-all duration-300 shadow-sm border border-slate-200/30 bg-white/80 hover:border-[#185C4D]/30 group/btn"
                           icon={<MoreVertical size={20} className="text-slate-400 group-hover/btn:text-[#185C4D] transition-colors" />}
                         />

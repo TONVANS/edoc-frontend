@@ -26,7 +26,7 @@ export default function DepartmentListView({ data, isLoading }: DepartmentListVi
       ),
     },
     {
-      title: 'ຊື່ກົມ/ພະແນກ',
+      title: 'ຊື່ຝ່າຍ',
       dataIndex: 'name',
       key: 'name',
       render: (text) => (

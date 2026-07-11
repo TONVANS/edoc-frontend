@@ -4,20 +4,34 @@ import React, { useEffect, useState } from 'react';
 import { Plus, Building2 } from 'lucide-react';
 import { Button, message, Modal } from 'antd';
 import { useAddressStore } from '@/store/useAddressStore';
+import { useDepartmentStore } from '@/store/useDepartmentStore';
+import { useDivisionStore } from '@/store/useDivisionStore';
 import { Address, CreateAddressPayload } from '@/types/prisma-mapped';
 
 // ດຶງ Component ທີ່ເຮົາສ້າງມານຳໃຊ້
 import AddressTable from '@/components/views/address/AddressTable';
 import AddressFormModal from '@/components/views/address/AddressFormModal';
 
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function AddressPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { addresses, total, isLoading, fetchAddresses, createAddress, updateAddress, deleteAddress } = useAddressStore();
+  const { departmentDropdown, fetchDropdown: fetchDepartmentDropdown } = useDepartmentStore();
+  const { divisionDropdown, fetchDropdown: fetchDivisionDropdown } = useDivisionStore();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchName, setSearchName] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  const initialDepartmentId = searchParams.get('departmentId') || 'all';
+  const initialDivisionId = searchParams.get('divisionId') || 'all';
+  
+  const [filterDepartmentId, setFilterDepartmentId] = useState<string>(initialDepartmentId);
+  const [filterDivisionId, setFilterDivisionId] = useState<string>(initialDivisionId);
 
   // ໃຊ້ສຳລັບສະແດງ Popup ແຈ້ງເຕືອນ (Success / Error)
   const [messageApi, contextHolder] = message.useMessage();
@@ -33,12 +47,33 @@ export default function AddressPage() {
   }, [searchName]);
 
   useEffect(() => {
+    fetchDepartmentDropdown();
+  }, [fetchDepartmentDropdown]);
+
+  useEffect(() => {
+    if (filterDepartmentId !== 'all') {
+      fetchDivisionDropdown({ departmentId: Number(filterDepartmentId) });
+    }
+  }, [filterDepartmentId, fetchDivisionDropdown]);
+
+  useEffect(() => {
     fetchAddresses({
       page: currentPage,
       limit: 5,
       search: debouncedSearch || undefined,
+      departmentId: filterDepartmentId !== 'all' ? filterDepartmentId : undefined,
+      divisionId: filterDivisionId !== 'all' ? filterDivisionId : undefined,
     });
-  }, [fetchAddresses, currentPage, debouncedSearch]);
+  }, [fetchAddresses, currentPage, debouncedSearch, filterDepartmentId, filterDivisionId]);
+
+  // Sync state if URL param changes
+  useEffect(() => {
+    const depParam = searchParams.get('departmentId') || 'all';
+    const divParam = searchParams.get('divisionId') || 'all';
+    setFilterDepartmentId(depParam);
+    setFilterDivisionId(divParam);
+    setCurrentPage(1);
+  }, [searchParams]);
 
   const handleOpenCreateModal = () => {
     setEditingAddress(null);
@@ -70,6 +105,8 @@ export default function AddressPage() {
           page: currentPage,
           limit: 5,
           search: debouncedSearch || undefined,
+          departmentId: filterDepartmentId !== 'all' ? filterDepartmentId : undefined,
+          divisionId: filterDivisionId !== 'all' ? filterDivisionId : undefined,
         });
       } else {
         messageApi.error('ບໍ່ສາມາດບັນທຶກຂໍ້ມູນໄດ້ ກະລຸນາກວດສອບຂໍ້ມູນອີກຄັ້ງ.');
@@ -96,6 +133,8 @@ export default function AddressPage() {
               page: currentPage,
               limit: 5,
               search: debouncedSearch || undefined,
+              departmentId: filterDepartmentId !== 'all' ? filterDepartmentId : undefined,
+              divisionId: filterDivisionId !== 'all' ? filterDivisionId : undefined,
             });
           } else {
             messageApi.error('ບໍ່ສາມາດລຶບຂໍ້ມູນໄດ້.');
@@ -150,6 +189,24 @@ export default function AddressPage() {
           setIsModalOpen(true);
         }}
         onDelete={handleDelete}
+        onManage={(address) => {
+          router.push(`/dashboard/address/${address.id}`);
+        }}
+        departments={departmentDropdown}
+        divisions={filterDepartmentId !== 'all' ? divisionDropdown : []}
+        filterDepartment={filterDepartmentId}
+        onFilterDepartmentChange={(id) => {
+          setFilterDepartmentId(String(id));
+          setFilterDivisionId('all'); // Reset division when department changes
+          setCurrentPage(1);
+          router.replace(`/dashboard/address?departmentId=${id}`);
+        }}
+        filterDivision={filterDivisionId}
+        onFilterDivisionChange={(id) => {
+          setFilterDivisionId(String(id));
+          setCurrentPage(1);
+          router.replace(`/dashboard/address?departmentId=${filterDepartmentId}&divisionId=${id}`);
+        }}
       />
 
       {/* ── Modal ຟອມເພີ່ມຂໍ້ມູນ ── */}

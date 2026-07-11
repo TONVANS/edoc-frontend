@@ -19,6 +19,13 @@ interface AddressTableProps {
   isLoading: boolean;
   onEdit: (address: Address) => void;
   onDelete?: (id: string | number) => void;
+  onManage?: (address: Address) => void;
+  departments?: { id: string | number; name: string }[];
+  divisions?: { id: string | number; name: string }[];
+  filterDepartment?: string | number;
+  onFilterDepartmentChange?: (departmentId: string | number) => void;
+  filterDivision?: string | number;
+  onFilterDivisionChange?: (divisionId: string | number) => void;
 }
 
 // ─────────────────────────────────────────────
@@ -34,7 +41,24 @@ export default function AddressTable({
   isLoading,
   onEdit,
   onDelete,
+  onManage,
+  departments = [],
+  divisions = [],
+  filterDepartment,
+  onFilterDepartmentChange,
+  filterDivision,
+  onFilterDivisionChange,
 }: AddressTableProps) {
+
+  const departmentOptions = React.useMemo(() => [
+    { value: 'all', label: 'ທັງໝົດ (ຝ່າຍ)' },
+    ...departments.map(d => ({ value: String(d.id), label: d.name }))
+  ], [departments]);
+
+  const divisionOptions = React.useMemo(() => [
+    { value: 'all', label: 'ທັງໝົດ (ພະແນກ)' },
+    ...divisions.map(d => ({ value: String(d.id), label: d.name }))
+  ], [divisions]);
 
   return (
     <section className="w-full flex flex-col gap-5 font-lao" aria-label="ຕາຕະລາງຂໍ້ມູນທີ່ຢູ່">
@@ -54,6 +78,23 @@ export default function AddressTable({
             aria-label="ຄົ້ນຫາຊື່ທີ່ຢູ່"
             className="flex-1 min-w-[200px] max-w-[300px] rounded-[14px] bg-white/60 border-white/70 hover:bg-white focus-within:bg-white shadow-sm transition-all duration-300 focus-within:border-[#185C4D] focus-within:shadow-[0_0_0_3px_rgba(24,92,77,0.08)]"
           />
+
+          <div className="flex items-center gap-2 shrink-0">
+            <SlidersHorizontal size={16} className="text-slate-400" />
+            <Select
+              value={filterDepartment ? String(filterDepartment) : 'all'}
+              onChange={onFilterDepartmentChange}
+              options={departmentOptions}
+              className="min-w-[160px] [&_.ant-select-selector]:rounded-xl! [&_.ant-select-selector]:h-[40px]! [&_.ant-select-selection-item]:leading-[38px]!"
+            />
+            <Select
+              value={filterDivision ? String(filterDivision) : 'all'}
+              onChange={onFilterDivisionChange}
+              options={divisionOptions}
+              className="min-w-[160px] [&_.ant-select-selector]:rounded-xl! [&_.ant-select-selector]:h-[40px]! [&_.ant-select-selection-item]:leading-[38px]!"
+              disabled={!filterDepartment || filterDepartment === 'all'}
+            />
+          </div>
         </div>
 
         {/* Right: result count */}
@@ -75,10 +116,12 @@ export default function AddressTable({
         <div className="min-w-[900px]">
           {/* CUSTOM HEADER: Pill-shaped gradient */}
           <div className="bg-table-header text-white grid grid-cols-12 gap-4 py-4 px-6 rounded-2xl shadow-sm mb-4 text-sm font-medium tracking-wide">
-            <div className="col-span-2">ລະຫັດ</div>
-            <div className="col-span-4">ຊື່ທີ່ຢູ່</div>
-            <div className="col-span-3">ລາຍລະອຽດ</div>
-            <div className="col-span-2 text-center">ສະຖານະ</div>
+            <div className="col-span-1">ລະຫັດ</div>
+            <div className="col-span-3">ຊື່ທີ່ຢູ່</div>
+            <div className="col-span-2">ຝ່າຍ</div>
+            <div className="col-span-2">ພະແນກ</div>
+            <div className="col-span-2">ລາຍລະອຽດ</div>
+            <div className="col-span-1 text-center">ສະຖານະ</div>
             <div className="col-span-1 text-right">ຈັດການ</div>
           </div>
           
@@ -105,36 +148,57 @@ export default function AddressTable({
                 return (
                   <div 
                     key={item.id?.toString() ?? Math.random().toString()} 
+                    onClick={() => onManage?.(item)}
                     className="bg-white/60 backdrop-blur-lg border border-white/80 grid grid-cols-12 gap-4 items-center py-4 px-6 rounded-2xl shadow-sm transition-all duration-300 hover:bg-white/80 hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] cursor-pointer group"
                   >
-                    <div className="col-span-2">
-                      <span className="inline-flex items-center font-mono font-semibold text-[13px] text-slate-600 bg-slate-100/80 border border-slate-200/60 px-2.5 py-1 rounded-lg tracking-wide">
-                        {item.code}
+                    <div className="col-span-1 min-w-0 flex items-center">
+                      <span className="inline-flex items-center font-mono font-semibold text-[13px] text-slate-600 bg-slate-100/80 border border-slate-200/60 px-2.5 py-1 rounded-lg tracking-wide max-w-full" title={item.code}>
+                        <span className="truncate">{item.code}</span>
                       </span>
                     </div>
                     
-                    <div className="col-span-4 flex items-center gap-3">
+                    <div className="col-span-3 flex items-center gap-3 min-w-0">
                       <div className="w-8 h-8 rounded-xl bg-linear-to-br from-emerald-400/20 to-teal-500/20 flex items-center justify-center shrink-0 border border-emerald-200/40 shadow-sm">
                         <MapPin className="text-emerald-600 w-4 h-4" strokeWidth={2.5} />
                       </div>
-                      <span className="font-semibold text-slate-800 text-[14px] truncate" title={item.name}>{item.name}</span>
+                      <span className="font-semibold text-slate-800 text-[14px] truncate flex-1 min-w-0" title={item.name}>{item.name}</span>
                     </div>
 
-                    <div className="col-span-3">
+                    <div className="col-span-2 min-w-0">
+                      {item.departmentData?.name ? (
+                        <span className="text-slate-600 text-[14px] font-medium truncate block" title={item.departmentData.name}>
+                          {item.departmentData.name}
+                        </span>
+                      ) : (
+                        <span className="text-slate-300 text-sm italic select-none">-</span>
+                      )}
+                    </div>
+
+                    <div className="col-span-2 min-w-0">
+                      {item.divisionData?.name ? (
+                        <span className="text-slate-600 text-[14px] font-medium truncate block" title={item.divisionData.name}>
+                          {item.divisionData.name}
+                        </span>
+                      ) : (
+                        <span className="text-slate-300 text-sm italic select-none">-</span>
+                      )}
+                    </div>
+
+                    <div className="col-span-2 min-w-0">
                       {item.details ? (
                         <span className="text-slate-500 text-sm line-clamp-2 font-medium leading-relaxed" title={item.details}>
                           {item.details}
                         </span>
                       ) : (
-                        <span className="text-slate-300 text-sm italic select-none">ບໍ່ມີລາຍລະອຽດ</span>
+                        <span className="text-slate-300 text-sm italic select-none block truncate">ບໍ່ມີລາຍລະອຽດ</span>
                       )}
                     </div>
 
-                    <div className="col-span-2 flex justify-center">
+                    <div className="col-span-1 flex justify-center">
                       <AddressStatusBadge status={item.status} />
                     </div>
 
-                    <div className="col-span-1 flex justify-end gap-2">
+                    <div className="col-span-1 flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                       <Tooltip title="ແກ້ໄຂຂໍ້ມູນ" placement="top">
                         <Button
                           type="text"

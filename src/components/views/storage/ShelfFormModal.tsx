@@ -3,18 +3,22 @@
 import React, { useEffect } from 'react';
 import { Modal, Form, Input, Button, Switch, Select, InputNumber } from 'antd';
 import { Shelf, CreateShelfPayload } from '@/types/prisma-mapped';
-import { useLockerStore } from '@/store/useLockerStore';
+import { useAddressStore } from '@/store/useAddressStore';
+import { useWarehouseStore } from '@/store/useWarehouseStore';
 import {
   Layers as ShelfIcon,
   Layout as LockerIcon,
+  Warehouse as WarehouseIcon,
   X,
   Sparkles,
   ArrowRight,
   Hash,
   FileText,
-  Binary
+  Binary,
+  MapPin
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useLockerStore } from '@/store/useLockerStore';
 
 interface ShelfFormModalProps {
   isOpen: boolean;
@@ -40,14 +44,32 @@ export default function ShelfFormModal({
   initialData,
 }: ShelfFormModalProps) {
   const [form] = Form.useForm<FormValues>();
-  const { lockers, fetchLockers } = useLockerStore();
+  const { addressDropdown, fetchAddressDropdown } = useAddressStore();
+  const { warehouseDropdown, fetchWarehouseDropdown } = useWarehouseStore();
+  const { lockerDropdown, fetchLockerDropdown } = useLockerStore();
+
+  const [filterAddressId, setFilterAddressId] = React.useState<string | undefined>();
+  const [filterWarehouseId, setFilterWarehouseId] = React.useState<string | undefined>();
 
   useEffect(() => {
     if (isOpen) {
-      fetchLockers();
+      fetchAddressDropdown();
       const isEditing = initialData && 'id' in initialData;
       
       if (isEditing) {
+        const locker = (initialData as any)?.locker;
+        const warehouseId = locker?.warehouseId;
+        const addressId = locker?.warehouse?.addressId;
+
+        setFilterAddressId(addressId);
+        setFilterWarehouseId(warehouseId);
+
+        if (addressId) fetchWarehouseDropdown({ addressId });
+        else fetchWarehouseDropdown();
+
+        if (warehouseId) fetchLockerDropdown({ warehouseId });
+        else fetchLockerDropdown();
+
         form.setFieldsValue({
           lockerId: initialData.lockerId,
           name: initialData.name,
@@ -56,6 +78,10 @@ export default function ShelfFormModal({
           isActive: initialData.status === 'A' || initialData.status === 'ACTIVE',
         });
       } else {
+        setFilterAddressId(undefined);
+        setFilterWarehouseId(undefined);
+        fetchWarehouseDropdown();
+        fetchLockerDropdown();
         form.resetFields();
         form.setFieldsValue({ 
           isActive: true, 
@@ -64,7 +90,21 @@ export default function ShelfFormModal({
         });
       }
     }
-  }, [isOpen, initialData, form, fetchLockers]);
+  }, [isOpen, initialData, form, fetchAddressDropdown, fetchWarehouseDropdown, fetchLockerDropdown]);
+
+  const handleAddressChange = (val: string) => {
+    setFilterAddressId(val);
+    setFilterWarehouseId(undefined);
+    form.setFieldsValue({ lockerId: undefined });
+    fetchWarehouseDropdown({ addressId: val });
+    fetchLockerDropdown();
+  };
+
+  const handleWarehouseChange = (val: string) => {
+    setFilterWarehouseId(val);
+    form.setFieldsValue({ lockerId: undefined });
+    fetchLockerDropdown({ warehouseId: val });
+  };
 
   const handleFinish = (values: FormValues) => {
     const isEditing = initialData && 'id' in initialData;
@@ -147,6 +187,31 @@ export default function ShelfFormModal({
             requiredMark={false}
             className="space-y-6"
           >
+            <Form.Item label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><MapPin size={14} className="text-[#185C4D]" /> ເລືອກສະຖານທີ່ (Address)</span>}>
+              <Select
+                placeholder="ເລືອກສະຖານທີ່ (ຖ້າມີ)"
+                className={selectCls}
+                allowClear
+                loading={addressDropdown.length === 0}
+                options={addressDropdown.map(a => ({ value: a.id, label: a.name }))}
+                value={filterAddressId}
+                onChange={handleAddressChange}
+              />
+            </Form.Item>
+
+            <Form.Item label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><WarehouseIcon size={14} className="text-[#185C4D]" /> ເລືອກສາງ (Warehouse)</span>}>
+              <Select
+                placeholder="ເລືອກສາງທີ່ລັອກເກີຕັ້ງຢູ່ (ຖ້າມີ)"
+                className={selectCls}
+                allowClear
+                loading={warehouseDropdown.length === 0}
+                options={warehouseDropdown.map(w => ({ value: w.id, label: w.name }))}
+                value={filterWarehouseId}
+                onChange={handleWarehouseChange}
+                disabled={warehouseDropdown.length === 0 && !!filterAddressId}
+              />
+            </Form.Item>
+
             <Form.Item
               label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><LockerIcon size={14} className="text-[#185C4D]" /> ເລືອກຕູ້ (Locker) <span className="text-rose-500">*</span></span>}
               name="lockerId"
@@ -155,8 +220,9 @@ export default function ShelfFormModal({
               <Select
                 placeholder="ເລືອກຕູ້ທີ່ຊັ້ນວາງຕັ້ງຢູ່"
                 className={selectCls}
-                loading={lockers.length === 0}
-                options={lockers.map(l => ({ value: l.id, label: l.name || l.code }))}
+                loading={lockerDropdown.length === 0}
+                options={lockerDropdown.map(l => ({ value: l.id, label: l.name || l.code }))}
+                disabled={lockerDropdown.length === 0 && !!filterWarehouseId}
               />
             </Form.Item>
 

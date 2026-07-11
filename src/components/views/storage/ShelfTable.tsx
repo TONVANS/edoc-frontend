@@ -3,12 +3,6 @@ import { Inbox, Edit2, Trash2, Search, SlidersHorizontal, Layers, ChevronRight, 
 import { Button, Input, Select, Dropdown, Badge, Pagination } from 'antd';
 import { Shelf } from '@/types/prisma-mapped';
 
-const STATUS_OPTIONS = [
-  { value: 'all', label: 'ທັງໝົດ (ສະຖານະ)' },
-  { value: 'A', label: 'Active' },
-  { value: 'I', label: 'Inactive' },
-];
-
 interface ShelfTableProps {
   data: Shelf[];
   total: number;
@@ -20,14 +14,16 @@ interface ShelfTableProps {
   onEdit: (shelf: Shelf) => void;
   onDelete?: (id: string | number) => void;
   onManage?: (shelf: Shelf) => void;
-  filterLocker?: string;
-  onFilterLockerChange?: (lockerId: string) => void;
-  filterStatus?: string;
-  onFilterStatusChange?: (status: string) => void;
-  lockers?: { id: string; name: string | null; code: string }[];
-  warehouses?: { id: string; name: string }[];
+  addressOptions?: { value: string; label: string }[];
+  filterAddress?: string;
+  onFilterAddressChange?: (addressId: string) => void;
+  warehouses?: { id: string | number; name: string }[];
   filterWarehouse?: string;
   onFilterWarehouseChange?: (warehouseId: string) => void;
+  lockers?: { id: string | number; name: string | null; code?: string }[];
+  filterLocker?: string;
+  onFilterLockerChange?: (lockerId: string) => void;
+  hideFilters?: boolean;
 }
 
 export default function ShelfTable({
@@ -41,62 +37,68 @@ export default function ShelfTable({
   onEdit,
   onDelete,
   onManage,
-  filterLocker,
-  onFilterLockerChange,
-  filterStatus = 'all',
-  onFilterStatusChange,
-  lockers = [],
+  addressOptions = [],
+  filterAddress,
+  onFilterAddressChange,
   warehouses = [],
   filterWarehouse,
   onFilterWarehouseChange,
+  lockers = [],
+  filterLocker,
+  onFilterLockerChange,
+  hideFilters = false,
 }: ShelfTableProps) {
 
   const lockerOptions = useMemo(() => [
     { value: 'all', label: 'ທັງໝົດ (ຕູ້)' },
-    ...lockers.map(l => ({ value: l.id, label: l.name || l.code }))
+    ...lockers.map(l => ({ value: String(l.id), label: l.name || l.code }))
   ], [lockers]);
 
   const warehouseOptions = useMemo(() => [
     { value: 'all', label: 'ທັງໝົດ (ສາງ)' },
-    ...warehouses.map(w => ({ value: w.id, label: w.name }))
+    ...warehouses.map(w => ({ value: String(w.id), label: w.name }))
   ], [warehouses]);
 
   return (
     <div className="w-full flex flex-col gap-6 font-lao" aria-label="ຕາຕະລາງຂໍ້ມູນຊັ້ນວາງ">
       {/* Filter / Search Bar - Level 1 Glass */}
       <div className="bg-white/40 backdrop-blur-2xl border border-white/60 p-4 rounded-[24px] shadow-[0_8px_32px_rgba(31,38,135,0.04)] flex flex-wrap gap-4 items-center">
-        <Input 
-          placeholder="ຄົ້ນຫາຊື່ຊັ້ນວາງ..." 
+        <Input
+          placeholder="ຄົ້ນຫາຊື່ຊັ້ນວາງ..."
           prefix={<Search size={16} className="text-[#737373] mr-1" />}
           className="flex-1 min-w-[240px] max-w-xs rounded-xl bg-white/70 hover:bg-white focus-within:bg-white border-white/80 h-[40px]"
           value={searchName}
           onChange={(e) => onSearchChange(e.target.value)}
           allowClear
         />
-        <div className="flex items-center gap-3 shrink-0">
-          <SlidersHorizontal size={16} className="text-slate-400" />
-          {warehouses.length > 0 && (
-            <Select 
-              value={filterWarehouse || 'all'}
-              onChange={onFilterWarehouseChange}
-              options={warehouseOptions}
+        {!hideFilters && (
+          <div className="flex items-center gap-3 shrink-0">
+            <SlidersHorizontal size={16} className="text-slate-400" />
+            <Select
+              value={filterAddress || 'all'}
+              onChange={onFilterAddressChange}
+              options={[{ value: 'all', label: 'ທັງໝົດ (ສະຖານທີ່)' }, ...addressOptions]}
               className="min-w-[160px] h-[40px] [&_.ant-select-selector]:rounded-xl! [&_.ant-select-selector]:h-[40px]! [&_.ant-select-selection-item]:leading-[38px]!"
             />
-          )}
-          <Select 
-            value={filterLocker || 'all'}
-            onChange={onFilterLockerChange}
-            options={lockerOptions}
-            className="min-w-[160px] h-[40px] [&_.ant-select-selector]:rounded-xl! [&_.ant-select-selector]:h-[40px]! [&_.ant-select-selection-item]:leading-[38px]!"
-          />
-          <Select 
-            value={filterStatus}
-            onChange={onFilterStatusChange}
-            options={STATUS_OPTIONS}
-            className="min-w-[160px] h-[40px] [&_.ant-select-selector]:rounded-xl! [&_.ant-select-selector]:h-[40px]! [&_.ant-select-selection-item]:leading-[38px]!"
-          />
-        </div>
-        
+            {warehouses.length > 0 && (
+              <Select
+                value={filterWarehouse || 'all'}
+                onChange={onFilterWarehouseChange}
+                options={warehouseOptions}
+                className="min-w-[160px] h-[40px] [&_.ant-select-selector]:rounded-xl! [&_.ant-select-selector]:h-[40px]! [&_.ant-select-selection-item]:leading-[38px]!"
+                disabled={warehouseOptions.length === 1 && !!filterAddress && filterAddress !== 'all'}
+              />
+            )}
+            <Select
+              value={filterLocker || 'all'}
+              onChange={onFilterLockerChange}
+              options={lockerOptions}
+              className="min-w-[160px] h-[40px] [&_.ant-select-selector]:rounded-xl! [&_.ant-select-selector]:h-[40px]! [&_.ant-select-selection-item]:leading-[38px]!"
+              disabled={lockerOptions.length === 1 && !!filterWarehouse && filterWarehouse !== 'all'}
+            />
+          </div>
+        )}
+
         <div className="ml-auto flex items-center gap-2 text-[14px] font-bold bg-white/60 px-4 py-2 rounded-xl border border-white/80 text-[#1C1C1E]">
           ທັງໝົດ <span className="text-[#185C4D] text-base">{total}</span> ລາຍການ
         </div>
@@ -129,11 +131,13 @@ export default function ShelfTable({
               const percentFull = maxQty > 0 ? (docCount / maxQty) * 100 : 0;
               const isFull = percentFull >= 100;
 
-              const lockerName = lockers.find(l => l.id === item.lockerId)?.name || lockers.find(l => l.id === item.lockerId)?.code || 'Locker ບໍ່ລະບຸ';
+              const itemAny = item as any;
+              const lockerName = itemAny.locker?.name || itemAny.locker?.code || lockers.find(l => l.id === item.lockerId)?.name || lockers.find(l => l.id === item.lockerId)?.code || 'Locker ບໍ່ລະບຸ';
+              const warehouseName = itemAny.locker?.warehouse?.name;
 
               return (
-                <div 
-                  key={item.id} 
+                <div
+                  key={item.id}
                   className="bg-white/40 backdrop-blur-2xl border border-white/60 p-4 rounded-[24px] shadow-[0_8px_32px_rgba(31,38,135,0.04)] transition-all duration-300 hover:bg-white/60 hover:-translate-y-1 cursor-pointer group"
                   onClick={() => onManage?.(item)}
                 >
@@ -144,13 +148,15 @@ export default function ShelfTable({
                       </div>
                       <div>
                         <h3 className="font-bold text-[#1C1C1E]">{item.name}</h3>
-                        <p className="text-xs text-[#737373] truncate w-32" title={lockerName}>{lockerName}</p>
+                        <p className="text-xs text-[#737373] truncate w-40" title={warehouseName ? `${warehouseName} > ${lockerName}` : lockerName}>
+                          {warehouseName ? `${warehouseName} > ` : ''}{lockerName}
+                        </p>
                       </div>
                     </div>
-                    
+
                     <div onClick={(e) => e.stopPropagation()}>
-                      <Dropdown 
-                        menu={{ 
+                      <Dropdown
+                        menu={{
                           items: [
                             {
                               key: 'manage',
@@ -173,20 +179,20 @@ export default function ShelfTable({
                             }
                           ],
                           className: "min-w-[180px] p-2 rounded-2xl border border-white/60 shadow-glass bg-white/80 backdrop-blur-xl"
-                        }} 
-                        trigger={['click']} 
+                        }}
+                        trigger={['click']}
                         placement="bottomRight"
                       >
-                        <Button 
-                          type="text" 
-                          size="small" 
-                          className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/80 shadow-sm border border-transparent hover:border-slate-200/30 transition-all" 
-                          icon={<MoreVertical size={16} className="text-[#737373]" />} 
+                        <Button
+                          type="text"
+                          size="small"
+                          className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/80 shadow-sm border border-transparent hover:border-slate-200/30 transition-all"
+                          icon={<MoreVertical size={16} className="text-[#737373]" />}
                         />
                       </Dropdown>
                     </div>
                   </div>
-                  
+
                   {/* Inner Details - Level 2 Glass */}
                   <div className="bg-white/60 backdrop-blur-lg border border-white/80 p-3 rounded-2xl shadow-sm mt-4">
                     <div className="flex justify-between items-center mb-2">
@@ -194,15 +200,15 @@ export default function ShelfTable({
                       <span className="text-xs font-bold text-[#1C1C1E]">{docCount} / {maxQty} ແຟ້ມ</span>
                     </div>
                     <div className="w-full bg-[#E2D3B8]/30 rounded-full h-1.5 mb-3">
-                      <div 
-                        className={`h-1.5 rounded-full ${isFull ? 'bg-[#B83131]' : 'bg-[#185C4D]'}`} 
+                      <div
+                        className={`h-1.5 rounded-full ${isFull ? 'bg-[#B83131]' : 'bg-[#185C4D]'}`}
                         style={{ width: `${Math.min(percentFull, 100)}%` }}
                       ></div>
                     </div>
                     <div className="flex justify-between items-center">
-                      <Badge 
-                        status={item.status === 'A' ? 'success' : 'error'} 
-                        text={<span className="text-xs font-medium text-[#1C1C1E]">{item.status === 'A' ? 'Active' : 'Inactive'}</span>} 
+                      <Badge
+                        status={item.status === 'A' ? 'success' : 'error'}
+                        text={<span className="text-xs font-medium text-[#1C1C1E]">{item.status === 'A' ? 'Active' : 'Inactive'}</span>}
                       />
                       <Button type="link" size="small" icon={<ChevronRight size={14} />} className="text-[#185C4D] p-0 font-medium text-xs">ເປີດຊັ້ນວາງ</Button>
                     </div>

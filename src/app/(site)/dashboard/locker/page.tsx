@@ -9,17 +9,20 @@ import LockerFormModal from '@/components/views/storage/LockerFormModal';
 import MoveFormModal from '@/components/views/storage/MoveFormModal';
 import { Locker, CreateLockerPayload } from '@/types/prisma-mapped';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useAddressStore } from '@/store/useAddressStore';
 
 function LockerPageContent() {
   const { lockers, total, isLoading: isLockerLoading, fetchLockers, createLocker, updateLocker, deleteLocker } = useLockerStore();
-  const { warehouses, fetchWarehouses } = useWarehouseStore();
+  const { warehouseDropdown, fetchWarehouseDropdown } = useWarehouseStore();
+  const { addressDropdown, fetchAddressDropdown } = useAddressStore();
   
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialWarehouseId = searchParams.get('warehouseId') || 'all';
+  const initialAddressId = searchParams.get('addressId') || 'all';
 
   const [filterWarehouseId, setFilterWarehouseId] = useState<string>(initialWarehouseId);
-  const [activeStatus, setActiveStatus] = useState('all');
+  const [filterAddressId, setFilterAddressId] = useState<string>(initialAddressId);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchName, setSearchName] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -47,23 +50,30 @@ function LockerPageContent() {
   }, [searchName]);
 
   useEffect(() => {
-    if (warehouses.length === 0) fetchWarehouses();
-  }, [warehouses.length, fetchWarehouses]);
+    fetchAddressDropdown();
+    if (filterAddressId && filterAddressId !== 'all') {
+      fetchWarehouseDropdown({ addressId: filterAddressId });
+    } else {
+      fetchWarehouseDropdown();
+    }
+  }, [fetchAddressDropdown, fetchWarehouseDropdown, filterAddressId]);
 
   useEffect(() => {
     fetchLockers({
       page: currentPage,
       limit: 5,
+      addressId: filterAddressId === 'all' ? undefined : filterAddressId,
       warehouseId: filterWarehouseId === 'all' ? undefined : filterWarehouseId,
-      status: activeStatus === 'all' ? undefined : activeStatus,
       search: debouncedSearch || undefined,
     });
-  }, [filterWarehouseId, activeStatus, currentPage, debouncedSearch, fetchLockers]);
+  }, [filterAddressId, filterWarehouseId, currentPage, debouncedSearch, fetchLockers]);
 
   // Sync state if URL param changes
   useEffect(() => {
-    const paramId = searchParams.get('warehouseId') || 'all';
-    setFilterWarehouseId(paramId);
+    const wId = searchParams.get('warehouseId') || 'all';
+    const aId = searchParams.get('addressId') || 'all';
+    setFilterWarehouseId(wId);
+    setFilterAddressId(aId);
     setCurrentPage(1);
   }, [searchParams]);
 
@@ -91,8 +101,8 @@ function LockerPageContent() {
     fetchLockers({
       page: currentPage,
       limit: 5,
+      addressId: filterAddressId === 'all' ? undefined : filterAddressId,
       warehouseId: filterWarehouseId === 'all' ? undefined : filterWarehouseId,
-      status: activeStatus === 'all' ? undefined : activeStatus,
       search: debouncedSearch || undefined,
     });
   };
@@ -112,8 +122,8 @@ function LockerPageContent() {
         fetchLockers({
           page: currentPage,
           limit: 5,
+          addressId: filterAddressId === 'all' ? undefined : filterAddressId,
           warehouseId: filterWarehouseId === 'all' ? undefined : filterWarehouseId,
-          status: activeStatus === 'all' ? undefined : activeStatus,
           search: debouncedSearch || undefined,
         });
       }
@@ -137,8 +147,8 @@ function LockerPageContent() {
           fetchLockers({
             page: currentPage,
             limit: 5,
+            addressId: filterAddressId === 'all' ? undefined : filterAddressId,
             warehouseId: filterWarehouseId === 'all' ? undefined : filterWarehouseId,
-            status: activeStatus === 'all' ? undefined : activeStatus,
             search: debouncedSearch || undefined,
           });
         }
@@ -147,7 +157,8 @@ function LockerPageContent() {
     });
   };
 
-  const warehouseOptions = warehouses.map(w => ({ value: w.id, label: w.name }));
+  const addressOptions = addressDropdown.map(a => ({ value: String(a.id), label: a.name }));
+  const warehouseOptions = warehouseDropdown.map(w => ({ value: String(w.id), label: w.name }));
 
   const defaultLockerData = useMemo(() => {
     return filterWarehouseId && filterWarehouseId !== 'all' ? { warehouseId: filterWarehouseId } as Locker : null;
@@ -213,19 +224,23 @@ function LockerPageContent() {
           onDelete={handleDelete}
           onMove={handleOpenMoveModal}
           onManage={(locker) => {
-            router.push(`/dashboard/shelves?lockerId=${locker.id}`);
+            router.push(`/dashboard/locker/${locker.id}`);
+          }}
+          addressOptions={addressOptions}
+          filterAddress={filterAddressId}
+          onFilterAddressChange={(id) => {
+            setFilterAddressId(id);
+            setFilterWarehouseId('all');
+            setCurrentPage(1);
+            router.replace(`/dashboard/locker?addressId=${id}`);
           }}
           warehouseOptions={warehouseOptions}
           filterWarehouse={filterWarehouseId}
           onFilterWarehouseChange={(id) => {
             setFilterWarehouseId(id);
             setCurrentPage(1);
-            router.replace(`/dashboard/locker?warehouseId=${id}`);
-          }}
-          filterStatus={activeStatus}
-          onFilterStatusChange={(status) => {
-            setActiveStatus(status);
-            setCurrentPage(1);
+            const addressParam = filterAddressId !== 'all' ? `addressId=${filterAddressId}&` : '';
+            router.replace(`/dashboard/locker?${addressParam}warehouseId=${id}`);
           }}
         />
       </div>

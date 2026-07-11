@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { Modal, Form, Input, Button, Switch, Select } from 'antd';
 import { Locker, CreateLockerPayload } from '@/types/prisma-mapped';
-import { useWarehouseStore } from '@/store/useWarehouseStore';
+import { useAddressStore } from '@/store/useAddressStore';
 import {
   Layout as LockerIcon,
   Warehouse as WarehouseIcon,
@@ -15,6 +15,7 @@ import {
   MapPin
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useWarehouseStore } from '@/store/useWarehouseStore';
 
 interface LockerFormModalProps {
   isOpen: boolean;
@@ -40,14 +41,21 @@ export default function LockerFormModal({
   initialData,
 }: LockerFormModalProps) {
   const [form] = Form.useForm<FormValues>();
-  const { warehouses, fetchWarehouses } = useWarehouseStore();
+  const { addressDropdown, fetchAddressDropdown } = useAddressStore();
+  const { warehouseDropdown, fetchWarehouseDropdown } = useWarehouseStore();
+
+  const [filterAddressId, setFilterAddressId] = React.useState<string | undefined>();
 
   useEffect(() => {
     if (isOpen) {
-      fetchWarehouses();
+      fetchAddressDropdown();
       const isEditing = initialData && 'id' in initialData;
 
       if (isEditing) {
+        const addressId = (initialData as any)?.warehouse?.addressId;
+        setFilterAddressId(addressId);
+        fetchWarehouseDropdown({ addressId });
+
         form.setFieldsValue({
           warehouseId: initialData.warehouseId || undefined,
           code: initialData.code,
@@ -56,6 +64,8 @@ export default function LockerFormModal({
           isActive: initialData.status === 'A' || initialData.status === 'ACTIVE',
         });
       } else {
+        setFilterAddressId(undefined);
+        fetchWarehouseDropdown();
         form.resetFields();
         form.setFieldsValue({ 
           isActive: true,
@@ -63,7 +73,13 @@ export default function LockerFormModal({
         });
       }
     }
-  }, [isOpen, initialData, form, fetchWarehouses]);
+  }, [isOpen, initialData, form, fetchAddressDropdown, fetchWarehouseDropdown]);
+
+  const handleAddressChange = (val: string) => {
+    setFilterAddressId(val);
+    form.setFieldsValue({ warehouseId: undefined });
+    fetchWarehouseDropdown({ addressId: val });
+  };
 
   const handleFinish = (values: FormValues) => {
     const isEditing = initialData && 'id' in initialData;
@@ -146,6 +162,18 @@ export default function LockerFormModal({
             requiredMark={false}
             className="space-y-6"
           >
+            <Form.Item label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><MapPin size={14} className="text-[#185C4D]" /> ເລືອກສະຖານທີ່ (Address)</span>}>
+              <Select
+                placeholder="ເລືອກສະຖານທີ່ (ຖ້າມີ)"
+                className={selectCls}
+                allowClear
+                loading={addressDropdown.length === 0}
+                options={addressDropdown.map(a => ({ value: a.id, label: a.name }))}
+                value={filterAddressId}
+                onChange={handleAddressChange}
+              />
+            </Form.Item>
+
             <Form.Item
               label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><WarehouseIcon size={14} className="text-[#185C4D]" /> ເລືອກສາງ (Warehouse) <span className="text-rose-500">*</span></span>}
               name="warehouseId"
@@ -154,8 +182,9 @@ export default function LockerFormModal({
               <Select
                 placeholder="ເລືອກສາງທີ່ລັອກເກີຕັ້ງຢູ່"
                 className={selectCls}
-                loading={warehouses.length === 0}
-                options={warehouses.map(w => ({ value: w.id, label: w.name }))}
+                loading={warehouseDropdown.length === 0}
+                options={warehouseDropdown.map(w => ({ value: w.id, label: w.name }))}
+                disabled={warehouseDropdown.length === 0 && !!filterAddressId}
               />
             </Form.Item>
 

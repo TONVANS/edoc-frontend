@@ -4,6 +4,7 @@ import { Button, Input, Select, Badge, Dropdown, App } from 'antd';
 import { Search, Filter, Plus, Users, Shield, UserCog, MoreVertical, Key, AlertCircle, CheckCircle, Edit } from 'lucide-react';
 import StatusBadge from '@/components/dashboard/StatusBadge';
 import { useUserStore } from '@/store/useUserStore';
+import CreateUserModal from './CreateUserModal';
 
 export default function UserListView() {
   const { modal, message } = App.useApp();
@@ -11,6 +12,7 @@ export default function UserListView() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [roleFilter, setRoleFilter] = useState('ALL');
+  const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -24,7 +26,12 @@ export default function UserListView() {
           <p className="text-[#737373] text-sm mt-1">Manage system users, roles, and employee statuses.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button type="primary" icon={<Plus size={16} />} className="shadow-soft hover:-translate-y-0.5 transition-transform">
+          <Button 
+            type="primary" 
+            icon={<Plus size={16} />} 
+            className="shadow-soft hover:-translate-y-0.5 transition-transform"
+            onClick={() => setIsCreateModalVisible(true)}
+          >
             Add User
           </Button>
         </div>
@@ -212,6 +219,11 @@ export default function UserListView() {
           )}
         </div>
       </div>
+
+      <CreateUserModal 
+        open={isCreateModalVisible} 
+        onClose={() => setIsCreateModalVisible(false)} 
+      />
     </div>
   );
 }

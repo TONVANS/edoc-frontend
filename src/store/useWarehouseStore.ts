@@ -13,9 +13,11 @@ interface WarehouseState {
   warehouseDropdown: DropdownOption[];
   total: number;
   isLoading: boolean;
+  currentWarehouse: Warehouse | null;
 
   // ── Actions ──
   fetchWarehouses: (params?: { page?: number; limit?: number; addressId?: string; search?: string; status?: string }) => Promise<void>;
+  fetchWarehouseById: (id: string) => Promise<void>;
   fetchWarehouseDropdown: (params?: { addressId?: string }) => Promise<void>;
   createWarehouse: (payload: CreateWarehousePayload) => Promise<boolean>;
   updateWarehouse: (id: string | number, payload: Partial<CreateWarehousePayload & { status: string }>) => Promise<boolean>;
@@ -27,6 +29,7 @@ export const useWarehouseStore = create<WarehouseState>((set, get) => ({
   warehouseDropdown: [],
   total: 0,
   isLoading: false,
+  currentWarehouse: null,
 
   fetchWarehouses: async (params) => {
     set({ isLoading: true });
@@ -39,6 +42,17 @@ export const useWarehouseStore = create<WarehouseState>((set, get) => ({
     } catch (error) {
       set({ isLoading: false });
       console.error('Failed to fetch warehouses:', error);
+    }
+  },
+
+  fetchWarehouseById: async (id: string) => {
+    set({ isLoading: true, currentWarehouse: null });
+    try {
+      const response = await api.get<{ data: Warehouse }>(`/warehouses/${id}`);
+      set({ currentWarehouse: response.data?.data || (response.data as any), isLoading: false });
+    } catch (error) {
+      set({ isLoading: false });
+      console.error('Failed to fetch warehouse by id:', error);
     }
   },
 

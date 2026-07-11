@@ -1,9 +1,10 @@
 "use client";
-import React from 'react';
+import React, { useState } from 'react';
 import { Modal, Button, Divider } from 'antd';
 import { Document } from '@/types/prisma-mapped';
 import { useFolderStore } from '@/store/useFolderStore';
 import { useDocumentTypeStore } from '@/store/useDocumentTypeStore';
+import { useDocumentStore } from '@/store/useDocumentStore';
 import { QRCodeSVG } from 'qrcode.react';
 import { 
   FileText, 
@@ -17,7 +18,12 @@ import {
   QrCode,
   Layers,
   ShieldAlert,
-  ArrowDownToLine
+  ArrowDownToLine,
+  MapPin,
+  User,
+  Briefcase,
+  Eye,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
@@ -35,33 +41,55 @@ export default function DocumentDetailModal({
 }: DocumentDetailModalProps) {
   const { folders } = useFolderStore();
   const { documentTypes } = useDocumentTypeStore();
+  const { downloadAttachment, viewAttachment } = useDocumentStore();
+
+  const [loadingViewId, setLoadingViewId] = useState<string | null>(null);
+  const [loadingDownloadId, setLoadingDownloadId] = useState<string | null>(null);
+
+  const handleView = async (id: string) => {
+    setLoadingViewId(id);
+    await viewAttachment(id);
+    setLoadingViewId(null);
+  };
+
+  const handleDownload = async (id: string, fileName: string) => {
+    setLoadingDownloadId(id);
+    await downloadAttachment(id, fileName);
+    setLoadingDownloadId(null);
+  };
 
   if (!doc) return null;
 
   const docTypeName = doc.documentType?.name || documentTypes.find(t => t.id === doc.documentTypeId)?.name || 'ບໍ່ລະບຸ';
   const folderName = doc.folder?.name || folders.find(f => f.id === doc.folderId)?.name || folders.find(f => f.id === doc.folderId)?.code || 'ບໍ່ລະບຸ';
+  
+  const creatorName = doc.user ? `${doc.user.firstNameLa} ${doc.user.lastNameLa}` : 'ບໍ່ລະບຸ';
+  const departmentName = doc.department?.name || 'ບໍ່ລະບຸ';
+  const divisionName = doc.division?.name || 'ບໍ່ລະບຸ';
+  
+  const storageLocation = [
+    doc.address?.name,
+    doc.warehouse?.name,
+    doc.locker?.name,
+    doc.shelf?.name
+  ].filter(Boolean).join(' > ') || 'ບໍ່ລະບຸສະຖານທີ່ຈັດເກັບ';
 
   const getRetentionLabel = (status: string) => {
     switch (status) {
       case 'ACTIVE':
-        return { text: 'ເອກະສານທົ່ວໄປ', color: 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20' };
+        return { text: '10ປີ ສາມາດທຳລາຍໄດ້', color: 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20' };
       case 'DESTROYABLE':
-        return { text: 'ສາມາດທຳລາຍໄດ້ (Destroyable)', color: 'text-amber-600 bg-amber-500/10 border-amber-500/20' };
+        return { text: 'ສາມາດທຳລາຍໄດ້', color: 'text-amber-600 bg-amber-500/10 border-amber-500/20' };
       case 'DESTROYABLE_HOLD':
-        return { text: 'ຕິດສັນຍາ ຫ້າມທຳລາຍ (Destroyable Hold)', color: 'text-rose-600 bg-rose-500/10 border-rose-500/20' };
+        return { text: '10ປີ ຫ້າມທຳລາຍ', color: 'text-rose-600 bg-rose-500/10 border-rose-500/20' };
       case 'EXPIRED':
-        return { text: 'ໝົດອາຍຸ ເຖິງກຳນົດທຳລາຍ (Expired)', color: 'text-rose-600 bg-rose-500/10 border-rose-500/20' };
+        return { text: 'ໝົດອາຍຸ ເຖິງກຳນົດທຳລາຍ', color: 'text-rose-600 bg-rose-500/10 border-rose-500/20' };
       default:
         return { text: status, color: 'text-slate-600 bg-slate-500/10 border-slate-500/20' };
     }
   };
 
   const retention = getRetentionLabel(doc.retentionStatus);
-
-  const getAttachmentDownloadUrl = (attachmentId: string) => {
-    const baseUrl = api.defaults.baseURL || 'http://localhost:3000/api';
-    return `${baseUrl}/documents/attachments/${attachmentId}`;
-  };
 
   return (
     <Modal
@@ -162,9 +190,33 @@ export default function DocumentDetailModal({
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
+                    <span className="text-[11px] font-bold text-slate-400 block uppercase">ພາກສ່ວນ/ກົມ</span>
+                    <span className="text-slate-700 font-bold text-[14px] flex items-center gap-1.5 mt-1">
+                      <Briefcase size={14} className="text-[#185C4D]" /> {departmentName}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-400 block uppercase">ພະແນກ</span>
+                    <span className="text-slate-700 font-bold text-[14px] mt-1 block truncate">
+                      {divisionName}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-400 block uppercase">ຜູ້ສ້າງເອກະສານ</span>
+                    <span className="text-slate-700 font-bold text-[14px] flex items-center gap-1.5 mt-1">
+                      <User size={14} className="text-[#185C4D]" /> {creatorName}
+                    </span>
+                  </div>
+                  <div>
                     <span className="text-[11px] font-bold text-slate-400 block uppercase">ປະເພດເອກະສານ</span>
                     <span className="text-slate-700 font-bold text-[14px] flex items-center gap-1.5 mt-1">
                       <Layers size={14} className="text-[#185C4D]" /> {docTypeName}
+                    </span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-[11px] font-bold text-slate-400 block uppercase">ສະຖານທີ່ຈັດເກັບ (ສາງ/ຕູ້/ຊັ້ນ)</span>
+                    <span className="text-slate-700 font-bold text-[14px] flex items-center gap-1.5 mt-1">
+                      <MapPin size={14} className="text-[#185C4D]" /> {storageLocation}
                     </span>
                   </div>
                   <div>
@@ -177,20 +229,6 @@ export default function DocumentDetailModal({
                     <span className="text-[11px] font-bold text-slate-400 block uppercase">ສະຖານະການເກັບຮັກສາ</span>
                     <span className={cn("inline-block font-bold text-[12px] px-2.5 py-0.5 rounded-full border mt-1.5", retention.color)}>
                       {retention.text}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[11px] font-bold text-slate-400 block uppercase">ຜູກພັນສັນຍາ</span>
-                    <span className="inline-block mt-1.5">
-                      {doc.isContractBound ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">
-                          <Scale size={11} /> ຜູກພັນສັນຍາ
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-500/10 text-slate-500 border border-slate-500/10">
-                          ເອກະສານທົ່ວໄປ
-                        </span>
-                      )}
                     </span>
                   </div>
                 </div>
@@ -229,12 +267,9 @@ export default function DocumentDetailModal({
                 {doc.attachments && doc.attachments.length > 0 ? (
                   <div className="flex flex-col gap-2 max-h-[180px] overflow-y-auto pr-1">
                     {doc.attachments.map(att => (
-                      <a 
+                      <div 
                         key={att.id}
-                        href={getAttachmentDownloadUrl(att.id)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-between bg-white/70 hover:bg-white border border-slate-100 hover:border-[#185C4D]/30 p-2.5 rounded-xl shadow-xs transition-all text-slate-600 hover:text-[#185C4D] group cursor-pointer"
+                        className="flex items-center justify-between bg-white/70 hover:bg-white border border-slate-100 hover:border-[#185C4D]/30 p-2.5 rounded-xl shadow-xs transition-all text-slate-600 group"
                       >
                         <div className="flex items-center gap-2 overflow-hidden min-w-0">
                           <FileText size={15} className="text-slate-400 group-hover:text-[#185C4D]" />
@@ -242,8 +277,25 @@ export default function DocumentDetailModal({
                             {att.fileName}
                           </span>
                         </div>
-                        <ArrowDownToLine size={14} className="text-slate-400 group-hover:text-[#185C4D] shrink-0 ml-1.5" />
-                      </a>
+                        <div className="flex items-center gap-1 shrink-0 ml-2">
+                          <button 
+                            onClick={() => handleView(att.id)}
+                            disabled={loadingViewId === att.id}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-500 hover:bg-blue-50 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="ເບິ່ງ"
+                          >
+                            {loadingViewId === att.id ? <Loader2 size={15} className="animate-spin" /> : <Eye size={15} />}
+                          </button>
+                          <button 
+                            onClick={() => handleDownload(att.id, att.fileName)}
+                            disabled={loadingDownloadId === att.id}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-[#185C4D] hover:bg-[#185C4D]/10 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="ດາວໂຫຼດ"
+                          >
+                            {loadingDownloadId === att.id ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+                          </button>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 ) : (

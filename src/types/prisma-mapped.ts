@@ -38,6 +38,8 @@ export interface Address {
   divisionId: number | null;
   createdAt: string;
   updatedAt: string;
+  departmentData?: Department;
+  divisionData?: Division;
 }
 
 export interface CreateAddressPayload {
@@ -209,6 +211,13 @@ export interface Document {
   // Optional relations
   folder?: Folder;
   documentType?: DocumentType;
+  department?: Department;
+  division?: Division;
+  user?: any; // To be mapped properly if User type exists
+  address?: Address;
+  warehouse?: Warehouse;
+  locker?: Locker;
+  shelf?: Shelf;
 }
 
 export interface CreateDocumentPayload {

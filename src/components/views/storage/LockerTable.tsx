@@ -4,12 +4,6 @@ import { Button, Input, Select, Tooltip, Dropdown, Pagination } from 'antd';
 import AddressStatusBadge from '../address/AddressStatusBadge';
 import { Locker } from '@/types/prisma-mapped';
 
-const STATUS_OPTIONS = [
-  { value: 'all', label: 'ທັງໝົດ (ສະຖານະ)' },
-  { value: 'A', label: 'Active' },
-  { value: 'I', label: 'Inactive' },
-];
-
 interface LockerTableProps {
   data: Locker[];
   total: number;
@@ -22,11 +16,13 @@ interface LockerTableProps {
   onDelete?: (id: string | number) => void;
   onManage?: (locker: Locker) => void;
   onMove?: (locker: Locker) => void;
+  addressOptions?: { value: string; label: string }[];
+  filterAddress?: string;
+  onFilterAddressChange?: (addressId: string) => void;
   warehouseOptions?: { value: string; label: string }[];
   filterWarehouse?: string;
   onFilterWarehouseChange?: (warehouseId: string) => void;
-  filterStatus?: string;
-  onFilterStatusChange?: (status: string) => void;
+  hideFilters?: boolean;
 }
 
 export default function LockerTable({
@@ -41,11 +37,13 @@ export default function LockerTable({
   onDelete,
   onManage,
   onMove,
+  addressOptions = [],
+  filterAddress,
+  onFilterAddressChange,
   warehouseOptions = [],
   filterWarehouse,
   onFilterWarehouseChange,
-  filterStatus = 'all',
-  onFilterStatusChange,
+  hideFilters = false,
 }: LockerTableProps) {
 
   return (
@@ -62,23 +60,26 @@ export default function LockerTable({
             className="flex-1 min-w-[240px] max-w-[320px] rounded-[16px] bg-white/60 border-white/80 hover:bg-white focus-within:bg-white shadow-sm transition-all duration-300 focus-within:border-[#185C4D] h-[48px]"
           />
 
-          <div className="flex items-center gap-3 shrink-0">
-            <SlidersHorizontal size={16} className="text-slate-400 mr-1" />
-            <Select
-              value={filterWarehouse || 'all'}
-              onChange={onFilterWarehouseChange}
-              options={[{ value: 'all', label: 'ທັງໝົດ (ສາງ)' }, ...warehouseOptions]}
-              size="large"
-              className="min-w-[170px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
-            />
-            <Select
-              value={filterStatus}
-              onChange={onFilterStatusChange}
-              options={STATUS_OPTIONS}
-              size="large"
-              className="min-w-[160px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
-            />
-          </div>
+          {!hideFilters && (
+            <div className="flex items-center gap-3 shrink-0">
+              <SlidersHorizontal size={16} className="text-slate-400 mr-1" />
+              <Select
+                value={filterAddress || 'all'}
+                onChange={onFilterAddressChange}
+                options={[{ value: 'all', label: 'ທັງໝົດ (ສະຖານທີ່)' }, ...addressOptions]}
+                size="large"
+                className="min-w-[170px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
+              />
+              <Select
+                value={filterWarehouse || 'all'}
+                onChange={onFilterWarehouseChange}
+                options={[{ value: 'all', label: 'ທັງໝົດ (ສາງ)' }, ...warehouseOptions]}
+                size="large"
+                className="min-w-[170px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
+                disabled={warehouseOptions.length === 0 && !!filterAddress && filterAddress !== 'all'}
+              />
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2 text-[15px] font-bold bg-[#185C4D]/5 px-5 py-3 rounded-[16px] border border-[#185C4D]/10 text-[#185C4D] shrink-0">
@@ -95,7 +96,7 @@ export default function LockerTable({
             <div className="col-span-4">ລາຍລະອຽດ</div>
             <div className="col-span-1 text-center">ຈັດການ</div>
           </div>
-          
+
           {isLoading ? (
             <div className="flex justify-center items-center py-20 bg-white/20 rounded-2xl">
               <div className="flex flex-col items-center gap-3">
@@ -113,8 +114,8 @@ export default function LockerTable({
           ) : (
             <div className="flex flex-col gap-4">
               {data.map(item => (
-                <div 
-                  key={item.id} 
+                <div
+                  key={item.id}
                   className="group bg-white/50 backdrop-blur-lg border border-white/80 grid grid-cols-12 gap-4 items-center py-5 px-8 rounded-[22px] shadow-sm transition-all duration-300 hover:bg-white/90 hover:-translate-y-1 hover:shadow-glass cursor-pointer"
                   onClick={() => onManage?.(item)}
                 >
@@ -123,7 +124,7 @@ export default function LockerTable({
                       {item.code}
                     </span>
                   </div>
-                  
+
                   <div className="col-span-3 flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-linear-to-br from-teal-500/10 to-emerald-600/10 flex items-center justify-center shrink-0 border border-teal-200/30 shadow-sm group-hover:scale-110 transition-transform duration-500">
                       <LockerIcon className="text-teal-600 w-5 h-5" strokeWidth={2.5} />
@@ -131,10 +132,15 @@ export default function LockerTable({
                     <span className="font-bold text-slate-800 text-[15px] truncate">{item.name || 'ບໍ່ມີຊື່'}</span>
                   </div>
 
-                  <div className="col-span-2">
+                  <div className="col-span-2 flex flex-col items-start gap-1">
                     <span className="text-slate-600 text-[14px] font-bold bg-slate-50/50 px-3 py-1.5 rounded-xl border border-slate-100/50 shadow-sm inline-block">
-                      {warehouseOptions.find(w => w.value === item.warehouseId)?.label || '—'}
+                      {(item as any).warehouse?.name || warehouseOptions.find(w => w.value === item.warehouseId)?.label || '—'}
                     </span>
+                    {(item as any).warehouse?.address?.name && (
+                      <span className="text-xs text-slate-500 font-medium px-1">
+                        {(item as any).warehouse.address.name}
+                      </span>
+                    )}
                   </div>
 
                   <div className="col-span-4 pr-4">
@@ -142,8 +148,8 @@ export default function LockerTable({
                   </div>
 
                   <div className="col-span-1 flex justify-center" onClick={(e) => e.stopPropagation()}>
-                    <Dropdown 
-                      menu={{ 
+                    <Dropdown
+                      menu={{
                         items: [
                           {
                             key: 'manage',
@@ -175,12 +181,12 @@ export default function LockerTable({
                           }
                         ],
                         className: "min-w-[180px] p-2 rounded-2xl border border-white/60 shadow-glass bg-white/80 backdrop-blur-xl"
-                      }} 
-                      trigger={['click']} 
+                      }}
+                      trigger={['click']}
                       placement="bottomRight"
                     >
-                      <Button 
-                        type="text" 
+                      <Button
+                        type="text"
                         className="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-[#185C4D]/5 transition-all duration-300 shadow-sm border border-slate-200/30 bg-white/80 hover:border-[#185C4D]/30 group/btn"
                         icon={<MoreVertical size={20} className="text-slate-400 group-hover/btn:text-[#185C4D] transition-colors" />}
                       />

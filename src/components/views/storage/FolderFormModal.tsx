@@ -3,18 +3,24 @@
 import React, { useEffect } from 'react';
 import { Modal, Form, Input, Button, Switch, Select } from 'antd';
 import { Folder, CreateFolderPayload } from '@/types/prisma-mapped';
-import { useShelfStore } from '@/store/useShelfStore';
+import { useAddressStore } from '@/store/useAddressStore';
+import { useWarehouseStore } from '@/store/useWarehouseStore';
+import { useLockerStore } from '@/store/useLockerStore';
 import {
   Folder as FolderIcon,
   Layers as ShelfIcon,
+  Layout as LockerIcon,
+  Warehouse as WarehouseIcon,
   X,
   Sparkles,
   ArrowRight,
   Hash,
   QrCode,
-  MapPin
+  MapPin,
+  AlignLeft
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useShelfStore } from '@/store/useShelfStore';
 
 interface FolderFormModalProps {
   isOpen: boolean;
@@ -28,6 +34,7 @@ interface FormValues {
   shelfId: string;
   code: string;
   name: string;
+  description?: string;
   isActive?: boolean;
 }
 
@@ -39,21 +46,53 @@ export default function FolderFormModal({
   initialData,
 }: FolderFormModalProps) {
   const [form] = Form.useForm<FormValues>();
+  const { addressDropdown, fetchAddressDropdown } = useAddressStore();
+  const { warehouseDropdown, fetchWarehouseDropdown } = useWarehouseStore();
+  const { lockerDropdown, fetchLockerDropdown } = useLockerStore();
   const { shelves, fetchShelves } = useShelfStore();
+
+  const [filterAddressId, setFilterAddressId] = React.useState<string | undefined>();
+  const [filterWarehouseId, setFilterWarehouseId] = React.useState<string | undefined>();
+  const [filterLockerId, setFilterLockerId] = React.useState<string | undefined>();
 
   useEffect(() => {
     if (isOpen) {
-      fetchShelves();
+      fetchAddressDropdown();
       const isEditing = initialData && 'id' in initialData;
 
       if (isEditing) {
+        const shelf = (initialData as any)?.shelf;
+        const lockerId = shelf?.lockerId;
+        const warehouseId = shelf?.locker?.warehouseId;
+        const addressId = shelf?.locker?.warehouse?.addressId;
+
+        setFilterAddressId(addressId);
+        setFilterWarehouseId(warehouseId);
+        setFilterLockerId(lockerId);
+
+        if (addressId) fetchWarehouseDropdown({ addressId });
+        else fetchWarehouseDropdown();
+
+        if (warehouseId) fetchLockerDropdown({ warehouseId });
+        else fetchLockerDropdown();
+
+        if (lockerId) fetchShelves({ lockerId, limit: 1000 });
+        else fetchShelves({ limit: 1000 });
+
         form.setFieldsValue({
           shelfId: initialData.shelfId,
           code: initialData.code,
           name: initialData.name,
+          description: initialData.description || undefined,
           isActive: initialData.status === 'A' || initialData.status === 'ACTIVE',
         });
       } else {
+        setFilterAddressId(undefined);
+        setFilterWarehouseId(undefined);
+        setFilterLockerId(undefined);
+        fetchWarehouseDropdown();
+        fetchLockerDropdown();
+        fetchShelves({ limit: 1000 });
         form.resetFields();
         form.setFieldsValue({ 
           isActive: true,
@@ -61,13 +100,38 @@ export default function FolderFormModal({
         });
       }
     }
-  }, [isOpen, initialData, form, fetchShelves]);
+  }, [isOpen, initialData, form, fetchAddressDropdown, fetchWarehouseDropdown, fetchLockerDropdown, fetchShelves]);
+
+  const handleAddressChange = (val: string) => {
+    setFilterAddressId(val);
+    setFilterWarehouseId(undefined);
+    setFilterLockerId(undefined);
+    form.setFieldsValue({ shelfId: undefined });
+    fetchWarehouseDropdown({ addressId: val });
+    fetchLockerDropdown();
+    fetchShelves({ limit: 1000 });
+  };
+
+  const handleWarehouseChange = (val: string) => {
+    setFilterWarehouseId(val);
+    setFilterLockerId(undefined);
+    form.setFieldsValue({ shelfId: undefined });
+    fetchLockerDropdown({ warehouseId: val });
+    fetchShelves({ limit: 1000 });
+  };
+
+  const handleLockerChange = (val: string) => {
+    setFilterLockerId(val);
+    form.setFieldsValue({ shelfId: undefined });
+    fetchShelves({ lockerId: val, limit: 1000 });
+  };
 
   const handleFinish = (values: FormValues) => {
     const isEditing = initialData && 'id' in initialData;
     const payload: any = {
       code: values.code.trim(),
       name: values.name.trim(),
+      description: values.description?.trim() || undefined,
       shelfId: values.shelfId,
     };
     
@@ -78,12 +142,7 @@ export default function FolderFormModal({
       payload.qrCode = `QR-F-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
       
       const selectedShelf = shelves.find(s => s.id === values.shelfId);
-      if (selectedShelf) {
-        const lockerName = (selectedShelf as any).locker?.name || (selectedShelf as any).locker?.code || '';
-        const warehouseName = (selectedShelf as any).locker?.warehouse?.name || (selectedShelf as any).locker?.warehouse?.code || '';
-        const shelfName = selectedShelf.name || selectedShelf.code;
-        payload.locationRef = [warehouseName, lockerName, shelfName].filter(Boolean).join(' / ') || `Shelf: ${shelfName}`;
-      }
+      // locationRef is omitted because the backend DTO does not accept it
     }
     
     onSubmit(payload);
@@ -154,6 +213,44 @@ export default function FolderFormModal({
             requiredMark={false}
             className="space-y-6"
           >
+            <Form.Item label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><MapPin size={14} className="text-[#185C4D]" /> ເລືອກສະຖານທີ່ (Address)</span>}>
+              <Select
+                placeholder="ເລືອກສະຖານທີ່ (ຖ້າມີ)"
+                className={selectCls}
+                allowClear
+                loading={addressDropdown.length === 0}
+                options={addressDropdown.map(a => ({ value: a.id, label: a.name }))}
+                value={filterAddressId}
+                onChange={handleAddressChange}
+              />
+            </Form.Item>
+
+            <Form.Item label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><WarehouseIcon size={14} className="text-[#185C4D]" /> ເລືອກສາງ (Warehouse)</span>}>
+              <Select
+                placeholder="ເລືອກສາງ (ຖ້າມີ)"
+                className={selectCls}
+                allowClear
+                loading={warehouseDropdown.length === 0}
+                options={warehouseDropdown.map(w => ({ value: w.id, label: w.name }))}
+                value={filterWarehouseId}
+                onChange={handleWarehouseChange}
+                disabled={warehouseDropdown.length === 0 && !!filterAddressId}
+              />
+            </Form.Item>
+
+            <Form.Item label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><LockerIcon size={14} className="text-[#185C4D]" /> ເລືອກຕູ້ (Locker)</span>}>
+              <Select
+                placeholder="ເລືອກຕູ້ (ຖ້າມີ)"
+                className={selectCls}
+                allowClear
+                loading={lockerDropdown.length === 0}
+                options={lockerDropdown.map(l => ({ value: l.id, label: l.name || l.code }))}
+                value={filterLockerId}
+                onChange={handleLockerChange}
+                disabled={lockerDropdown.length === 0 && !!filterWarehouseId}
+              />
+            </Form.Item>
+
             <Form.Item
               label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><ShelfIcon size={14} className="text-[#185C4D]" /> ເລືອກຊັ້ນວາງ (Shelf) <span className="text-rose-500">*</span></span>}
               name="shelfId"
@@ -164,6 +261,7 @@ export default function FolderFormModal({
                 className={selectCls}
                 loading={shelves.length === 0}
                 options={shelves.map(s => ({ value: s.id, label: s.name || s.code }))}
+                disabled={shelves.length === 0 && !!filterLockerId}
               />
             </Form.Item>
 
@@ -184,6 +282,13 @@ export default function FolderFormModal({
                 <Input placeholder="ເຊັ່ນ: ແຟ້ມເກັບບິນ 2024" className={inputCls} />
               </Form.Item>
             </div>
+
+            <Form.Item
+              label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><AlignLeft size={14} className="text-slate-400" /> ລາຍລະອຽດແຟ້ມ</span>}
+              name="description"
+            >
+              <Input.TextArea placeholder="ລາຍລະອຽດເພີ່ມເຕີມ..." rows={3} className={cn(inputCls, "h-auto py-3")} />
+            </Form.Item>
 
             {initialData && 'id' in initialData && (
               <Form.Item

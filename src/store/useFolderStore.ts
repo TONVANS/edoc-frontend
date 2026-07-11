@@ -11,9 +11,11 @@ interface FolderState {
   folders: Folder[];
   total: number;
   isLoading: boolean;
+  currentFolder: Folder | null;
 
   // ── Actions ──
   fetchFolders: (params?: { page?: number; limit?: number; shelfId?: string; search?: string; status?: string }) => Promise<void>;
+  fetchFolderById: (id: string) => Promise<void>;
   createFolder: (payload: CreateFolderPayload) => Promise<boolean>;
   updateFolder: (id: string | number, payload: Partial<CreateFolderPayload & { status: string }>) => Promise<boolean>;
   deleteFolder: (id: string | number) => Promise<boolean>;
@@ -23,6 +25,7 @@ export const useFolderStore = create<FolderState>((set, get) => ({
   folders: [],
   total: 0,
   isLoading: false,
+  currentFolder: null,
 
   fetchFolders: async (params) => {
     set({ isLoading: true });
@@ -35,6 +38,17 @@ export const useFolderStore = create<FolderState>((set, get) => ({
     } catch (error) {
       set({ isLoading: false });
       console.error('Failed to fetch folders:', error);
+    }
+  },
+
+  fetchFolderById: async (id: string) => {
+    set({ isLoading: true, currentFolder: null });
+    try {
+      const response = await api.get<{ data: Folder }>(`/folders/${id}`);
+      set({ currentFolder: response.data?.data || (response.data as any), isLoading: false });
+    } catch (error) {
+      set({ isLoading: false });
+      console.error('Failed to fetch folder by id:', error);
     }
   },
 

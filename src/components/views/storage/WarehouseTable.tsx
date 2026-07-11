@@ -1,15 +1,9 @@
 import React from 'react';
-import { Warehouse as WarehouseIcon, Edit2, Trash2, Search, Building2, SlidersHorizontal, ChevronRight, MoreVertical } from 'lucide-react';
+import { Warehouse as WarehouseIcon, Edit2, Trash2, Search, Building2, ChevronRight, MoreVertical } from 'lucide-react';
 import { Button, Input, Select, Tooltip, Dropdown, Pagination } from 'antd';
 import AddressStatusBadge from '../address/AddressStatusBadge';
 import { Warehouse } from '@/types/prisma-mapped';
 import { cn } from '@/lib/utils';
-
-const STATUS_OPTIONS = [
-  { value: 'all', label: 'ທັງໝົດ (ສະຖານະ)' },
-  { value: 'A', label: 'Active' },
-  { value: 'I', label: 'Inactive' },
-];
 
 interface WarehouseTableProps {
   data: Warehouse[];
@@ -22,8 +16,16 @@ interface WarehouseTableProps {
   onEdit: (warehouse: Warehouse) => void;
   onDelete?: (id: string | number) => void;
   onManage?: (warehouse: Warehouse) => void;
-  filterStatus?: string;
-  onFilterStatusChange?: (status: string) => void;
+  filterAddress?: string;
+  onFilterAddressChange?: (addressId: string) => void;
+  addressOptions?: { value: string; label: string }[];
+  filterDepartment?: string;
+  onFilterDepartmentChange?: (departmentId: string) => void;
+  departmentOptions?: { value: string; label: string }[];
+  filterDivision?: string;
+  onFilterDivisionChange?: (divisionId: string) => void;
+  divisionOptions?: { value: string; label: string }[];
+  hideFilters?: boolean;
 }
 
 export default function WarehouseTable({
@@ -37,8 +39,16 @@ export default function WarehouseTable({
   onEdit,
   onDelete,
   onManage,
-  filterStatus = 'all',
-  onFilterStatusChange,
+  filterAddress = 'all',
+  onFilterAddressChange,
+  addressOptions = [],
+  filterDepartment = 'all',
+  onFilterDepartmentChange,
+  departmentOptions = [],
+  filterDivision = 'all',
+  onFilterDivisionChange,
+  divisionOptions = [],
+  hideFilters = false,
 }: WarehouseTableProps) {
 
   return (
@@ -55,16 +65,45 @@ export default function WarehouseTable({
             className="flex-1 min-w-[240px] max-w-[320px] rounded-[16px] bg-white/60 border-white/80 hover:bg-white focus-within:bg-white shadow-sm transition-all duration-300 focus-within:border-[#185C4D] h-[48px]"
           />
 
-          <div className="flex items-center gap-3 shrink-0">
-            <SlidersHorizontal size={16} className="text-slate-400 mr-1" />
-            <Select
-              value={filterStatus}
-              onChange={onFilterStatusChange}
-              options={STATUS_OPTIONS}
-              size="large"
-              className="min-w-[160px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
-            />
-          </div>
+          {!hideFilters && (
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
+              <Select
+                value={filterDepartment}
+                onChange={onFilterDepartmentChange}
+                options={[{ value: 'all', label: 'ທັງໝົດ (ຝ່າຍ)' }, ...departmentOptions]}
+                size="large"
+                showSearch
+                optionFilterProp="label"
+                className="min-w-[160px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
+              />
+
+              <Select
+                value={filterDivision}
+                onChange={onFilterDivisionChange}
+                options={[{ value: 'all', label: 'ທັງໝົດ (ພະແນກ)' }, ...divisionOptions]}
+                size="large"
+                showSearch
+                optionFilterProp="label"
+                className="min-w-[160px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
+                disabled={filterDepartment === 'all'}
+              />
+
+              <div className="flex items-center gap-2">
+                <Building2 size={16} className="text-slate-400" />
+                <Select
+                  value={filterAddress}
+                  onChange={onFilterAddressChange}
+                  options={[{ value: 'all', label: 'ທັງໝົດ (ທີ່ຢູ່)' }, ...addressOptions]}
+                  size="large"
+                  showSearch
+                  optionFilterProp="label"
+                  className="min-w-[160px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
+                />
+              </div>
+            </div>
+          )}
+
+
         </div>
 
         <div className="flex items-center gap-2 text-[15px] font-bold bg-[#185C4D]/5 px-5 py-3 rounded-[16px] border border-[#185C4D]/10 text-[#185C4D] shrink-0">
@@ -75,12 +114,13 @@ export default function WarehouseTable({
       <div className="w-full bg-white/30 backdrop-blur-2xl border border-white/50 p-6 rounded-[32px] shadow-glass overflow-x-auto">
         <div className="min-w-[1000px]">
           <div className="bg-table-header text-white grid grid-cols-12 gap-4 py-5 px-8 rounded-2xl shadow-md mb-5 text-[14px] font-bold tracking-wider uppercase">
-            <div className="col-span-2">ລະຫັດສາງ</div>
-            <div className="col-span-4">ຊື່ສາງເກັບມ້ຽນ</div>
-            <div className="col-span-5">ລາຍລະອຽດ</div>
+            <div className="col-span-1">ລະຫັດສາງ</div>
+            <div className="col-span-3">ຊື່ສາງເກັບມ້ຽນ</div>
+            <div className="col-span-3">ທີ່ຕັ້ງ</div>
+            <div className="col-span-4">ລາຍລະອຽດ</div>
             <div className="col-span-1 text-center">ຈັດການ</div>
           </div>
-          
+
           {isLoading ? (
             <div className="flex justify-center items-center py-20 bg-white/20 rounded-2xl">
               <div className="flex flex-col items-center gap-3">
@@ -99,31 +139,44 @@ export default function WarehouseTable({
             <div className="flex flex-col gap-4">
               {data.map(item => {
                 return (
-                  <div 
-                    key={item.id} 
+                  <div
+                    key={item.id}
                     className="group bg-white/50 backdrop-blur-lg border border-white/80 grid grid-cols-12 gap-4 items-center py-5 px-8 rounded-[22px] shadow-sm transition-all duration-300 hover:bg-white/90 hover:-translate-y-1 hover:shadow-glass cursor-pointer"
                     onClick={() => onManage?.(item)}
                   >
-                    <div className="col-span-2">
-                      <span className="inline-flex items-center font-mono font-bold text-[13px] text-slate-600 bg-white/60 border border-slate-200/50 px-3 py-1.5 rounded-xl shadow-sm">
-                        {item.code}
+                    <div className="col-span-1 min-w-0 flex items-center">
+                      <span className="inline-flex items-center font-mono font-bold text-[13px] text-slate-600 bg-white/60 border border-slate-200/50 px-3 py-1.5 rounded-xl shadow-sm max-w-full" title={item.code}>
+                        <span className="truncate">{item.code}</span>
                       </span>
                     </div>
-                    
-                    <div className="col-span-4 flex items-center gap-4">
+
+                    <div className="col-span-3 flex items-center gap-4 min-w-0">
                       <div className="w-10 h-10 rounded-xl bg-linear-to-br from-blue-500/10 to-indigo-600/10 flex items-center justify-center shrink-0 border border-blue-200/30 shadow-sm group-hover:scale-110 transition-transform duration-500">
                         <WarehouseIcon className="text-blue-600 w-5 h-5" strokeWidth={2.5} />
                       </div>
-                      <span className="font-bold text-slate-800 text-[15px] truncate">{item.name}</span>
+                      <span className="font-bold text-slate-800 text-[15px] truncate flex-1 min-w-0" title={item.name}>{item.name}</span>
                     </div>
 
-                    <div className="col-span-5 pr-4">
-                      <span className="text-slate-500 text-[14px] font-medium line-clamp-2 leading-relaxed">{item.description || 'ບໍ່ມີລາຍລະອຽດ'}</span>
+                    <div className="col-span-3 flex items-center gap-2 min-w-0">
+                      {item.address?.name ? (
+                        <>
+                          <Building2 size={16} className="text-slate-400 shrink-0" />
+                          <span className="text-slate-700 text-[14px] font-medium truncate flex-1 min-w-0" title={item.address.name}>
+                            {item.address.name}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-slate-300 text-sm italic select-none">-</span>
+                      )}
+                    </div>
+
+                    <div className="col-span-4 pr-4 min-w-0">
+                      <span className="text-slate-500 text-[14px] font-medium line-clamp-2 leading-relaxed" title={item.description || ''}>{item.description || 'ບໍ່ມີລາຍລະອຽດ'}</span>
                     </div>
 
                     <div className="col-span-1 flex justify-center" onClick={(e) => e.stopPropagation()}>
-                      <Dropdown 
-                        menu={{ 
+                      <Dropdown
+                        menu={{
                           items: [
                             {
                               key: 'manage',
@@ -149,12 +202,12 @@ export default function WarehouseTable({
                             }
                           ],
                           className: "min-w-[180px] p-2 rounded-2xl border border-white/60 shadow-glass bg-white/80 backdrop-blur-xl"
-                        }} 
-                        trigger={['click']} 
+                        }}
+                        trigger={['click']}
                         placement="bottomRight"
                       >
-                        <Button 
-                          type="text" 
+                        <Button
+                          type="text"
                           className="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-[#185C4D]/5 transition-all duration-300 shadow-sm border border-slate-200/30 bg-white/80 hover:border-[#185C4D]/30 group/btn"
                           icon={<MoreVertical size={20} className="text-slate-400 group-hover/btn:text-[#185C4D] transition-colors" />}
                         />

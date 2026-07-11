@@ -1,5 +1,5 @@
 import api from "@/lib/api";
-import { Shelf, CreateShelfPayload } from "@/types/prisma-mapped";
+import { Shelf, CreateShelfPayload, DropdownOption } from "@/types/prisma-mapped";
 import { create } from "zustand";
 
 interface ShelfResponse {
@@ -9,11 +9,15 @@ interface ShelfResponse {
 
 interface ShelfState {
   shelves: Shelf[];
+  shelfDropdown: DropdownOption[];
   total: number;
   isLoading: boolean;
+  currentShelf: Shelf | null;
 
   // ── Actions ──
   fetchShelves: (params?: { page?: number; limit?: number; lockerId?: string; warehouseId?: string; search?: string; status?: string }) => Promise<void>;
+  fetchShelfDropdown: (params?: { lockerId?: string; warehouseId?: string }) => Promise<void>;
+  fetchShelfById: (id: string) => Promise<void>;
   fetchByLocker: (lockerId: string, params?: { page?: number; limit?: number }) => Promise<void>;
   createShelf: (payload: CreateShelfPayload) => Promise<boolean>;
   updateShelf: (id: string | number, payload: Partial<CreateShelfPayload & { status: string }>) => Promise<boolean>;
@@ -22,8 +26,20 @@ interface ShelfState {
 
 export const useShelfStore = create<ShelfState>((set, get) => ({
   shelves: [],
+  shelfDropdown: [],
   total: 0,
   isLoading: false,
+  currentShelf: null,
+
+  fetchShelfDropdown: async (params = {}) => {
+    try {
+      const response = await api.get(`/shelves/dropdown`, { params });
+      const data = response.data?.data || response.data || [];
+      set({ shelfDropdown: Array.isArray(data) ? data : [] });
+    } catch (error) {
+      console.error('Failed to fetch shelf dropdown:', error);
+    }
+  },
 
   fetchShelves: async (params) => {
     set({ isLoading: true });
@@ -39,10 +55,21 @@ export const useShelfStore = create<ShelfState>((set, get) => ({
     }
   },
 
+  fetchShelfById: async (id: string) => {
+    set({ isLoading: true, currentShelf: null });
+    try {
+      const response = await api.get<{ data: Shelf }>(`/shelves/${id}`);
+      set({ currentShelf: response.data?.data || (response.data as any), isLoading: false });
+    } catch (error) {
+      set({ isLoading: false });
+      console.error('Failed to fetch shelf by id:', error);
+    }
+  },
+
   fetchByLocker: async (lockerId, params) => {
     set({ isLoading: true });
     try {
-      const response = await api.get<ShelfResponse>(`/shelves/locker/${lockerId}`, { params });
+      const response = await api.get<ShelfResponse>(`/shelves`, { params: { ...params, lockerId } });
       const resData = response.data.data;
       const shelves = Array.isArray(resData) ? resData : (resData as any)?.data || [];
       const total = (response.data as any).meta?.total ?? (Array.isArray(resData) ? resData.length : (resData as any)?.total || 0);

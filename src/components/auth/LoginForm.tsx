@@ -93,7 +93,7 @@ export default function LoginForm() {
       </h2>
 
       {/* Fields */}
-      <form className="flex flex-col gap-5" onSubmit={handleLogin}>
+      <form className="flex flex-col gap-5 font-lao" onSubmit={handleLogin}>
         <LoginInputField
           id="empCode"
           label="ລະຫັດພະນັກງານ"

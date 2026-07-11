@@ -4,6 +4,8 @@ import React, { useEffect } from 'react';
 import { Modal, Form, Input, Button, Switch, Select } from 'antd';
 import { Warehouse, CreateWarehousePayload } from '@/types/prisma-mapped';
 import { useAddressStore } from '@/store/useAddressStore';
+import { useDepartmentStore } from '@/store/useDepartmentStore';
+import { useDivisionStore } from '@/store/useDivisionStore';
 import {
   Building2,
   GitBranch,
@@ -47,12 +49,25 @@ export default function WarehouseFormModal({
   initialData,
 }: WarehouseFormModalProps) {
   const [form] = Form.useForm<FormValues>();
-  const { addresses, fetchAddresses } = useAddressStore();
+  const { addressDropdown, fetchAddressDropdown } = useAddressStore();
+  const { departmentDropdown, fetchDropdown: fetchDeptDropdown } = useDepartmentStore();
+  const { divisionDropdown, fetchDropdown: fetchDivDropdown } = useDivisionStore();
+
+  const [filterDept, setFilterDept] = React.useState<number | undefined>();
+  const [filterDiv, setFilterDiv] = React.useState<number | undefined>();
 
   useEffect(() => {
     if (isOpen) {
-      fetchAddresses();
+      fetchDeptDropdown();
+      
       if (initialData) {
+        const deptId = (initialData as any)?.address?.departmentId;
+        const divId = (initialData as any)?.address?.divisionId;
+        setFilterDept(deptId);
+        setFilterDiv(divId);
+        if (deptId) fetchDivDropdown({ departmentId: deptId });
+        fetchAddressDropdown({ departmentId: deptId, divisionId: divId });
+
         form.setFieldsValue({
           addressId: initialData.addressId || undefined,
           code: initialData.code,
@@ -61,11 +76,32 @@ export default function WarehouseFormModal({
           isActive: initialData.status === 'A' || initialData.status === 'ACTIVE',
         });
       } else {
+        setFilterDept(undefined);
+        setFilterDiv(undefined);
+        fetchAddressDropdown();
         form.resetFields();
         form.setFieldsValue({ isActive: true });
       }
     }
-  }, [isOpen, initialData, form, fetchAddresses]);
+  }, [isOpen, initialData, form, fetchAddressDropdown, fetchDeptDropdown, fetchDivDropdown]);
+
+  const handleDeptChange = (val: number) => {
+    setFilterDept(val);
+    setFilterDiv(undefined);
+    form.setFieldsValue({ addressId: undefined });
+    if (val) {
+      fetchDivDropdown({ departmentId: val });
+      fetchAddressDropdown({ departmentId: val });
+    } else {
+      fetchAddressDropdown();
+    }
+  };
+
+  const handleDivChange = (val: number) => {
+    setFilterDiv(val);
+    form.setFieldsValue({ addressId: undefined });
+    fetchAddressDropdown({ departmentId: filterDept, divisionId: val });
+  };
 
   const handleFinish = (values: FormValues) => {
     const isEditing = !!initialData;
@@ -150,16 +186,40 @@ export default function WarehouseFormModal({
             className="space-y-8"
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-6">
+              <Form.Item label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><Building2 size={14} className="text-[#185C4D]" /> ເລືອກຝ່າຍ (Department)</span>}>
+                <Select
+                  placeholder="ເລືອກຝ່າຍ (ຖ້າມີ)"
+                  className={selectCls}
+                  allowClear
+                  options={departmentDropdown.map(d => ({ value: d.id, label: d.name }))}
+                  value={filterDept}
+                  onChange={handleDeptChange}
+                />
+              </Form.Item>
+
+              <Form.Item label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><GitBranch size={14} className="text-[#185C4D]" /> ເລືອກພະແນກ (Division)</span>}>
+                <Select
+                  placeholder="ເລືອກພະແນກ (ຖ້າມີ)"
+                  className={selectCls}
+                  allowClear
+                  options={divisionDropdown.map(d => ({ value: d.id, label: d.name }))}
+                  value={filterDiv}
+                  onChange={handleDivChange}
+                  disabled={!filterDept}
+                />
+              </Form.Item>
+
               <Form.Item
                 label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><MapPin size={14} className="text-[#185C4D]" /> ເລືອກສະຖານທີ່ <span className="text-rose-500">*</span></span>}
                 name="addressId"
                 rules={[{ required: true, message: 'ກະລຸນາເລືອກສະຖານທີ່!' }]}
+                className="sm:col-span-2"
               >
                 <Select
                   placeholder="ເລືອກສະຖານທີ່ (Address)"
                   className={selectCls}
-                  loading={addresses.length === 0}
-                  options={addresses.map(a => ({ value: a.id, label: a.name }))}
+                  loading={addressDropdown.length === 0}
+                  options={addressDropdown.map(a => ({ value: a.id, label: a.name }))}
                 />
               </Form.Item>
 

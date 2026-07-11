@@ -5,7 +5,7 @@ import { Menu, Tooltip } from 'antd';
 import {
   Folder, Inbox, LayoutDashboard, Search,
   ChevronLeft, ChevronRight, FileText, Shield, Settings, LogOut,
-  Warehouse, Package, MapPin, Building2, QrCode, History, Users, GitBranch, Network, Layers, Briefcase, UserCircle, Key
+  Warehouse, Package, MapPin, Building2, QrCode, History, Users, GitBranch, Network, Layers, Briefcase, UserCircle, Key, FileWarning
 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -30,6 +30,7 @@ const BASE_MENU_ITEMS = [
     children: [
       { key: '/dashboard/scan', icon: <QrCode size={18} />, label: 'ສະແກນ QR Code' },
       { key: '/dashboard/documents', icon: <FileText size={18} />, label: 'ເອກະສານທັງໝົດ' },
+      { key: '/dashboard/document-expired', icon: <FileWarning size={18} />, label: 'ເອກະສານໝົດອາຍຸ' },
       { key: '/dashboard/tracking', icon: <History size={18} />, label: 'ຕິດຕາມ ແລະ ປະຫວັດ' },
     ],
   },
@@ -39,17 +40,6 @@ const BASE_MENU_ITEMS = [
     children: [
       { key: '/dashboard/document-types', icon: <FileText size={18} />, label: 'ປະເພດເອກະສານ', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN'] },
       { key: '/dashboard/users', icon: <Users size={18} />, label: 'ຈັດການຜູ້ໃຊ້ງານ', allowedRoles: ['SUPER_ADMIN'] },
-      { key: '/dashboard/restricted', icon: <Shield size={18} />, label: 'ເຂດຫວງຫ້າມ', allowedRoles: ['SUPER_ADMIN'] },
-    ],
-  },
-  {
-    type: 'group' as const,
-    label: 'ລະບົບໂຄງສ້າງ (HRM)',
-    children: [
-      { key: '/dashboard/departments', icon: <Building2 size={18} />, label: 'ກົມ / ພະແນກ', allowedRoles: ['SUPER_ADMIN'] },
-      { key: '/dashboard/divisions', icon: <GitBranch size={18} />, label: 'ພະແນກຍ່ອຍ / ສາຂາ', allowedRoles: ['SUPER_ADMIN'] },
-      { key: '/dashboard/offices', icon: <Briefcase size={18} />, label: 'ສຳນັກງານ', allowedRoles: ['SUPER_ADMIN'] },
-      { key: '/dashboard/units', icon: <Network size={18} />, label: 'ໜ່ວຍງານ', allowedRoles: ['SUPER_ADMIN'] },
     ],
   },
 ];
