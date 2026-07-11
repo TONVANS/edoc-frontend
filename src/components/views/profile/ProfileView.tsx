@@ -66,22 +66,22 @@ export default function ProfileView() {
 
             <div className="flex flex-col gap-1">
               <span className="text-xs font-bold text-[#737373] uppercase tracking-wider flex items-center gap-1.5"><MapPin size={14}/> ສາຂາ (Branch)</span>
-              <p className="text-[#1C1C1E] font-medium text-[15px]">{user.branch?.name || '—'}</p>
+              <p className="text-[#1C1C1E] font-medium text-[15px]">{/* user.branch?.name || */ '—'}</p>
             </div>
 
             <div className="flex flex-col gap-1">
               <span className="text-xs font-bold text-[#737373] uppercase tracking-wider flex items-center gap-1.5"><Building2 size={14}/> ຝ່າຍ (Department)</span>
-              <p className="text-[#1C1C1E] font-medium text-[15px]">{user.department?.name || '—'}</p>
+              <p className="text-[#1C1C1E] font-medium text-[15px]">{user.departmentData?.name || '—'}</p>
             </div>
 
             <div className="flex flex-col gap-1">
               <span className="text-xs font-bold text-[#737373] uppercase tracking-wider flex items-center gap-1.5"><GitBranch size={14}/> ພະແນກຍ່ອຍ (Division)</span>
-              <p className="text-[#1C1C1E] font-medium text-[15px]">{user.division?.name || '—'}</p>
+              <p className="text-[#1C1C1E] font-medium text-[15px]">{user.divisions?.[0]?.name || '—'}</p>
             </div>
 
             <div className="flex flex-col gap-1">
               <span className="text-xs font-bold text-[#737373] uppercase tracking-wider flex items-center gap-1.5"><Briefcase size={14}/> ໜ່ວຍງານ (Unit)</span>
-              <p className="text-[#1C1C1E] font-medium text-[15px]">{user.unit?.name || '—'}</p>
+              <p className="text-[#1C1C1E] font-medium text-[15px]">{user.unitData?.name || '—'}</p>
             </div>
             
             <div className="flex flex-col gap-1 sm:col-span-2 pt-2 pb-2">

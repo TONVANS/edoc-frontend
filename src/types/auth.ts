@@ -39,14 +39,18 @@ export interface User {
   empCode: string;
   firstNameLa: string;
   lastNameLa: string;
+  email?: string | null;
   role: string;
   gender: string;
   status: string;
-  branch: Branch | null;
-  department: Department | null;
-  division: Division | null;
-  office: any | null; // Using any for null payload, or could be a specific interface if known
-  unit: Unit | null;
+  addressId?: string | null;
+  department: number | null;
+  office: number | null;
+  unit: number | null;
+  departmentData: Department | null;
+  divisions: Division[] | null;
+  officeData: any | null; // Using any for null payload, or could be a specific interface if known
+  unitData: Unit | null;
 }
 
 export interface AuthResponseData {

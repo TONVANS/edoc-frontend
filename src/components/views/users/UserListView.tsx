@@ -1,14 +1,15 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { Button, Input, Select, Badge, Dropdown, App } from 'antd';
-import { Search, Filter, Plus, Users, Shield, UserCog, MoreVertical, Key, AlertCircle, CheckCircle, Edit } from 'lucide-react';
+import { Search, Filter, Plus, Users, Shield, UserCog, MoreVertical, Key, AlertCircle, CheckCircle, Edit, GitBranch } from 'lucide-react';
 import StatusBadge from '@/components/dashboard/StatusBadge';
 import { useUserStore } from '@/store/useUserStore';
+import { useDivisionStore } from '@/store/useDivisionStore';
 import CreateUserModal from './CreateUserModal';
 
 export default function UserListView() {
   const { modal, message } = App.useApp();
-  const { users, fetchUsers, resetPassword, updateRole, approveUser, isLoading } = useUserStore();
+  const { users, fetchUsers, resetPassword, updateRole, approveUser, updateDivisions, isLoading } = useUserStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [roleFilter, setRoleFilter] = useState('ALL');
@@ -117,8 +118,8 @@ export default function UserListView() {
                     </div>
                     <div className="col-span-2 text-[#737373] font-medium">{user.empCode}</div>
                     <div className="col-span-3 flex flex-col">
-                      <span className="text-sm text-[#1C1C1E]">{user.department?.name || '—'}</span>
-                      <span className="text-xs text-[#737373]">{user.division?.name || '—'}</span>
+                      <span className="text-sm text-[#1C1C1E]">{user.departmentData?.name || '—'}</span>
+                      <span className="text-xs text-[#737373]">{user.divisions?.[0]?.name || '—'}</span>
                     </div>
                     <div className="col-span-2 flex items-center gap-1.5">
                       {user.role === 'SUPER_ADMIN' ? <Shield size={14} className="text-[#B83131]" /> : <UserCog size={14} className="text-[#737373]" />}
@@ -181,6 +182,45 @@ export default function UserListView() {
                                   ),
                                   footer: null,
                                   closable: true,
+                                });
+                              }
+                            },
+                            {
+                              key: 'update-divisions',
+                              icon: <GitBranch size={16} className="text-[#3B82F6]" />,
+                              label: <span className="font-medium text-[#3B82F6]">ສິດເຂົ້າເຖິງ ພະແນກ/ສາຂາ</span>,
+                              onClick: async () => {
+                                await useDivisionStore.getState().fetchDropdown();
+                                const options = useDivisionStore.getState().divisionDropdown;
+                                let selectedDivisions = user.divisions?.map(d => d.id) || [];
+                                
+                                modal.confirm({
+                                  title: 'ສິດເຂົ້າເຖິງ ພະແນກ/ສາຂາ',
+                                  content: (
+                                    <div className="mt-4">
+                                      <p className="mb-2">ເລືອກພະແນກ/ສາຂາ ສຳລັບ {fullName}:</p>
+                                      <Select
+                                        mode="multiple"
+                                        className="w-full"
+                                        defaultValue={selectedDivisions}
+                                        options={options.map(opt => ({ value: opt.id as number, label: opt.name }))}
+                                        onChange={(vals) => {
+                                          selectedDivisions = vals;
+                                        }}
+                                        placeholder="ເລືອກພະແນກ/ສາຂາ"
+                                        filterOption={(input, option) =>
+                                          (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                                        }
+                                      />
+                                    </div>
+                                  ),
+                                  okText: 'ບັນທຶກ',
+                                  cancelText: 'ຍົກເລີກ',
+                                  onOk: async () => {
+                                    const success = await updateDivisions(user.id, selectedDivisions);
+                                    if (success) message.success('ອັບເດດສິດເຂົ້າເຖິງສຳເລັດແລ້ວ');
+                                    else message.error('ອັບເດດສິດເຂົ້າເຖິງບໍ່ສຳເລັດ');
+                                  },
                                 });
                               }
                             },

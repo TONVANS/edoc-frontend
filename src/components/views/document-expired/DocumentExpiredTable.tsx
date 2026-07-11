@@ -70,7 +70,7 @@ export default function DocumentExpiredTable() {
       <div className="w-full bg-white/30 backdrop-blur-2xl border border-white/50 p-6 rounded-[32px] shadow-[0_8px_32px_rgba(31,38,135,0.04)] overflow-x-auto">
         <div className="min-w-[1000px]">
           {/* Custom Header Grid */}
-          <div className="bg-gradient-to-r from-rose-600 to-rose-400 text-white grid grid-cols-12 gap-4 py-4.5 px-6 rounded-2xl shadow-md mb-5 text-[13px] font-bold tracking-wider uppercase items-center">
+          <div className="bg-linear-to-r from-rose-600 to-rose-400 text-white grid grid-cols-12 gap-4 py-4.5 px-6 rounded-2xl shadow-md mb-5 text-[13px] font-bold tracking-wider uppercase items-center">
             <div className="col-span-2 flex items-center gap-1.5"><Tag size={14} /> ເລກທີເອກະສານ</div>
             <div className="col-span-4 flex items-center gap-1.5"><FileText size={14} /> ຊື່ເອກະສານ</div>
             <div className="col-span-3 flex items-center gap-1.5"><FolderOpen size={14} /> ແຟ້ມ / ປະເພດ</div>
