@@ -15,7 +15,8 @@ import {
   FolderOpen,
   Scale,
   ArrowRightLeft,
-  Filter
+  Filter,
+  BookOpen
 } from 'lucide-react';
 import { Button, Input, Select, Dropdown, Pagination, DatePicker, Popover } from 'antd';
 import { Document } from '@/types/prisma-mapped';
@@ -60,6 +61,7 @@ interface DocumentTableProps {
   onViewDetails: (doc: Document) => void;
   onViewQrCode?: (doc: Document) => void;
   onMove?: (doc: Document) => void;
+  onBorrow?: (doc: Document) => void;
   hideLocationFilters?: boolean;
 }
 
@@ -91,6 +93,7 @@ export default function DocumentTable({
   onViewDetails,
   onViewQrCode,
   onMove,
+  onBorrow,
   hideLocationFilters = false,
 }: DocumentTableProps) {
   const { folders, fetchFolders } = useFolderStore();
@@ -536,6 +539,12 @@ export default function DocumentTable({
                               icon: <ArrowRightLeft size={16} className="text-[#185C4D]" />,
                               label: <span className="text-slate-700 font-medium text-[13px]">ຍ້າຍແຟ້ມ</span>,
                               onClick: () => onMove?.(item),
+                            },
+                            {
+                              key: 'borrow',
+                              icon: <BookOpen size={16} className="text-purple-500" />,
+                              label: <span className="text-slate-700 font-medium text-[13px]">ຢືມເອກະສານ</span>,
+                              onClick: () => onBorrow?.(item),
                             },
                             onViewQrCode ? {
                               key: 'qrcode',

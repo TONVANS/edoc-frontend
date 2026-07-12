@@ -240,7 +240,7 @@ export default function DocumentDetailModal({
               {/* QR Code Container */}
               <div className="bg-white/60 border border-white p-5 rounded-2xl shadow-sm flex flex-col items-center justify-center text-center">
                 <h4 className="text-[12px] font-bold text-slate-400 flex items-center gap-1 mb-3 uppercase">
-                  <QrCode size={13} /> QR Code Reference
+                  <QrCode size={13} /> QR Code
                 </h4>
                 
                 {/* Dynamically Generate QR Code containing the Document code or ID */}
@@ -305,7 +305,6 @@ export default function DocumentDetailModal({
                 )}
               </div>
             </div>
-
           </div>
 
           <Divider className="my-6 border-slate-100" />

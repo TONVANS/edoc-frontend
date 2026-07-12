@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button, Tabs, Modal, message } from 'antd';
-import { FileText, Plus, Settings, QrCode, X } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
+import { FileText, Plus, Settings, QrCode, X, Download } from 'lucide-react';
+import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 
 // Components
 import DocumentTypeTable from './DocumentTypeTable';
@@ -12,6 +12,7 @@ import DocumentTable from './DocumentTable';
 import DocumentFormModal from './DocumentFormModal';
 import DocumentDetailModal from './DocumentDetailModal';
 import MoveFormModal from '@/components/views/storage/MoveFormModal';
+import BorrowDocumentModal from './BorrowDocumentModal';
 
 // Stores & Types
 import { useDocumentTypeStore } from '@/store/useDocumentTypeStore';
@@ -84,6 +85,10 @@ export default function DocumentListView() {
   // Move states
   const [movingDoc, setMovingDoc] = useState<Document | null>(null);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
+
+  // Borrow states
+  const [borrowDoc, setBorrowDoc] = useState<Document | null>(null);
+  const [isBorrowModalOpen, setIsBorrowModalOpen] = useState(false);
 
   const [docPage, setDocPage] = useState(1);
   const [docSearch, setDocSearch] = useState('');
@@ -230,6 +235,24 @@ export default function DocumentListView() {
     setMovingDoc(null);
   };
 
+  const downloadQRCode = () => {
+    const canvas = document.getElementById('qr-code-canvas') as HTMLCanvasElement;
+    if (canvas) {
+      const pngUrl = canvas.toDataURL('image/png').replace('image/png', 'image/octet-stream');
+      const downloadLink = document.createElement('a');
+      downloadLink.href = pngUrl;
+      downloadLink.download = `QR_${qrDoc?.docNo || qrDoc?.id}.png`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+    }
+  };
+
+  const handleBorrowDoc = (doc: Document) => {
+    setBorrowDoc(doc);
+    setIsBorrowModalOpen(true);
+  };
+
   const handleMoveSuccess = () => {
     fetchDocuments({
       page: docPage,
@@ -339,6 +362,7 @@ export default function DocumentListView() {
           onViewDetails={handleViewDetails}
           onViewQrCode={handleViewQrCode}
           onMove={handleOpenMoveModal}
+          onBorrow={handleBorrowDoc}
         />
       ),
     },
@@ -442,6 +466,15 @@ export default function DocumentListView() {
         />
       )}
 
+      {isBorrowModalOpen && borrowDoc && (
+        <BorrowDocumentModal
+          isOpen={isBorrowModalOpen}
+          onClose={() => setIsBorrowModalOpen(false)}
+          onSuccess={() => setIsBorrowModalOpen(false)}
+          document={borrowDoc}
+        />
+      )}
+
       {isDocTypeModalOpen && (
         <DocumentTypeFormModal
           isOpen={isDocTypeModalOpen}
@@ -479,7 +512,8 @@ export default function DocumentListView() {
           
           <div className="bg-white p-4 rounded-2xl shadow-soft border border-slate-100 mb-4">
             {qrDoc && (
-              <QRCodeSVG 
+              <QRCodeCanvas 
+                id="qr-code-canvas"
                 value={qrDoc.qrCode || `EDOC-DOC-${qrDoc.id}`} 
                 size={180} 
                 bgColor="#ffffff"
@@ -495,6 +529,15 @@ export default function DocumentListView() {
           <p className="text-slate-400 text-xs mt-3 font-semibold truncate max-w-full">
             {qrDoc?.title}
           </p>
+
+          <Button 
+            type="primary" 
+            icon={<Download size={16} />} 
+            onClick={downloadQRCode}
+            className="mt-5 bg-[#185C4D] border-none shadow-soft hover:-translate-y-0.5 transition-transform cursor-pointer w-full rounded-xl h-11 font-bold"
+          >
+            ດາວໂຫຼດ QR Code
+          </Button>
         </div>
       </Modal>
     </div>

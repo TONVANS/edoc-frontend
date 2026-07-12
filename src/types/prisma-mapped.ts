@@ -268,10 +268,13 @@ export interface DocumentBorrow {
   note: string | null;
   createdAt: string;
   returnedAt: string | null;
+  createdById?: string;
 
   // Optional relations
   document?: Document;
   folder?: Folder;
+  toDivision?: Division;
+  createdBy?: any; // or specify a User type if you have one
 }
 
 export interface CreateDocumentBorrowPayload {
