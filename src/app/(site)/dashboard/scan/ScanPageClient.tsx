@@ -47,13 +47,14 @@ export default function ScanPageClient() {
     }
   }, [codeParam]);
 
+  if (!codeParam) {
+    return <QRScannerView />;
+  }
+
   const handleBack = () => {
-    // Clear state immediately for instant UI response
-    setData(null);
-    setType(null);
-    setError(null);
-    // Soft navigation to clear URL parameter smoothly
-    router.push('/dashboard/scan');
+    // Force a hard navigation to clear URL parameters reliably
+    // This also helps cleanly release the camera hardware stream
+    window.location.href = '/dashboard/scan';
   };
 
   if (isLoading) {
@@ -90,7 +91,5 @@ export default function ScanPageClient() {
     return <DocumentDetailView document={data} onBack={handleBack} />;
   }
 
-  // Fallback: If no data, no error, and not loading, show the scanner.
-  // This ensures a smooth transition when state is cleared before the URL finishes updating.
-  return <QRScannerView />;
+  return null;
 }
