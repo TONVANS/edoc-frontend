@@ -35,10 +35,12 @@ import { DatePicker, Input, Form, message, Popconfirm } from 'antd';
 
 interface DocumentDetailViewProps {
   document: Document | null;
+  onBack?: () => void;
 }
 
 export default function DocumentDetailView({
   document: doc,
+  onBack,
 }: DocumentDetailViewProps) {
   const router = useRouter();
   const { folders } = useFolderStore();
@@ -263,7 +265,7 @@ export default function DocumentDetailView({
                 {/* Dynamically Generate QR Code containing the Document code or ID */}
                 <div className="bg-white p-3.5 rounded-2xl shadow-soft border border-slate-100">
                   <QRCodeSVG 
-                    value={doc.qrCode || `EDOC-DOC-${doc.id}`}
+                    value={typeof window !== 'undefined' ? `${window.location.origin}/dashboard/scan?code=${encodeURIComponent(doc.qrCode || `EDOC-DOC-${doc.id}`)}` : `${process.env.NEXT_PUBLIC_BASE_URL || ''}/dashboard/scan?code=${encodeURIComponent(doc.qrCode || `EDOC-DOC-${doc.id}`)}`}
                     size={110} 
                     bgColor="#ffffff"
                     fgColor="#185C4D"
@@ -396,7 +398,7 @@ export default function DocumentDetailView({
           <footer className="flex items-center justify-end gap-3 pt-2">
             <Button 
               type="primary" 
-              onClick={() => router.push('/dashboard/scan')} 
+              onClick={onBack || (() => router.push('/dashboard/scan'))} 
               className="h-11 px-8 rounded-2xl bg-linear-to-r from-[#185C4D] to-[#206E5B] border-none font-bold text-white shadow-md hover:shadow-lg transition-all cursor-pointer"
             >
               ກັບຄືນ

@@ -51,6 +51,13 @@ export default function ScanPageClient() {
     return <QRScannerView />;
   }
 
+  const handleBack = () => {
+    setData(null);
+    setType(null);
+    setError(null);
+    router.replace('/dashboard/scan');
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
@@ -67,8 +74,8 @@ export default function ScanPageClient() {
           <p className="font-bold text-lg mb-1">ຂໍອະໄພ</p>
           <p>{error}</p>
           <button 
-            onClick={() => router.push('/dashboard/scan')}
-            className="mt-4 px-4 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors text-sm font-bold shadow-sm"
+            onClick={handleBack}
+            className="mt-4 px-4 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors text-sm font-bold shadow-sm cursor-pointer"
           >
             ກັບຄືນ
           </button>
@@ -78,11 +85,11 @@ export default function ScanPageClient() {
   }
 
   if (type === 'folder' && data) {
-    return <FolderDetailView folder={data} />;
+    return <FolderDetailView folder={data} onBack={handleBack} />;
   }
 
   if (type === 'document' && data) {
-    return <DocumentDetailView document={data} />;
+    return <DocumentDetailView document={data} onBack={handleBack} />;
   }
 
   return null;

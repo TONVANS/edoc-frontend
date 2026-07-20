@@ -285,7 +285,7 @@ export default function DocumentDetailModal({
                 {/* Dynamically Generate QR Code containing the Document code or ID */}
                 <div className="bg-white p-3.5 rounded-2xl shadow-soft border border-slate-100">
                   <QRCodeSVG 
-                    value={doc.qrCode || `EDOC-DOC-${doc.id}`}
+                    value={typeof window !== 'undefined' ? `${window.location.origin}/dashboard/scan?code=${encodeURIComponent(doc.qrCode || `EDOC-DOC-${doc.id}`)}` : `${process.env.NEXT_PUBLIC_BASE_URL || ''}/dashboard/scan?code=${encodeURIComponent(doc.qrCode || `EDOC-DOC-${doc.id}`)}`}
                     size={110} 
                     bgColor="#ffffff"
                     fgColor="#185C4D"

@@ -513,7 +513,7 @@ export default function DocumentListView() {
             {qrDoc && (
               <QRCodeCanvas 
                 id="qr-code-canvas"
-                value={qrDoc.qrCode || `EDOC-DOC-${qrDoc.id}`} 
+                value={typeof window !== 'undefined' ? `${window.location.origin}/dashboard/scan?code=${encodeURIComponent(qrDoc.qrCode || `EDOC-DOC-${qrDoc.id}`)}` : `${process.env.NEXT_PUBLIC_BASE_URL || ''}/dashboard/scan?code=${encodeURIComponent(qrDoc.qrCode || `EDOC-DOC-${qrDoc.id}`)}`} 
                 size={180} 
                 bgColor="#ffffff"
                 fgColor="#185C4D"

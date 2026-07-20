@@ -18,10 +18,12 @@ import { useRouter } from 'next/navigation';
 
 interface FolderDetailViewProps {
   folder: any | null; // Using any to accommodate the nested shelf->locker->warehouse->address structure from backend
+  onBack?: () => void;
 }
 
 export default function FolderDetailView({
   folder,
+  onBack,
 }: FolderDetailViewProps) {
   const router = useRouter();
   
@@ -162,7 +164,7 @@ export default function FolderDetailView({
             </Button>
             <Button 
               type="primary" 
-              onClick={() => router.push('/dashboard/scan')} 
+              onClick={onBack || (() => router.push('/dashboard/scan'))} 
               className="h-11 px-8 rounded-2xl bg-linear-to-r from-[#185C4D] to-[#206E5B] border-none font-bold text-white shadow-md hover:shadow-lg transition-all cursor-pointer"
             >
               ກັບຄືນ

@@ -291,8 +291,9 @@ export default function FolderFormModal({
             </Form.Item>
 
             <Form.Item
-              label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><AlignLeft size={14} className="text-slate-400" /> ລາຍລະອຽດແຟ້ມ</span>}
+              label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><AlignLeft size={14} className="text-slate-400" /> ລາຍລະອຽດແຟ້ມ <span className="text-rose-500">*</span></span>}
               name="description"
+              rules={[{ required: true, message: 'ກະລຸນາປ້ອນລາຍລະອຽດແຟ້ມ!' }]}
             >
               <Input.TextArea placeholder="ລາຍລະອຽດເພີ່ມເຕີມ..." rows={3} className={cn(inputCls, "h-auto py-3")} />
             </Form.Item>
