@@ -27,6 +27,14 @@ export default function FolderDetailView({
 }: FolderDetailViewProps) {
   const router = useRouter();
   
+  const [qrUrl, setQrUrl] = React.useState<string>('');
+
+  React.useEffect(() => {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_BASE_URL || '';
+    const code = folder?.qrCode || `EDOC-FOLDER-${folder?.id}`;
+    setQrUrl(`${baseUrl}/dashboard/scan?code=${encodeURIComponent(code)}`);
+  }, [folder?.id, folder?.qrCode]);
+  
   if (!folder) return null;
 
   const storageLocation = [
@@ -134,7 +142,7 @@ export default function FolderDetailView({
                 
                 <div className="bg-white p-3.5 rounded-2xl shadow-soft border border-slate-100">
                   <QRCodeSVG 
-                    value={folder.qrCode || `EDOC-FOLDER-${folder.id}`}
+                    value={qrUrl}
                     size={110} 
                     bgColor="#ffffff"
                     fgColor="#185C4D"

@@ -54,13 +54,20 @@ export default function DocumentDetailView({
   
   const [showAddSubDoc, setShowAddSubDoc] = useState(false);
   const [subDocForm] = Form.useForm();
+  
+  const [qrUrl, setQrUrl] = useState<string>('');
 
   React.useEffect(() => {
     if (doc?.id) {
       fetchSubDocuments(doc.id);
       setShowAddSubDoc(false);
     }
-  }, [doc?.id, fetchSubDocuments]);
+    
+    // Safely set the QR URL only on the client side to prevent hydration errors
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_BASE_URL || '';
+    const code = doc?.qrCode || `EDOC-DOC-${doc?.id}`;
+    setQrUrl(`${baseUrl}/dashboard/scan?code=${encodeURIComponent(code)}`);
+  }, [doc?.id, doc?.qrCode, fetchSubDocuments]);
 
   const handleView = async (id: string) => {
     setLoadingViewId(id);
@@ -265,7 +272,7 @@ export default function DocumentDetailView({
                 {/* Dynamically Generate QR Code containing the Document code or ID */}
                 <div className="bg-white p-3.5 rounded-2xl shadow-soft border border-slate-100">
                   <QRCodeSVG 
-                    value={typeof window !== 'undefined' ? `${window.location.origin}/dashboard/scan?code=${encodeURIComponent(doc.qrCode || `EDOC-DOC-${doc.id}`)}` : `${process.env.NEXT_PUBLIC_BASE_URL || ''}/dashboard/scan?code=${encodeURIComponent(doc.qrCode || `EDOC-DOC-${doc.id}`)}`}
+                    value={qrUrl}
                     size={110} 
                     bgColor="#ffffff"
                     fgColor="#185C4D"

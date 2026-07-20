@@ -16,6 +16,13 @@ export default function FolderTagPrint({
   folderName,
   qrData,
 }: FolderTagPrintProps) {
+  const [qrUrl, setQrUrl] = React.useState<string>('');
+
+  React.useEffect(() => {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_BASE_URL || '';
+    setQrUrl(`${baseUrl}/dashboard/scan?code=${encodeURIComponent(qrData)}`);
+  }, [qrData]);
+
   return (
     <div
       className="folder-tag-print-container bg-white text-black"
@@ -143,7 +150,7 @@ export default function FolderTagPrint({
         }}
       >
         <QRCodeSVG
-          value={typeof window !== 'undefined' ? `${window.location.origin}/dashboard/scan?code=${encodeURIComponent(qrData)}` : `${process.env.NEXT_PUBLIC_BASE_URL || ''}/dashboard/scan?code=${encodeURIComponent(qrData)}`}
+          value={qrUrl}
           style={{ width: '4.4cm', height: '4.4cm' }}
           level="M"
         />
