@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Drawer, Form, Input, Button, Select, DatePicker } from 'antd';
 import { useDivisionStore } from '@/store/useDivisionStore';
+import { useDepartmentStore } from '@/store/useDepartmentStore';
 import { useDocumentBorrowStore } from '@/store/useDocumentBorrowStore';
 import { useBorrowCartStore } from '@/store/useBorrowCartStore';
 import { toast } from 'sonner';
@@ -23,6 +24,7 @@ export default function BorrowCartDrawer({ isOpen, onClose }: BorrowCartDrawerPr
   const [borrowType, setBorrowType] = useState<'INTERNAL' | 'EXTERNAL'>('INTERNAL');
   
   const { divisionDropdown, fetchDropdown: fetchDivisionDropdown } = useDivisionStore();
+  const { departmentDropdown, fetchDropdown: fetchDepartmentDropdown } = useDepartmentStore();
   const { createBorrow, isLoading } = useDocumentBorrowStore();
   
   const { items, cartType, removeItem, clearCart, getItemCount } = useBorrowCartStore();
@@ -30,9 +32,11 @@ export default function BorrowCartDrawer({ isOpen, onClose }: BorrowCartDrawerPr
   useEffect(() => {
     if (isOpen) {
       // Don't reset fields on every open, so users don't lose data if they just close and reopen
-      fetchDivisionDropdown();
+      const currentDeptId = form.getFieldValue('departmentId');
+      fetchDivisionDropdown(currentDeptId ? { departmentId: currentDeptId } : undefined);
+      fetchDepartmentDropdown();
     }
-  }, [isOpen, fetchDivisionDropdown]);
+  }, [isOpen, fetchDivisionDropdown, fetchDepartmentDropdown, form]);
 
   const handleFinish = async (values: any) => {
     if (items.length === 0) {
@@ -222,22 +226,45 @@ export default function BorrowCartDrawer({ isOpen, onClose }: BorrowCartDrawerPr
             </Form.Item>
 
             {borrowType === 'INTERNAL' ? (
-              <Form.Item
-                label={<span className="font-bold text-slate-700 flex items-center gap-1.5"><Building2 size={14} className="text-slate-400" /> ພະແນກ <span className="text-rose-500">*</span></span>}
-                name="toDivisionId"
-                rules={[{ required: true, message: 'ກະລຸນາເລືອກພະແນກ!' }]}
-              >
-                <Select
-                  placeholder="ເລືອກພະແນກ"
-                  className={selectCls}
-                  showSearch
-                  optionFilterProp="children"
+              <div className="space-y-5">
+                <Form.Item
+                  label={<span className="font-bold text-slate-700 flex items-center gap-1.5"><Building2 size={14} className="text-slate-400" /> ຝ່າຍ</span>}
+                  name="departmentId"
                 >
-                  {divisionDropdown.map(d => (
-                    <Select.Option key={d.id} value={d.id}>{d.name}</Select.Option>
-                  ))}
-                </Select>
-              </Form.Item>
+                  <Select
+                    placeholder="ເລືອກຝ່າຍ (ເພື່ອການຄົ້ນຫາທີ່ງ່າຍຂຶ້ນ)"
+                    className={selectCls}
+                    showSearch
+                    allowClear
+                    optionFilterProp="children"
+                    onChange={(value) => {
+                      form.setFieldValue('toDivisionId', undefined);
+                      fetchDivisionDropdown(value ? { departmentId: value } : undefined);
+                    }}
+                  >
+                    {departmentDropdown.map(d => (
+                      <Select.Option key={d.id} value={d.id}>{d.name}</Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+
+                <Form.Item
+                  label={<span className="font-bold text-slate-700 flex items-center gap-1.5"><Building2 size={14} className="text-slate-400" /> ພະແນກ <span className="text-rose-500">*</span></span>}
+                  name="toDivisionId"
+                  rules={[{ required: true, message: 'ກະລຸນາເລືອກພະແນກ!' }]}
+                >
+                  <Select
+                    placeholder="ເລືອກພະແນກ"
+                    className={selectCls}
+                    showSearch
+                    optionFilterProp="children"
+                  >
+                    {divisionDropdown.map(d => (
+                      <Select.Option key={d.id} value={d.id}>{d.name}</Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </div>
             ) : (
               <Form.Item
                 label={<span className="font-bold text-slate-700 flex items-center gap-1.5"><MapPin size={14} className="text-slate-400" /> ພາກສ່ວນທີ່ນຳໄປໃຊ້ <span className="text-rose-500">*</span></span>}
