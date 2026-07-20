@@ -3,7 +3,8 @@
 import React, { useEffect } from 'react';
 import { Modal, Form, Input, Button, Switch, Select } from 'antd';
 import { Folder, CreateFolderPayload } from '@/types/prisma-mapped';
-import { useAddressStore } from '@/store/useAddressStore';
+import { useDepartmentStore } from '@/store/useDepartmentStore';
+import { useDivisionStore } from '@/store/useDivisionStore';
 import { useWarehouseStore } from '@/store/useWarehouseStore';
 import { useLockerStore } from '@/store/useLockerStore';
 import {
@@ -16,7 +17,8 @@ import {
   ArrowRight,
   Hash,
   QrCode,
-  MapPin,
+  Building2,
+  GitBranch,
   AlignLeft
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -32,10 +34,8 @@ interface FolderFormModalProps {
 
 interface FormValues {
   shelfId: string;
-  code: string;
   name: string;
   description?: string;
-  isActive?: boolean;
 }
 
 export default function FolderFormModal({
@@ -46,32 +46,36 @@ export default function FolderFormModal({
   initialData,
 }: FolderFormModalProps) {
   const [form] = Form.useForm<FormValues>();
-  const { addressDropdown, fetchAddressDropdown } = useAddressStore();
+  const { departmentDropdown, fetchDropdown: fetchDeptDropdown } = useDepartmentStore();
+  const { divisionDropdown, fetchDropdown: fetchDivDropdown } = useDivisionStore();
   const { warehouseDropdown, fetchWarehouseDropdown } = useWarehouseStore();
   const { lockerDropdown, fetchLockerDropdown } = useLockerStore();
   const { shelves, fetchShelves } = useShelfStore();
 
-  const [filterAddressId, setFilterAddressId] = React.useState<string | undefined>();
+  const [filterDeptId, setFilterDeptId] = React.useState<number | undefined>();
+  const [filterDivId, setFilterDivId] = React.useState<number | undefined>();
   const [filterWarehouseId, setFilterWarehouseId] = React.useState<string | undefined>();
   const [filterLockerId, setFilterLockerId] = React.useState<string | undefined>();
 
   useEffect(() => {
     if (isOpen) {
-      fetchAddressDropdown();
+      fetchDeptDropdown();
       const isEditing = initialData && 'id' in initialData;
 
       if (isEditing) {
         const shelf = (initialData as any)?.shelf;
         const lockerId = shelf?.lockerId;
         const warehouseId = shelf?.locker?.warehouseId;
-        const addressId = shelf?.locker?.warehouse?.addressId;
+        const deptId = shelf?.locker?.warehouse?.departmentId;
+        const divId = shelf?.locker?.warehouse?.divisionId;
 
-        setFilterAddressId(addressId);
+        setFilterDeptId(deptId);
+        setFilterDivId(divId);
         setFilterWarehouseId(warehouseId);
         setFilterLockerId(lockerId);
 
-        if (addressId) fetchWarehouseDropdown({ addressId });
-        else fetchWarehouseDropdown();
+        if (deptId) fetchDivDropdown({ departmentId: deptId });
+        fetchWarehouseDropdown({ departmentId: deptId, divisionId: divId });
 
         if (warehouseId) fetchLockerDropdown({ warehouseId });
         else fetchLockerDropdown();
@@ -81,13 +85,12 @@ export default function FolderFormModal({
 
         form.setFieldsValue({
           shelfId: initialData.shelfId,
-          code: initialData.code,
           name: initialData.name,
           description: initialData.description || undefined,
-          isActive: initialData.status === 'A' || initialData.status === 'ACTIVE',
         });
       } else {
-        setFilterAddressId(undefined);
+        setFilterDeptId(undefined);
+        setFilterDivId(undefined);
         setFilterWarehouseId(undefined);
         setFilterLockerId(undefined);
         fetchWarehouseDropdown();
@@ -95,19 +98,30 @@ export default function FolderFormModal({
         fetchShelves({ limit: 1000 });
         form.resetFields();
         form.setFieldsValue({ 
-          isActive: true,
           shelfId: (initialData as any)?.shelfId || undefined
         });
       }
     }
-  }, [isOpen, initialData, form, fetchAddressDropdown, fetchWarehouseDropdown, fetchLockerDropdown, fetchShelves]);
+  }, [isOpen, initialData, form, fetchDeptDropdown, fetchDivDropdown, fetchWarehouseDropdown, fetchLockerDropdown, fetchShelves]);
 
-  const handleAddressChange = (val: string) => {
-    setFilterAddressId(val);
+  const handleDeptChange = (val: number) => {
+    setFilterDeptId(val);
+    setFilterDivId(undefined);
     setFilterWarehouseId(undefined);
     setFilterLockerId(undefined);
     form.setFieldsValue({ shelfId: undefined });
-    fetchWarehouseDropdown({ addressId: val });
+    fetchDivDropdown({ departmentId: val });
+    fetchWarehouseDropdown({ departmentId: val });
+    fetchLockerDropdown();
+    fetchShelves({ limit: 1000 });
+  };
+
+  const handleDivChange = (val: number) => {
+    setFilterDivId(val);
+    setFilterWarehouseId(undefined);
+    setFilterLockerId(undefined);
+    form.setFieldsValue({ shelfId: undefined });
+    fetchWarehouseDropdown({ departmentId: filterDeptId, divisionId: val });
     fetchLockerDropdown();
     fetchShelves({ limit: 1000 });
   };
@@ -127,23 +141,11 @@ export default function FolderFormModal({
   };
 
   const handleFinish = (values: FormValues) => {
-    const isEditing = initialData && 'id' in initialData;
     const payload: any = {
-      code: values.code.trim(),
       name: values.name.trim(),
       description: values.description?.trim() || undefined,
       shelfId: values.shelfId,
     };
-    
-    if (isEditing) {
-      payload.status = values.isActive ? 'A' : 'I';
-    } else {
-      // Auto-generate QR code and locationRef on creation
-      payload.qrCode = `QR-F-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-      
-      const selectedShelf = shelves.find(s => s.id === values.shelfId);
-      // locationRef is omitted because the backend DTO does not accept it
-    }
     
     onSubmit(payload);
   };
@@ -160,7 +162,7 @@ export default function FolderFormModal({
       open={isOpen}
       onCancel={onClose}
       footer={null}
-      destroyOnHidden
+      forceRender
       width={600}
       centered
       title={null}
@@ -198,7 +200,7 @@ export default function FolderFormModal({
                 {initialData && 'id' in initialData ? 'ແກ້ໄຂຂໍ້ມູນແຟ້ມ' : 'ເພີ່ມຂໍ້ມູນແຟ້ມໃໝ່'}
               </h2>
               <p className="text-emerald-50/80 text-[14px] mt-1.5 font-medium max-w-[340px]">
-                ລະບຸລະຫັດແຟ້ມ ແລະ ເລືອກຊັ້ນວາງທີ່ເກັບມ້ຽນແຟ້ມ
+                ລະບຸຊື່ແຟ້ມ ແລະ ເລືອກຊັ້ນວາງທີ່ເກັບມ້ຽນແຟ້ມ
               </p>
             </div>
           </div>
@@ -213,17 +215,32 @@ export default function FolderFormModal({
             requiredMark={false}
             className="space-y-6"
           >
-            <Form.Item label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><MapPin size={14} className="text-[#185C4D]" /> ເລືອກສະຖານທີ່ (Address)</span>}>
-              <Select
-                placeholder="ເລືອກສະຖານທີ່ (ຖ້າມີ)"
-                className={selectCls}
-                allowClear
-                loading={addressDropdown.length === 0}
-                options={addressDropdown.map(a => ({ value: a.id, label: a.name }))}
-                value={filterAddressId}
-                onChange={handleAddressChange}
-              />
-            </Form.Item>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <Form.Item label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><Building2 size={14} className="text-[#185C4D]" /> ເລືອກຝ່າຍ (Department)</span>}>
+                <Select
+                  placeholder="ເລືອກຝ່າຍ (ຖ້າມີ)"
+                  className={selectCls}
+                  allowClear
+                  loading={departmentDropdown.length === 0}
+                  options={departmentDropdown.map(d => ({ value: d.id, label: d.name }))}
+                  value={filterDeptId}
+                  onChange={handleDeptChange}
+                />
+              </Form.Item>
+
+              <Form.Item label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><GitBranch size={14} className="text-[#185C4D]" /> ເລືອກພະແນກ (Division)</span>}>
+                <Select
+                  placeholder="ເລືອກພະແນກ (ຖ້າມີ)"
+                  className={selectCls}
+                  allowClear
+                  loading={divisionDropdown.length === 0 && !!filterDeptId}
+                  options={divisionDropdown.map(d => ({ value: d.id, label: d.name }))}
+                  value={filterDivId}
+                  onChange={handleDivChange}
+                  disabled={!filterDeptId}
+                />
+              </Form.Item>
+            </div>
 
             <Form.Item label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><WarehouseIcon size={14} className="text-[#185C4D]" /> ເລືອກສາງ (Warehouse)</span>}>
               <Select
@@ -234,7 +251,7 @@ export default function FolderFormModal({
                 options={warehouseDropdown.map(w => ({ value: w.id, label: w.name }))}
                 value={filterWarehouseId}
                 onChange={handleWarehouseChange}
-                disabled={warehouseDropdown.length === 0 && !!filterAddressId}
+                disabled={warehouseDropdown.length === 0 && !!filterDivId}
               />
             </Form.Item>
 
@@ -265,23 +282,13 @@ export default function FolderFormModal({
               />
             </Form.Item>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <Form.Item
-                label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><Hash size={14} className="text-slate-400" /> ລະຫັດແຟ້ມ <span className="text-rose-500">*</span></span>}
-                name="code"
-                rules={[{ required: true, message: 'ກະລຸນາປ້ອນລະຫັດແຟ້ມ!' }]}
-              >
-                <Input placeholder="ເຊັ່ນ: F-001" className={inputCls} />
-              </Form.Item>
-
-              <Form.Item
-                label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><FolderIcon size={14} className="text-slate-400" /> ຊື່ແຟ້ມ <span className="text-rose-500">*</span></span>}
-                name="name"
-                rules={[{ required: true, message: 'ກະລຸນາປ້ອນຊື່ແຟ້ມ!' }]}
-              >
-                <Input placeholder="ເຊັ່ນ: ແຟ້ມເກັບບິນ 2024" className={inputCls} />
-              </Form.Item>
-            </div>
+            <Form.Item
+              label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><FolderIcon size={14} className="text-slate-400" /> ຊື່ແຟ້ມ <span className="text-rose-500">*</span></span>}
+              name="name"
+              rules={[{ required: true, message: 'ກະລຸນາປ້ອນຊື່ແຟ້ມ!' }]}
+            >
+              <Input placeholder="ເຊັ່ນ: ແຟ້ມເກັບບິນ 2024" className={inputCls} />
+            </Form.Item>
 
             <Form.Item
               label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><AlignLeft size={14} className="text-slate-400" /> ລາຍລະອຽດແຟ້ມ</span>}
@@ -290,15 +297,6 @@ export default function FolderFormModal({
               <Input.TextArea placeholder="ລາຍລະອຽດເພີ່ມເຕີມ..." rows={3} className={cn(inputCls, "h-auto py-3")} />
             </Form.Item>
 
-            {initialData && 'id' in initialData && (
-              <Form.Item
-                name="isActive"
-                valuePropName="checked"
-                label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><Sparkles size={14} className="text-slate-400" /> ສະຖານະການນຳໃຊ້</span>}
-              >
-                <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
-              </Form.Item>
-            )}
 
             <footer className="flex items-center justify-end gap-4 pt-6 border-t border-slate-100">
               <Button onClick={onClose} disabled={isLoading} className="h-12 px-8 rounded-2xl border-white bg-white/50 text-slate-600 font-bold hover:bg-white transition-all">ຍົກເລີກ</Button>

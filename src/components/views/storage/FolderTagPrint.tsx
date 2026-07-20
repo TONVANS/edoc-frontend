@@ -1,0 +1,177 @@
+import React from 'react';
+import { QRCodeSVG } from 'qrcode.react';
+
+interface FolderTagPrintProps {
+  logoUrl?: string;
+  companyName?: string;
+  departmentName: string;
+  folderName: string;
+  qrData: string;
+}
+
+export default function FolderTagPrint({
+  logoUrl = '/images/logo/logo.png',
+  companyName = 'Electricite Du Laos',
+  departmentName,
+  folderName,
+  qrData,
+}: FolderTagPrintProps) {
+  return (
+    <div
+      className="folder-tag-print-container bg-white text-black"
+      style={{
+        width: '5.5cm',
+        height: '19cm',
+        border: '1px solid black',
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column',
+        margin: '0 auto',
+        overflow: 'hidden',
+      }}
+    >
+      <style>{`
+        @media print {
+          @page {
+            size: 5.5cm 19cm;
+            margin: 0;
+          }
+          body {
+            margin: 0;
+            padding: 0;
+            background-color: white !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .folder-tag-print-container {
+            page-break-after: always;
+            box-shadow: none !important;
+            margin: 0 !important;
+          }
+        }
+      `}</style>
+      
+      {/* 1. Logo & Company Name Section */}
+      <div
+        style={{
+          borderBottom: '1px solid black',
+          padding: '12px 4px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <img
+          src={logoUrl}
+          alt="Logo"
+          style={{
+            width: '2.8cm',
+            height: '2.5cm',
+            objectFit: 'contain',
+            marginBottom: '8px',
+          }}
+        />
+        <div
+          style={{
+            fontFamily: '"Times New Roman", Times, serif',
+            fontWeight: 'bold',
+            fontSize: '18px',
+            textAlign: 'center',
+            lineHeight: 1.1,
+          }}
+        >
+          {companyName}
+        </div>
+      </div>
+
+      {/* 2. Department Section */}
+      <div
+        style={{
+          borderBottom: '1px solid black',
+          padding: '12px 6px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <div
+          style={{
+            fontFamily: '"Noto Sans Lao", sans-serif',
+            textAlign: 'center',
+            fontSize: '16px',
+            fontWeight: 'bold',
+          }}
+        >
+          {departmentName}
+        </div>
+      </div>
+
+      {/* 3. Folder Name Section */}
+      <div
+        style={{
+          borderBottom: '1px solid black',
+          padding: '12px 6px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flex: 1, // Takes remaining space
+        }}
+      >
+        <div
+          style={{
+            fontFamily: '"Noto Sans Lao", sans-serif',
+            fontWeight: 'bold',
+            fontSize: folderName.length > 60 ? '14px' : folderName.length > 40 ? '16px' : folderName.length > 25 ? '19px' : '22px',
+            textAlign: 'center',
+            lineHeight: 1.3,
+            wordBreak: 'break-word',
+          }}
+        >
+          {folderName}
+        </div>
+      </div>
+
+      {/* 4. QR Code Section */}
+      <div
+        style={{
+          borderBottom: '1px solid black',
+          padding: '12px 0',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <QRCodeSVG
+          value={typeof window !== 'undefined' ? `${window.location.origin}/dashboard/scan?code=${encodeURIComponent(qrData)}` : `${process.env.NEXT_PUBLIC_BASE_URL || ''}/dashboard/scan?code=${encodeURIComponent(qrData)}`}
+          style={{ width: '4.4cm', height: '4.4cm' }}
+          level="M"
+        />
+      </div>
+
+      {/* 5. Folder Code Section */}
+      <div
+        style={{
+          padding: '14px 6px',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '2.5cm',
+        }}
+      >
+        <div
+          style={{
+            fontFamily: '"Times New Roman", Times, serif',
+            fontWeight: 'bold',
+            fontSize: '19px',
+            textAlign: 'center',
+            wordBreak: 'break-all',
+            letterSpacing: '0.5px',
+          }}
+        >
+          {qrData}
+        </div>
+      </div>
+    </div>
+  );
+}

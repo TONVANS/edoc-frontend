@@ -56,7 +56,8 @@ api.interceptors.response.use(
       });
       // Redirect to login (safe for both client & SSR contexts)
       if (typeof window !== 'undefined') {
-        window.location.href = '/login';
+        const callbackUrl = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.href = `/login?callbackUrl=${callbackUrl}`;
       }
     }
 

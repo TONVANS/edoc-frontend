@@ -3,7 +3,8 @@
 import React, { useEffect } from 'react';
 import { Modal, Form, Input, Button, Switch, Select, InputNumber } from 'antd';
 import { Shelf, CreateShelfPayload } from '@/types/prisma-mapped';
-import { useAddressStore } from '@/store/useAddressStore';
+import { useDepartmentStore } from '@/store/useDepartmentStore';
+import { useDivisionStore } from '@/store/useDivisionStore';
 import { useWarehouseStore } from '@/store/useWarehouseStore';
 import {
   Layers as ShelfIcon,
@@ -15,7 +16,8 @@ import {
   Hash,
   FileText,
   Binary,
-  MapPin
+  Building2,
+  GitBranch
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLockerStore } from '@/store/useLockerStore';
@@ -44,28 +46,32 @@ export default function ShelfFormModal({
   initialData,
 }: ShelfFormModalProps) {
   const [form] = Form.useForm<FormValues>();
-  const { addressDropdown, fetchAddressDropdown } = useAddressStore();
+  const { departmentDropdown, fetchDropdown: fetchDeptDropdown } = useDepartmentStore();
+  const { divisionDropdown, fetchDropdown: fetchDivDropdown } = useDivisionStore();
   const { warehouseDropdown, fetchWarehouseDropdown } = useWarehouseStore();
   const { lockerDropdown, fetchLockerDropdown } = useLockerStore();
 
-  const [filterAddressId, setFilterAddressId] = React.useState<string | undefined>();
+  const [filterDeptId, setFilterDeptId] = React.useState<number | undefined>();
+  const [filterDivId, setFilterDivId] = React.useState<number | undefined>();
   const [filterWarehouseId, setFilterWarehouseId] = React.useState<string | undefined>();
 
   useEffect(() => {
     if (isOpen) {
-      fetchAddressDropdown();
+      fetchDeptDropdown();
       const isEditing = initialData && 'id' in initialData;
       
       if (isEditing) {
         const locker = (initialData as any)?.locker;
         const warehouseId = locker?.warehouseId;
-        const addressId = locker?.warehouse?.addressId;
+        const deptId = locker?.warehouse?.departmentId;
+        const divId = locker?.warehouse?.divisionId;
 
-        setFilterAddressId(addressId);
+        setFilterDeptId(deptId);
+        setFilterDivId(divId);
         setFilterWarehouseId(warehouseId);
 
-        if (addressId) fetchWarehouseDropdown({ addressId });
-        else fetchWarehouseDropdown();
+        if (deptId) fetchDivDropdown({ departmentId: deptId });
+        fetchWarehouseDropdown({ departmentId: deptId, divisionId: divId });
 
         if (warehouseId) fetchLockerDropdown({ warehouseId });
         else fetchLockerDropdown();
@@ -78,7 +84,8 @@ export default function ShelfFormModal({
           isActive: initialData.status === 'A' || initialData.status === 'ACTIVE',
         });
       } else {
-        setFilterAddressId(undefined);
+        setFilterDeptId(undefined);
+        setFilterDivId(undefined);
         setFilterWarehouseId(undefined);
         fetchWarehouseDropdown();
         fetchLockerDropdown();
@@ -90,13 +97,23 @@ export default function ShelfFormModal({
         });
       }
     }
-  }, [isOpen, initialData, form, fetchAddressDropdown, fetchWarehouseDropdown, fetchLockerDropdown]);
+  }, [isOpen, initialData, form, fetchDeptDropdown, fetchDivDropdown, fetchWarehouseDropdown, fetchLockerDropdown]);
 
-  const handleAddressChange = (val: string) => {
-    setFilterAddressId(val);
+  const handleDeptChange = (val: number) => {
+    setFilterDeptId(val);
+    setFilterDivId(undefined);
     setFilterWarehouseId(undefined);
     form.setFieldsValue({ lockerId: undefined });
-    fetchWarehouseDropdown({ addressId: val });
+    fetchDivDropdown({ departmentId: val });
+    fetchWarehouseDropdown({ departmentId: val });
+    fetchLockerDropdown();
+  };
+
+  const handleDivChange = (val: number) => {
+    setFilterDivId(val);
+    setFilterWarehouseId(undefined);
+    form.setFieldsValue({ lockerId: undefined });
+    fetchWarehouseDropdown({ departmentId: filterDeptId, divisionId: val });
     fetchLockerDropdown();
   };
 
@@ -134,7 +151,7 @@ export default function ShelfFormModal({
       open={isOpen}
       onCancel={onClose}
       footer={null}
-      destroyOnHidden
+      forceRender
       width={600}
       centered
       title={null}
@@ -187,17 +204,32 @@ export default function ShelfFormModal({
             requiredMark={false}
             className="space-y-6"
           >
-            <Form.Item label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><MapPin size={14} className="text-[#185C4D]" /> ເລືອກສະຖານທີ່ (Address)</span>}>
-              <Select
-                placeholder="ເລືອກສະຖານທີ່ (ຖ້າມີ)"
-                className={selectCls}
-                allowClear
-                loading={addressDropdown.length === 0}
-                options={addressDropdown.map(a => ({ value: a.id, label: a.name }))}
-                value={filterAddressId}
-                onChange={handleAddressChange}
-              />
-            </Form.Item>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <Form.Item label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><Building2 size={14} className="text-[#185C4D]" /> ເລືອກຝ່າຍ (Department)</span>}>
+                <Select
+                  placeholder="ເລືອກຝ່າຍ (ຖ້າມີ)"
+                  className={selectCls}
+                  allowClear
+                  loading={departmentDropdown.length === 0}
+                  options={departmentDropdown.map(d => ({ value: d.id, label: d.name }))}
+                  value={filterDeptId}
+                  onChange={handleDeptChange}
+                />
+              </Form.Item>
+
+              <Form.Item label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><GitBranch size={14} className="text-[#185C4D]" /> ເລືອກພະແນກ (Division)</span>}>
+                <Select
+                  placeholder="ເລືອກພະແນກ (ຖ້າມີ)"
+                  className={selectCls}
+                  allowClear
+                  loading={divisionDropdown.length === 0 && !!filterDeptId}
+                  options={divisionDropdown.map(d => ({ value: d.id, label: d.name }))}
+                  value={filterDivId}
+                  onChange={handleDivChange}
+                  disabled={!filterDeptId}
+                />
+              </Form.Item>
+            </div>
 
             <Form.Item label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><WarehouseIcon size={14} className="text-[#185C4D]" /> ເລືອກສາງ (Warehouse)</span>}>
               <Select
@@ -208,7 +240,7 @@ export default function ShelfFormModal({
                 options={warehouseDropdown.map(w => ({ value: w.id, label: w.name }))}
                 value={filterWarehouseId}
                 onChange={handleWarehouseChange}
-                disabled={warehouseDropdown.length === 0 && !!filterAddressId}
+                disabled={warehouseDropdown.length === 0 && !!filterDivId}
               />
             </Form.Item>
 

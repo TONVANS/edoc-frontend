@@ -231,7 +231,7 @@ export default function MoveFormModal({
       open={isOpen}
       onCancel={onClose}
       footer={null}
-      destroyOnHidden
+      forceRender
       width={600}
       centered
       title={null}

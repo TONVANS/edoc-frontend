@@ -15,7 +15,8 @@ async function proxyRequest(
     const path = resolvedParams.path.join("/");
     
     const searchParams = request.nextUrl.searchParams.toString();
-    const targetUrl = `${BACKEND_URL}/${path}${searchParams ? `?${searchParams}` : ""}`;
+    const cleanBackendUrl = BACKEND_URL.endsWith('/') ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
+    const targetUrl = `${cleanBackendUrl}/${path}${searchParams ? `?${searchParams}` : ""}`;
 
     const method = request.method;
     // Only read body for methods that support it

@@ -16,7 +16,7 @@ interface LockerState {
   currentLocker: Locker | null;
 
   // ── Actions ──
-  fetchLockers: (params?: { page?: number; limit?: number; addressId?: string; warehouseId?: string; search?: string; status?: string }) => Promise<void>;
+  fetchLockers: (params?: { page?: number; limit?: number; departmentId?: number; divisionId?: number; warehouseId?: string; search?: string; status?: string }) => Promise<void>;
   fetchLockerById: (id: string) => Promise<void>;
   fetchLockerDropdown: (params?: { warehouseId?: string; status?: string }) => Promise<void>;
   fetchByWarehouse: (warehouseId: string, params?: { page?: number; limit?: number }) => Promise<void>;

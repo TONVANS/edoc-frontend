@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { Modal, Form, Input, Button, Switch, Select } from 'antd';
 import { Warehouse, CreateWarehousePayload } from '@/types/prisma-mapped';
-import { useAddressStore } from '@/store/useAddressStore';
+
 import { useDepartmentStore } from '@/store/useDepartmentStore';
 import { useDivisionStore } from '@/store/useDivisionStore';
 import {
@@ -14,8 +14,7 @@ import {
   Sparkles,
   ArrowRight,
   Hash,
-  FileText,
-  MapPin
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -31,7 +30,8 @@ interface WarehouseFormModalProps {
 }
 
 interface FormValues {
-  addressId: string;
+  departmentId: number;
+  divisionId?: number;
   code: string;
   name: string;
   description?: string;
@@ -49,7 +49,7 @@ export default function WarehouseFormModal({
   initialData,
 }: WarehouseFormModalProps) {
   const [form] = Form.useForm<FormValues>();
-  const { addressDropdown, fetchAddressDropdown } = useAddressStore();
+
   const { departmentDropdown, fetchDropdown: fetchDeptDropdown } = useDepartmentStore();
   const { divisionDropdown, fetchDropdown: fetchDivDropdown } = useDivisionStore();
 
@@ -61,46 +61,30 @@ export default function WarehouseFormModal({
       fetchDeptDropdown();
       
       if (initialData) {
-        const deptId = (initialData as any)?.address?.departmentId;
-        const divId = (initialData as any)?.address?.divisionId;
-        setFilterDept(deptId);
-        setFilterDiv(divId);
+        const deptId = initialData.departmentId || undefined;
+        const divId = initialData.divisionId || undefined;
         if (deptId) fetchDivDropdown({ departmentId: deptId });
-        fetchAddressDropdown({ departmentId: deptId, divisionId: divId });
 
         form.setFieldsValue({
-          addressId: initialData.addressId || undefined,
+          departmentId: deptId,
+          divisionId: divId,
           code: initialData.code,
           name: initialData.name,
           description: initialData.description || undefined,
           isActive: initialData.status === 'A' || initialData.status === 'ACTIVE',
         });
       } else {
-        setFilterDept(undefined);
-        setFilterDiv(undefined);
-        fetchAddressDropdown();
         form.resetFields();
         form.setFieldsValue({ isActive: true });
       }
     }
-  }, [isOpen, initialData, form, fetchAddressDropdown, fetchDeptDropdown, fetchDivDropdown]);
+  }, [isOpen, initialData, form, fetchDeptDropdown, fetchDivDropdown]);
 
   const handleDeptChange = (val: number) => {
-    setFilterDept(val);
-    setFilterDiv(undefined);
-    form.setFieldsValue({ addressId: undefined });
+    form.setFieldsValue({ divisionId: undefined });
     if (val) {
       fetchDivDropdown({ departmentId: val });
-      fetchAddressDropdown({ departmentId: val });
-    } else {
-      fetchAddressDropdown();
     }
-  };
-
-  const handleDivChange = (val: number) => {
-    setFilterDiv(val);
-    form.setFieldsValue({ addressId: undefined });
-    fetchAddressDropdown({ departmentId: filterDept, divisionId: val });
   };
 
   const handleFinish = (values: FormValues) => {
@@ -109,7 +93,8 @@ export default function WarehouseFormModal({
       code: values.code.trim(),
       name: values.name.trim(),
       description: values.description?.trim() || '',
-      addressId: values.addressId,
+      departmentId: values.departmentId,
+      divisionId: values.divisionId,
     };
     
     if (isEditing) {
@@ -186,42 +171,26 @@ export default function WarehouseFormModal({
             className="space-y-8"
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-6">
-              <Form.Item label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><Building2 size={14} className="text-[#185C4D]" /> ເລືອກຝ່າຍ (Department)</span>}>
+              <Form.Item name="departmentId" label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><Building2 size={14} className="text-[#185C4D]" /> ເລືອກຝ່າຍ (Department)</span>}>
                 <Select
                   placeholder="ເລືອກຝ່າຍ (ຖ້າມີ)"
                   className={selectCls}
                   allowClear
                   options={departmentDropdown.map(d => ({ value: d.id, label: d.name }))}
-                  value={filterDept}
                   onChange={handleDeptChange}
                 />
               </Form.Item>
 
-              <Form.Item label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><GitBranch size={14} className="text-[#185C4D]" /> ເລືອກພະແນກ (Division)</span>}>
+              <Form.Item name="divisionId" label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><GitBranch size={14} className="text-[#185C4D]" /> ເລືອກພະແນກ (Division)</span>}>
                 <Select
                   placeholder="ເລືອກພະແນກ (ຖ້າມີ)"
                   className={selectCls}
                   allowClear
                   options={divisionDropdown.map(d => ({ value: d.id, label: d.name }))}
-                  value={filterDiv}
-                  onChange={handleDivChange}
-                  disabled={!filterDept}
                 />
               </Form.Item>
 
-              <Form.Item
-                label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><MapPin size={14} className="text-[#185C4D]" /> ເລືອກສະຖານທີ່ <span className="text-rose-500">*</span></span>}
-                name="addressId"
-                rules={[{ required: true, message: 'ກະລຸນາເລືອກສະຖານທີ່!' }]}
-                className="sm:col-span-2"
-              >
-                <Select
-                  placeholder="ເລືອກສະຖານທີ່ (Address)"
-                  className={selectCls}
-                  loading={addressDropdown.length === 0}
-                  options={addressDropdown.map(a => ({ value: a.id, label: a.name }))}
-                />
-              </Form.Item>
+
 
               <Form.Item
                 label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><Hash size={14} className="text-slate-400" /> ລະຫັດສາງ <span className="text-rose-500">*</span></span>}

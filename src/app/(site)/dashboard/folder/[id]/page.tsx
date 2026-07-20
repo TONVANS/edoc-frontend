@@ -10,6 +10,7 @@ import DocumentTable from '@/components/views/documents/DocumentTable';
 import DocumentFormModal from '@/components/views/documents/DocumentFormModal';
 import DocumentDetailModal from '@/components/views/documents/DocumentDetailModal';
 import FolderFormModal from '@/components/views/storage/FolderFormModal';
+import MoveFormModal from '@/components/views/storage/MoveFormModal';
 import { Document, CreateDocumentPayload, Folder, CreateFolderPayload } from '@/types/prisma-mapped';
 
 export default function FolderDetailPage() {
@@ -31,6 +32,9 @@ export default function FolderDetailPage() {
   const [docTypeFilter, setDocTypeFilter] = useState('');
   const [contractFilter, setContractFilter] = useState('');
   
+  const [departmentFilter, setDepartmentFilter] = useState<number>();
+  const [divisionFilter, setDivisionFilter] = useState<number>();
+  
   // Modals
   const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState<Document | null>(null);
@@ -39,6 +43,9 @@ export default function FolderDetailPage() {
   const [viewingDocument, setViewingDocument] = useState<Document | null>(null);
   
   const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
+
+  const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
+  const [documentToMove, setDocumentToMove] = useState<Document | null>(null);
 
   // Debounce search
   useEffect(() => {
@@ -69,9 +76,11 @@ export default function FolderDetailPage() {
         search: debouncedSearch || undefined,
         documentTypeId: docTypeFilter || undefined,
         retentionStatus: contractFilter || undefined,
+        departmentId: departmentFilter,
+        divisionId: divisionFilter,
       });
     }
-  }, [id, currentPage, debouncedSearch, docTypeFilter, contractFilter, fetchDocuments]);
+  }, [id, currentPage, debouncedSearch, docTypeFilter, contractFilter, departmentFilter, divisionFilter, fetchDocuments]);
 
   // Handle Document Actions
   const handleOpenCreateDocument = () => {
@@ -237,12 +246,20 @@ export default function FolderDetailPage() {
           onDocTypeFilterChange={setDocTypeFilter}
           contractFilter={contractFilter}
           onContractFilterChange={setContractFilter}
+          departmentFilter={departmentFilter}
+          onDepartmentFilterChange={setDepartmentFilter}
+          divisionFilter={divisionFilter}
+          onDivisionFilterChange={setDivisionFilter}
           isLoading={isDocumentLoading}
           onEdit={(doc) => {
             setEditingDocument(doc);
             setIsDocumentModalOpen(true);
           }}
           onDelete={handleDeleteDocument}
+          onMove={(doc) => {
+            setDocumentToMove(doc);
+            setIsMoveModalOpen(true);
+          }}
           onViewDetails={handleViewDetails}
           hideLocationFilters={true}
         />
@@ -272,6 +289,16 @@ export default function FolderDetailPage() {
           initialData={currentFolder}
         />
       )}
+
+      <MoveFormModal
+        isOpen={isMoveModalOpen}
+        onClose={() => { setIsMoveModalOpen(false); setDocumentToMove(null); }}
+        onSuccess={() => {
+          fetchDocuments({ page: currentPage, limit: 10, folderId: id, search: debouncedSearch || undefined, documentTypeId: docTypeFilter || undefined, retentionStatus: contractFilter || undefined, departmentId: departmentFilter, divisionId: divisionFilter });
+        }}
+        type="document"
+        item={documentToMove}
+      />
     </>
   );
 }

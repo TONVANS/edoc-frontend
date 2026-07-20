@@ -1,7 +1,7 @@
 "use client";
-import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, Button, DatePicker, Select, Switch, Upload, Tag } from 'antd';
-import { Document, Folder, DocumentType } from '@/types/prisma-mapped';
+import { useEffect, useState } from 'react';
+import { Modal, Form, Input, Button, DatePicker, Select, Switch, Upload, Radio } from 'antd';
+import { Document } from '@/types/prisma-mapped';
 import { useFolderStore } from '@/store/useFolderStore';
 import { useDocumentTypeStore } from '@/store/useDocumentTypeStore';
 import { useDepartmentStore } from '@/store/useDepartmentStore';
@@ -13,20 +13,19 @@ import {
   ArrowRight, 
   Calendar, 
   Paperclip, 
-  Tag as TagIcon, 
   FolderOpen, 
   Scale, 
   UploadCloud, 
   Info,
   Layers,
-  Trash2,
   Download,
   Building2,
   GitBranch,
-  MapPin,
   Package,
   Archive,
-  Server
+  Server,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
@@ -62,21 +61,32 @@ export default function DocumentFormModal({
     if (isOpen) {
       setFileList([]);
       if (initialData) {
+        const docDate = initialData.docDate ? dayjs(initialData.docDate) : undefined;
+        const docExpire = initialData.docExpire ? dayjs(initialData.docExpire) : undefined;
+        let expireYears = undefined;
+        if (docDate && docExpire) {
+          expireYears = docExpire.diff(docDate, 'year');
+        }
+
         form.setFieldsValue({
           docNo: initialData.docNo,
           shortName: initialData.shortName || undefined,
-          docDate: initialData.docDate ? dayjs(initialData.docDate) : undefined,
-          subDocNo: initialData.subDocNo || undefined,
-          subDocDate: initialData.subDocDate ? dayjs(initialData.subDocDate) : undefined,
+          docDate: docDate,
+          expireYears: expireYears,
+          subDocuments: initialData.subDocuments && initialData.subDocuments.length > 0 
+            ? initialData.subDocuments.map((sub: any) => ({
+                subDocNo: sub.subDocNo,
+                subDocDate: sub.subDocDate ? dayjs(sub.subDocDate) : undefined,
+              }))
+            : [{ subDocNo: undefined, subDocDate: undefined }],
           title: initialData.title,
           description: initialData.description || undefined,
-          docExpire: initialData.docExpire ? dayjs(initialData.docExpire) : undefined,
           qrCode: initialData.qrCode || undefined,
           folderId: initialData.folderId,
           documentTypeId: initialData.documentTypeId,
           departmentId: (initialData as any).departmentId,
           divisionId: (initialData as any).divisionId || undefined,
-          isContractBound: initialData.isContractBound,
+          isContractBound: initialData.isContractBound ?? false,
           retentionStatus: initialData.retentionStatus,
         });
       } else {
@@ -85,6 +95,8 @@ export default function DocumentFormModal({
           isContractBound: false,
           retentionStatus: 'ACTIVE',
           docDate: dayjs(), // Default today
+          expireYears: 5, // Default 5 years
+          subDocuments: [{ subDocNo: undefined, subDocDate: undefined }],
           ...(defaultFolderId ? { folderId: defaultFolderId } : {}),
         });
       }
@@ -93,13 +105,21 @@ export default function DocumentFormModal({
 
   const handleFinish = (values: any) => {
     // Remove temporary location fields used only for dropdown filtering
-    const { addressId, warehouseId, lockerId, shelfId, ...restValues } = values;
+    const { warehouseId, lockerId, shelfId, expireYears, ...restValues } = values;
+
+    let docExpire = undefined;
+    if (expireYears && restValues.docDate) {
+      docExpire = restValues.docDate.add(expireYears, 'year').toISOString();
+    }
 
     const formattedValues = {
       ...restValues,
       docDate: restValues.docDate ? restValues.docDate.toISOString() : undefined,
-      docExpire: restValues.docExpire ? restValues.docExpire.toISOString() : undefined,
-      subDocDate: restValues.subDocDate ? restValues.subDocDate.toISOString() : undefined,
+      docExpire: docExpire,
+      subDocuments: restValues.subDocuments?.map((sub: any) => ({
+        subDocNo: sub.subDocNo,
+        subDocDate: sub.subDocDate ? sub.subDocDate.toISOString() : undefined,
+      })),
     };
 
     // Extract raw File objects from Ant Design Upload component list
@@ -132,6 +152,7 @@ export default function DocumentFormModal({
       open={isOpen}
       onCancel={onClose}
       footer={null}
+      forceRender
       width={800}
       centered
       title={null}
@@ -225,26 +246,72 @@ export default function DocumentFormModal({
                 </Form.Item>
 
                 <Form.Item
-                  label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1.5"><Calendar size={14} className="text-slate-400" /> ວັນທີໝົດອາຍຸ <span className="text-rose-500">*</span></span>}
-                  name="docExpire"
-                  rules={[{ required: true, message: 'ກະລຸນາເລືອກວັນທີໝົດອາຍຸ!' }]}
+                  label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1.5"><Calendar size={14} className="text-slate-400" /> ອາຍຸເອກະສານ <span className="text-rose-500">*</span></span>}
+                  name="expireYears"
+                  rules={[{ required: true, message: 'ກະລຸນາເລືອກອາຍຸເອກະສານ!' }]}
                 >
-                  <DatePicker className={inputCls} placeholder="ເລືອກວັນທີ" format="YYYY-MM-DD" />
+                  <Select placeholder="ເລືອກອາຍຸ" className="w-full h-12 [&_.ant-select-selector]:rounded-2xl!" size="large">
+                    <Select.Option value={1}>1 ປີ</Select.Option>
+                    <Select.Option value={2}>2 ປີ</Select.Option>
+                    <Select.Option value={3}>3 ປີ</Select.Option>
+                    <Select.Option value={4}>4 ປີ</Select.Option>
+                    <Select.Option value={5}>5 ປີ</Select.Option>
+                    <Select.Option value={10}>10 ປີ</Select.Option>
+                    <Select.Option value={15}>15 ປີ</Select.Option>
+                    <Select.Option value={20}>20 ປີ</Select.Option>
+                  </Select>
                 </Form.Item>
 
-                <Form.Item
-                  label={<span className="text-[13px] font-bold text-slate-700 ml-1">ເລກທີເອກະສານຍ່ອຍ (Sub Doc No)</span>}
-                  name="subDocNo"
-                >
-                  <Input placeholder="ເຊັ່ນ: SUB-01" className={inputCls} />
-                </Form.Item>
-
-                <Form.Item
-                  label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1.5"><Calendar size={14} className="text-slate-400" /> ວັນທີເອກະສານຍ່ອຍ</span>}
-                  name="subDocDate"
-                >
-                  <DatePicker className={inputCls} placeholder="ເລືອກວັນທີຍ່ອຍ" format="YYYY-MM-DD" />
-                </Form.Item>
+                <div className="md:col-span-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[13px] font-bold text-slate-700 ml-1">ເອກະສານຍ່ອຍ (Sub Documents)</span>
+                  </div>
+                  <Form.List name="subDocuments">
+                    {(fields, { add, remove }) => (
+                      <div className="space-y-4">
+                        {fields.map(({ key, name, ...restField }) => (
+                          <div key={key} className="flex items-start gap-4 bg-white/40 border border-white/60 p-4 rounded-2xl shadow-xs">
+                            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <Form.Item
+                                {...restField}
+                                name={[name, 'subDocNo']}
+                                className="mb-0"
+                                label={<span className="text-[12px] font-bold text-slate-700 ml-1">ເລກທີເອກະສານຍ່ອຍ</span>}
+                              >
+                                <Input placeholder="ເຊັ່ນ: SUB-01" className={inputCls} />
+                              </Form.Item>
+                              <Form.Item
+                                {...restField}
+                                name={[name, 'subDocDate']}
+                                className="mb-0"
+                                label={<span className="text-[12px] font-bold text-slate-700 ml-1 flex items-center gap-1.5"><Calendar size={14} className="text-slate-400" /> ວັນທີເອກະສານຍ່ອຍ</span>}
+                              >
+                                <DatePicker className={inputCls} placeholder="ເລືອກວັນທີຍ່ອຍ" format="YYYY-MM-DD" />
+                              </Form.Item>
+                            </div>
+                            {fields.length > 1 && (
+                              <Button
+                                type="text"
+                                danger
+                                icon={<Trash2 size={18} />}
+                                onClick={() => remove(name)}
+                                className="mt-7 shrink-0 w-12 h-12 flex items-center justify-center rounded-2xl hover:bg-rose-50 hover:text-rose-600 transition-all cursor-pointer"
+                              />
+                            )}
+                          </div>
+                        ))}
+                        <Button 
+                          type="dashed" 
+                          onClick={() => add()} 
+                          icon={<Plus size={16} />}
+                          className="w-full h-12 rounded-2xl border-slate-300 hover:border-[#185C4D] hover:text-[#185C4D] font-bold text-slate-600 flex items-center justify-center gap-2 transition-all bg-white/30 cursor-pointer"
+                        >
+                          ເພີ່ມເອກະສານຍ່ອຍ
+                        </Button>
+                      </div>
+                    )}
+                  </Form.List>
+                </div>
 
                 <Form.Item
                   label={<span className="text-[13px] font-bold text-slate-700 ml-1">ລາຍລະອຽດ / ຄຳອະທິບາຍ</span>}
@@ -280,14 +347,13 @@ export default function DocumentFormModal({
               </div>
             </div>
 
-            {/* ── Section 3: Storage & Classification ── */}
+            {/* ── Section 3: Document Classification ── */}
             <div>
               <h3 className="flex items-center gap-2 text-[#185C4D] font-bold text-[15px] mb-4 border-b border-slate-100 pb-2">
-                <FolderOpen size={16} /> ໝວດໝູ່ & ການຈັດເກັບ
+                <Layers size={16} /> ໝວດໝູ່ເອກະສານ
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
                 <Form.Item
                   label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1"><Layers size={14} className="text-slate-400" /> ປະເພດເອກະສານ <span className="text-rose-500">*</span></span>}
                   name="documentTypeId"
@@ -299,8 +365,6 @@ export default function DocumentFormModal({
                     ))}
                   </Select>
                 </Form.Item>
-
-                <DocumentStorageCascader form={form} folders={folders} />
 
                 {initialData && (
                   <Form.Item
@@ -318,24 +382,32 @@ export default function DocumentFormModal({
 
                 <Form.Item
                   label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1.5"><Scale size={14} className="text-slate-400" /> ຜູກພັນສັນຍາ (Contract Bound)</span>}
+                  name="isContractBound"
                 >
-                  <div className="flex items-center gap-3 h-12 bg-white/40 border border-white/60 px-4 rounded-2xl shadow-xs">
-                    <Form.Item name="isContractBound" valuePropName="checked" noStyle>
-                      <Switch />
-                    </Form.Item>
-                    <Form.Item noStyle shouldUpdate={(prev, curr) => prev.isContractBound !== curr.isContractBound}>
-                      {() => (
-                        <span className="text-slate-600 font-bold text-[14px]">
-                          {form.getFieldValue('isContractBound') ? '10ປີ (ຫ້າມທຳລາຍ)' : '10ປີ ທຳລາຍໄດ້'}
-                        </span>
-                      )}
-                    </Form.Item>
-                  </div>
+                  <Radio.Group className="w-full flex bg-white/40 p-1 rounded-2xl shadow-xs border border-white/60" optionType="button">
+                    <Radio.Button value={true} className="flex-1 text-center h-10 leading-[38px] rounded-xl border-none before:hidden [&.ant-radio-button-wrapper-checked]:bg-[#185C4D] [&.ant-radio-button-wrapper-checked]:text-white transition-all font-bold text-[13px] text-slate-500 shadow-none">
+                      ບໍ່ສາມາດທຳລາຍໄດ້
+                    </Radio.Button>
+                    <Radio.Button value={false} className="flex-1 text-center h-10 leading-[38px] rounded-xl border-none before:hidden [&.ant-radio-button-wrapper-checked]:bg-[#185C4D] [&.ant-radio-button-wrapper-checked]:text-white transition-all font-bold text-[13px] text-slate-500 shadow-none">
+                      ສາມາດທຳລາຍໄດ້
+                    </Radio.Button>
+                  </Radio.Group>
                 </Form.Item>
               </div>
             </div>
 
-            {/* ── Section 4: Attachments ── */}
+            {/* ── Section 4: Storage Location ── */}
+            <div>
+              <h3 className="flex items-center gap-2 text-[#185C4D] font-bold text-[15px] mb-4 border-b border-slate-100 pb-2">
+                <FolderOpen size={16} /> ສະຖານທີ່ຈັດເກັບ
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <DocumentStorageCascader form={form} folders={folders} />
+              </div>
+            </div>
+
+            {/* ── Section 5: Attachments ── */}
             <div>
               <h3 className="flex items-center gap-2 text-[#185C4D] font-bold text-[15px] mb-4 border-b border-slate-100 pb-2">
                 <Paperclip size={16} /> ໄຟລ໌ເອກະສານຄັດຕິດ
@@ -485,28 +557,29 @@ function DocumentStorageCascader({ form, folders }: { form: any, folders: any[] 
     folder: false
   });
 
-  const addressId = Form.useWatch('addressId', form);
+  const departmentId = Form.useWatch('departmentId', form);
+  const divisionId = Form.useWatch('divisionId', form);
   const warehouseId = Form.useWatch('warehouseId', form);
   const lockerId = Form.useWatch('lockerId', form);
   const shelfId = Form.useWatch('shelfId', form);
 
   useEffect(() => {
-    setIsLoading(prev => ({ ...prev, address: true }));
-    api.get('/addresses/dropdown').then(res => {
-      setAddresses(res.data?.data || res.data || []);
-    }).finally(() => setIsLoading(prev => ({ ...prev, address: false })));
-  }, []);
-
-  useEffect(() => {
-    if (addressId) {
+    if (departmentId) {
       setIsLoading(prev => ({ ...prev, warehouse: true }));
-      api.get(`/warehouses/dropdown?addressId=${addressId}`).then(res => {
+      const queryParams = new URLSearchParams();
+      queryParams.append('departmentId', String(departmentId));
+      if (divisionId) queryParams.append('divisionId', String(divisionId));
+      
+      api.get(`/warehouses/dropdown?${queryParams.toString()}`).then(res => {
         setWarehouses(res.data?.data || res.data || []);
       }).finally(() => setIsLoading(prev => ({ ...prev, warehouse: false })));
     } else {
-      setWarehouses([]);
+      setIsLoading(prev => ({ ...prev, warehouse: true }));
+      api.get(`/warehouses/dropdown`).then(res => {
+        setWarehouses(res.data?.data || res.data || []);
+      }).finally(() => setIsLoading(prev => ({ ...prev, warehouse: false })));
     }
-  }, [addressId]);
+  }, [departmentId, divisionId]);
 
   useEffect(() => {
     if (warehouseId) {
@@ -561,22 +634,7 @@ function DocumentStorageCascader({ form, folders }: { form: any, folders: any[] 
 
   return (
     <>
-      <Form.Item
-        label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1.5"><MapPin size={14} className="text-slate-400" /> ສະຖານທີ່ (Address)</span>}
-        name="addressId"
-      >
-        <Select 
-          showSearch
-          optionFilterProp="label"
-          placeholder="ເລືອກສະຖານທີ່" 
-          allowClear
-          loading={isLoading.address}
-          onChange={() => form.setFieldsValue({ warehouseId: undefined, lockerId: undefined, shelfId: undefined, folderId: undefined })}
-          options={addresses.map(a => ({ label: a.name, value: a.id }))}
-          className="w-full h-12 [&_.ant-select-selector]:rounded-2xl!" 
-          size="large" 
-        />
-      </Form.Item>
+
       <Form.Item
         label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1.5"><Package size={14} className="text-slate-400" /> ສາງ (Warehouse)</span>}
         name="warehouseId"
@@ -584,9 +642,8 @@ function DocumentStorageCascader({ form, folders }: { form: any, folders: any[] 
         <Select 
           showSearch
           optionFilterProp="label"
-          placeholder={addressId ? "ເລືອກສາງ" : "ກະລຸນາເລືອກສະຖານທີ່ກ່ອນ"}
+          placeholder="ເລືອກສາງ"
           allowClear
-          disabled={!addressId}
           loading={isLoading.warehouse}
           onChange={() => form.setFieldsValue({ lockerId: undefined, shelfId: undefined, folderId: undefined })}
           options={warehouses.map(w => ({ label: w.name, value: w.id }))}

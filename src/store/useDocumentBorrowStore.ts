@@ -6,6 +6,7 @@ import { create } from "zustand";
 interface BorrowResponse {
   message: string;
   data: DocumentBorrow[] | { data: DocumentBorrow[]; total: number; page: number; limit: number };
+  total?: number;
   meta?: {
     total: number;
     page: number;
@@ -21,6 +22,8 @@ interface FetchBorrowsParams {
   borrowerId?: string;
   divisionId?: number;
   activeOnly?: boolean;
+  borrowedAt?: string;
+  returnedAt?: string;
 }
 
 interface DocumentBorrowState {
@@ -52,10 +55,11 @@ export const useDocumentBorrowStore = create<DocumentBorrowState>((set, get) => 
     set({ isLoading: true });
     try {
       const response = await api.get<BorrowResponse>(`/document-borrows`, { params });
-      const resData = response.data.data;
+      const resData = response.data?.data;
       const borrows = Array.isArray(resData) ? resData : (resData as any)?.data || [];
-      const total = response.data.meta?.total ?? (Array.isArray(resData) ? resData.length : (resData as any)?.total || 0);
-      const totalPages = response.data.meta?.totalPages ?? 1;
+      const total = response.data?.total ?? response.data?.meta?.total ?? (Array.isArray(resData) ? resData.length : (resData as any)?.total || 0);
+      const limit = params?.limit || 10;
+      const totalPages = response.data?.meta?.totalPages ?? Math.ceil(total / limit) ?? 1;
       set({ borrows, total, totalPages, isLoading: false });
     } catch (error) {
       set({ isLoading: false });

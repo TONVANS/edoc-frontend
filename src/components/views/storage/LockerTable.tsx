@@ -1,7 +1,6 @@
 import React from 'react';
 import { Layout as LockerIcon, Edit2, Trash2, Search, SlidersHorizontal, ChevronRight, MoreVertical, ArrowRightLeft } from 'lucide-react';
 import { Button, Input, Select, Tooltip, Dropdown, Pagination } from 'antd';
-import AddressStatusBadge from '../address/AddressStatusBadge';
 import { Locker } from '@/types/prisma-mapped';
 
 interface LockerTableProps {
@@ -16,9 +15,12 @@ interface LockerTableProps {
   onDelete?: (id: string | number) => void;
   onManage?: (locker: Locker) => void;
   onMove?: (locker: Locker) => void;
-  addressOptions?: { value: string; label: string }[];
-  filterAddress?: string;
-  onFilterAddressChange?: (addressId: string) => void;
+  departmentOptions?: { value: string; label: string }[];
+  filterDepartment?: string;
+  onFilterDepartmentChange?: (departmentId: string) => void;
+  divisionOptions?: { value: string; label: string }[];
+  filterDivision?: string;
+  onFilterDivisionChange?: (divisionId: string) => void;
   warehouseOptions?: { value: string; label: string }[];
   filterWarehouse?: string;
   onFilterWarehouseChange?: (warehouseId: string) => void;
@@ -37,9 +39,12 @@ export default function LockerTable({
   onDelete,
   onManage,
   onMove,
-  addressOptions = [],
-  filterAddress,
-  onFilterAddressChange,
+  departmentOptions = [],
+  filterDepartment,
+  onFilterDepartmentChange,
+  divisionOptions = [],
+  filterDivision,
+  onFilterDivisionChange,
   warehouseOptions = [],
   filterWarehouse,
   onFilterWarehouseChange,
@@ -64,11 +69,19 @@ export default function LockerTable({
             <div className="flex items-center gap-3 shrink-0">
               <SlidersHorizontal size={16} className="text-slate-400 mr-1" />
               <Select
-                value={filterAddress || 'all'}
-                onChange={onFilterAddressChange}
-                options={[{ value: 'all', label: 'ທັງໝົດ (ສະຖານທີ່)' }, ...addressOptions]}
+                value={filterDepartment || 'all'}
+                onChange={onFilterDepartmentChange}
+                options={[{ value: 'all', label: 'ທັງໝົດ (ຝ່າຍ)' }, ...departmentOptions]}
                 size="large"
                 className="min-w-[170px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
+              />
+              <Select
+                value={filterDivision || 'all'}
+                onChange={onFilterDivisionChange}
+                options={[{ value: 'all', label: 'ທັງໝົດ (ພະແນກ)' }, ...divisionOptions]}
+                size="large"
+                className="min-w-[170px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
+                disabled={divisionOptions.length === 0 && !!filterDepartment && filterDepartment !== 'all'}
               />
               <Select
                 value={filterWarehouse || 'all'}
@@ -76,7 +89,7 @@ export default function LockerTable({
                 options={[{ value: 'all', label: 'ທັງໝົດ (ສາງ)' }, ...warehouseOptions]}
                 size="large"
                 className="min-w-[170px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
-                disabled={warehouseOptions.length === 0 && !!filterAddress && filterAddress !== 'all'}
+                disabled={warehouseOptions.length === 0 && !!filterDepartment && filterDepartment !== 'all'}
               />
             </div>
           )}
@@ -136,11 +149,7 @@ export default function LockerTable({
                     <span className="text-slate-600 text-[14px] font-bold bg-slate-50/50 px-3 py-1.5 rounded-xl border border-slate-100/50 shadow-sm inline-block">
                       {(item as any).warehouse?.name || warehouseOptions.find(w => w.value === item.warehouseId)?.label || '—'}
                     </span>
-                    {(item as any).warehouse?.address?.name && (
-                      <span className="text-xs text-slate-500 font-medium px-1">
-                        {(item as any).warehouse.address.name}
-                      </span>
-                    )}
+
                   </div>
 
                   <div className="col-span-4 pr-4">

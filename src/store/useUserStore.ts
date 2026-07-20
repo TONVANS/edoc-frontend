@@ -31,7 +31,7 @@ interface UserState {
   // ── Actions ──
   fetchUsers: (params?: FetchUsersParams) => Promise<void>;
   fetchProfile: () => Promise<User | null>;
-  approveUser: (id: string, payload: { role: string; addressId?: string; divisionIds?: number[] }) => Promise<boolean>;
+  approveUser: (id: string, payload: { role: string | object; divisionIds?: number | number[] }) => Promise<boolean>;
   updateRole: (id: string, role: string) => Promise<boolean>;
   updateDivisions: (id: string, divisionIds: number[]) => Promise<boolean>;
   resetPassword: (id: string) => Promise<boolean>;

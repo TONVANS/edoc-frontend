@@ -1,44 +1,70 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Button, Dropdown, Pagination, Modal, message } from 'antd';
+import { Button, Dropdown, Pagination, Modal, message, Tabs } from 'antd';
 import { Eye, Trash2, FileText, FolderOpen, Calendar, Tag, MoreVertical, AlertTriangle } from 'lucide-react';
-import { useDocumentExpiredStore } from '@/store/useDocumentExpiredStore';
+import { useDocumentStore } from '@/store/useDocumentStore';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import DocumentDetailModal from '@/components/views/documents/DocumentDetailModal';
 import { Document } from '@/types/prisma-mapped';
+import api from '@/lib/api';
 
 export default function DocumentExpiredTable() {
   const router = useRouter();
-  const { documents, isLoading, fetchExpiredDocuments, deleteDocument } = useDocumentExpiredStore();
+  const { documents, expiredDocuments, total, isLoading, fetchDocuments, fetchExpiredDocuments } = useDocumentStore();
   const [modal, contextHolder] = Modal.useModal();
   const [currentPage, setCurrentPage] = useState(1);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [detailDoc, setDetailDoc] = useState<Document | null>(null);
+  const [activeTab, setActiveTab] = useState('EXPIRED');
 
   useEffect(() => {
-    fetchExpiredDocuments();
-  }, [fetchExpiredDocuments]);
+    if (activeTab === 'EXPIRED') {
+      fetchExpiredDocuments();
+    } else if (activeTab !== 'HISTORY') {
+      fetchDocuments({ page: currentPage, limit: 10, retentionStatus: activeTab });
+    }
+  }, [fetchDocuments, fetchExpiredDocuments, currentPage, activeTab]);
 
   const handleDelete = (id: string) => {
     modal.confirm({
       title: 'ຢືນຢັນການລຶບ',
-      content: 'ທ່ານແນ່ໃຈບໍ່ວ່າຕ້ອງການລຶບເອກະສານໝົດອາຍຸນີ້?',
+      content: 'ທ່ານແນ່ໃຈບໍ່ວ່າຕ້ອງການລຶບເອກະສານນີ້?',
       okText: 'ລຶບ',
       okType: 'danger',
       cancelText: 'ຍົກເລີກ',
       centered: true,
       onOk: async () => {
-        const success = await deleteDocument(id);
-        if (success) {
+        try {
+          await api.delete(`/documents/${id}`);
           message.success('ລຶບເອກະສານສຳເລັດ');
-        } else {
+          if (activeTab === 'EXPIRED') {
+            fetchExpiredDocuments();
+          } else if (activeTab !== 'HISTORY') {
+            fetchDocuments({ page: currentPage, limit: 10, retentionStatus: activeTab });
+          }
+        } catch (error) {
           message.error('ບໍ່ສາມາດລຶບເອກະສານໄດ້');
         }
       },
     });
   };
+
+  const tabItems = [
+    { key: 'EXPIRED', label: 'ເອກະສານໝົດອາຍຸ' },
+    { key: 'DESTROYABLE_HOLD', label: 'ເກັບຖາວອນ' },
+    { key: 'ACTIVE', label: 'ເກັບກຳເອກະສານ' },
+    { key: 'HISTORY', label: 'ປະຫວັດການທຳລາຍ' },
+  ];
+
+  const handleTabChange = (key: string) => {
+    setActiveTab(key);
+    setCurrentPage(1);
+  };
+
+  const dataSource = activeTab === 'EXPIRED' ? expiredDocuments.slice((currentPage - 1) * 10, currentPage * 10) : documents;
+  const currentTotal = activeTab === 'EXPIRED' ? expiredDocuments.length : total;
 
   return (
     <section className="flex flex-col gap-6">
@@ -60,17 +86,28 @@ export default function DocumentExpiredTable() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 text-[14px] font-bold bg-rose-500/5 px-5 py-2.5 rounded-[16px] border border-rose-500/20 text-rose-600 shrink-0">
-          <AlertTriangle size={18} className="text-rose-500 mr-1" />
-          ທັງໝົດ <span className="text-base font-black mx-0.5">{documents.length}</span> ລາຍການ
+        <div className={`flex items-center gap-2 text-[14px] font-bold px-5 py-2.5 rounded-[16px] border shrink-0 ${activeTab === 'DESTROYABLE_HOLD' || activeTab === 'ACTIVE' ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-600' : 'bg-rose-500/5 border-rose-500/20 text-rose-600'}`}>
+          <AlertTriangle size={18} className={`${activeTab === 'DESTROYABLE_HOLD' || activeTab === 'ACTIVE' ? 'text-emerald-500' : 'text-rose-500'} mr-1`} />
+          ທັງໝົດ <span className="text-base font-black mx-0.5">{activeTab === 'HISTORY' ? 0 : currentTotal}</span> ລາຍການ
         </div>
       </header>
+      
+      {/* ── Tabs Area ── */}
+      <div className="bg-white/40 backdrop-blur-md rounded-2xl px-4 py-2 border border-white/60 shadow-sm">
+        <Tabs 
+          activeKey={activeTab} 
+          onChange={handleTabChange} 
+          items={tabItems} 
+          size="large"
+          className="font-semibold text-slate-700"
+        />
+      </div>
 
       {/* ── Table Container ── */}
       <div className="w-full bg-white/30 backdrop-blur-2xl border border-white/50 p-6 rounded-[32px] shadow-[0_8px_32px_rgba(31,38,135,0.04)] overflow-x-auto">
         <div className="min-w-[1000px]">
           {/* Custom Header Grid */}
-          <div className="bg-linear-to-r from-rose-600 to-rose-400 text-white grid grid-cols-12 gap-4 py-4.5 px-6 rounded-2xl shadow-md mb-5 text-[13px] font-bold tracking-wider uppercase items-center">
+          <div className={`bg-linear-to-r ${activeTab === 'DESTROYABLE_HOLD' || activeTab === 'ACTIVE' ? 'from-emerald-600 to-emerald-400' : 'from-rose-600 to-rose-400'} text-white grid grid-cols-12 gap-4 py-4.5 px-6 rounded-2xl shadow-md mb-5 text-[13px] font-bold tracking-wider uppercase items-center`}>
             <div className="col-span-2 flex items-center gap-1.5"><Tag size={14} /> ເລກທີເອກະສານ</div>
             <div className="col-span-4 flex items-center gap-1.5"><FileText size={14} /> ຊື່ເອກະສານ</div>
             <div className="col-span-3 flex items-center gap-1.5"><FolderOpen size={14} /> ແຟ້ມ / ປະເພດ</div>
@@ -79,23 +116,30 @@ export default function DocumentExpiredTable() {
           </div>
           
           {/* Table Rows or Loader */}
-          {isLoading ? (
+          {isLoading && activeTab !== 'HISTORY' ? (
             <div className="flex justify-center items-center py-24 bg-white/20 rounded-2xl border border-white/30">
               <div className="flex flex-col items-center gap-3">
-                <div className="w-10 h-10 border-4 border-rose-500/20 border-t-rose-500 rounded-full animate-spin" />
+                <div className={`w-10 h-10 border-4 rounded-full animate-spin ${activeTab === 'DESTROYABLE_HOLD' || activeTab === 'ACTIVE' ? 'border-emerald-500/20 border-t-emerald-500' : 'border-rose-500/20 border-t-rose-500'}`} />
                 <span className="text-slate-500 font-bold">ກຳລັງໂຫຼດຂໍ້ມູນ...</span>
               </div>
             </div>
-          ) : documents.length === 0 ? (
+          ) : activeTab === 'HISTORY' ? (
+            <div className="flex flex-col items-center justify-center py-28 gap-4 bg-white/20 rounded-2xl border border-dashed border-white/40">
+              <div className="w-16 h-16 rounded-2xl bg-white/40 flex items-center justify-center shadow-sm">
+                <AlertTriangle className="w-8 h-8 text-slate-300" strokeWidth={1.5} />
+              </div>
+              <p className="text-slate-400 font-bold text-lg">ຍັງບໍ່ມີຂໍ້ມູນປະຫວັດການທຳລາຍ (ກຳລັງພັດທະນາ)</p>
+            </div>
+          ) : dataSource.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-28 gap-4 bg-white/20 rounded-2xl border border-dashed border-white/40">
               <div className="w-16 h-16 rounded-2xl bg-white/40 flex items-center justify-center shadow-sm">
                 <FileText className="w-8 h-8 text-slate-300" strokeWidth={1.5} />
               </div>
-              <p className="text-slate-400 font-bold text-lg">ບໍ່ພົບຂໍ້ມູນເອກະສານໝົດອາຍຸ</p>
+              <p className="text-slate-400 font-bold text-lg">ບໍ່ພົບຂໍ້ມູນເອກະສານ</p>
             </div>
           ) : (
             <div className="flex flex-col gap-4">
-              {documents.slice((currentPage - 1) * 10, currentPage * 10).map(item => {
+              {dataSource.map(item => {
                 const docTypeName = item.documentType?.name || 'ບໍ່ລະບຸ';
                 const folderName = item.folder?.name || item.folder?.code || 'ບໍ່ລະບຸ';
 
@@ -130,7 +174,7 @@ export default function DocumentExpiredTable() {
 
                     {/* Column 4: Document Expire Date */}
                     <div className="col-span-2 flex flex-col justify-center items-start">
-                      <span className="text-rose-500 font-bold text-[13px] bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-100 inline-block w-max">
+                      <span className={`font-bold text-[13px] px-3 py-1.5 rounded-lg border inline-block w-max ${activeTab === 'DESTROYABLE_HOLD' || activeTab === 'ACTIVE' ? 'text-emerald-500 bg-emerald-50 border-emerald-100' : 'text-rose-500 bg-rose-50 border-rose-100'}`}>
                         {item.docExpire ? format(new Date(item.docExpire), 'dd/MM/yyyy') : '-'}
                       </span>
                     </div>
@@ -178,16 +222,16 @@ export default function DocumentExpiredTable() {
           )}
 
           {/* Pagination Area */}
-          {!isLoading && documents.length > 0 && (
+          {!isLoading && activeTab !== 'HISTORY' && dataSource.length > 0 && (
             <div className="flex justify-between items-center mt-6">
               <span className="text-slate-500 text-sm font-medium">
-                ສະແດງ {documents.length} ລາຍການ
+                ສະແດງ {dataSource.length} ຈາກທັງໝົດ {currentTotal} ລາຍການ
               </span>
               <Pagination
                 current={currentPage}
                 onChange={(page) => setCurrentPage(page)}
                 pageSize={10}
-                total={documents.length}
+                total={currentTotal}
                 showSizeChanger={false}
               />
             </div>

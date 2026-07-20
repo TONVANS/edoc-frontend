@@ -2,25 +2,30 @@
 import React, { useEffect, useState, useMemo, Suspense } from 'react';
 import { Plus, Folder as FolderIcon } from 'lucide-react';
 import { Button, message, Modal } from 'antd';
-import { useAddressStore } from '@/store/useAddressStore';
-import { useWarehouseStore } from '@/store/useWarehouseStore';
-import { useLockerStore } from '@/store/useLockerStore';
-import { useFolderStore } from '@/store/useFolderStore';
-import { useShelfStore } from '@/store/useShelfStore';
-import { useDocumentStore } from '@/store/useDocumentStore';
+import { useDepartmentStore } from '@/store/useDepartmentStore';
+import { useDivisionStore } from '@/store/useDivisionStore';
 import FolderTable from '@/components/views/storage/FolderTable';
 import FolderFormModal from '@/components/views/storage/FolderFormModal';
 import DocumentFormModal from '@/components/views/documents/DocumentFormModal';
 import MoveFormModal from '@/components/views/storage/MoveFormModal';
+import FolderTagPrint from '@/components/views/storage/FolderTagPrint';
+import { useReactToPrint } from 'react-to-print';
+import { useRef } from 'react';
 import { Folder, CreateFolderPayload } from '@/types/prisma-mapped';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useDocumentStore } from '@/store/useDocumentStore';
+import { useFolderStore } from '@/store/useFolderStore';
+import { useLockerStore } from '@/store/useLockerStore';
+import { useShelfStore } from '@/store/useShelfStore';
+import { useWarehouseStore } from '@/store/useWarehouseStore';
 
 function FolderPageContent() {
   const { folders, total, isLoading: isFolderLoading, fetchFolders, createFolder, updateFolder, deleteFolder } = useFolderStore();
   const { shelves, fetchShelves } = useShelfStore();
   const { lockerDropdown, fetchLockerDropdown } = useLockerStore();
   const { warehouseDropdown, fetchWarehouseDropdown } = useWarehouseStore();
-  const { addressDropdown, fetchAddressDropdown } = useAddressStore();
+  const { departmentDropdown, fetchDropdown: fetchDeptDropdown } = useDepartmentStore();
+  const { divisionDropdown, fetchDropdown: fetchDivDropdown } = useDivisionStore();
   const { isLoading: isDocLoading, createDocument, uploadAttachments } = useDocumentStore();
   
   const searchParams = useSearchParams();
@@ -28,18 +33,32 @@ function FolderPageContent() {
   const initialShelfId = searchParams.get('shelfId') || 'all';
   const initialLockerId = searchParams.get('lockerId') || 'all';
   const initialWarehouseId = searchParams.get('warehouseId') || 'all';
-  const initialAddressId = searchParams.get('addressId') || 'all';
-
-  const [filterShelfId, setFilterShelfId] = useState<string>(initialShelfId);
-  const [filterLockerId, setFilterLockerId] = useState<string>(initialLockerId);
+  const [activeDepartment, setActiveDepartment] = useState('all');
+  const [activeDivision, setActiveDivision] = useState('all');
   const [filterWarehouseId, setFilterWarehouseId] = useState<string>(initialWarehouseId);
-  const [filterAddressId, setFilterAddressId] = useState<string>(initialAddressId);
+  const [filterLockerId, setFilterLockerId] = useState<string>(initialLockerId);
+  const [filterShelfId, setFilterShelfId] = useState<string>(initialShelfId);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchName, setSearchName] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   
   // Modal states
   const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
+
+  // Print states
+  const [selectedFolderForPrint, setSelectedFolderForPrint] = useState<Folder | null>(null);
+  const printRef = useRef(null);
+
+  const handlePrintTrigger = useReactToPrint({
+    contentRef: printRef,
+  });
+
+  const handlePrint = (folder: Folder) => {
+    setSelectedFolderForPrint(folder);
+    setTimeout(() => {
+      handlePrintTrigger();
+    }, 100);
+  };
 
   // Editing states
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
@@ -65,13 +84,21 @@ function FolderPageContent() {
   }, [searchName]);
 
   useEffect(() => {
-    fetchAddressDropdown();
-    if (filterAddressId && filterAddressId !== 'all') {
-      fetchWarehouseDropdown({ addressId: filterAddressId });
-    } else {
-      fetchWarehouseDropdown();
+    fetchDeptDropdown();
+  }, [fetchDeptDropdown]);
+
+  useEffect(() => {
+    if (activeDepartment !== 'all') {
+      fetchDivDropdown({ departmentId: Number(activeDepartment) });
     }
-  }, [fetchAddressDropdown, fetchWarehouseDropdown, filterAddressId]);
+  }, [activeDepartment, fetchDivDropdown]);
+
+  useEffect(() => {
+    fetchWarehouseDropdown({
+      departmentId: activeDepartment === 'all' ? undefined : Number(activeDepartment),
+      divisionId: activeDivision === 'all' ? undefined : Number(activeDivision),
+    });
+  }, [activeDepartment, activeDivision, fetchWarehouseDropdown]);
 
   useEffect(() => {
     fetchLockerDropdown({ warehouseId: filterWarehouseId !== 'all' ? filterWarehouseId : undefined });
@@ -85,22 +112,23 @@ function FolderPageContent() {
     fetchFolders({
       page: currentPage,
       limit: 5,
+      departmentId: activeDepartment === 'all' ? undefined : Number(activeDepartment),
+      divisionId: activeDivision === 'all' ? undefined : Number(activeDivision),
+      warehouseId: filterWarehouseId === 'all' ? undefined : filterWarehouseId,
+      lockerId: filterLockerId === 'all' ? undefined : filterLockerId,
       shelfId: filterShelfId === 'all' ? undefined : filterShelfId,
-      // the backend doesn't take addressId etc for folders directly typically, so we just pass what it takes.
       search: debouncedSearch || undefined,
     });
-  }, [filterShelfId, currentPage, debouncedSearch, fetchFolders]);
+  }, [activeDepartment, activeDivision, filterWarehouseId, filterLockerId, filterShelfId, currentPage, debouncedSearch, fetchFolders]);
 
   // Sync state if URL param changes
   useEffect(() => {
     const shelfParam = searchParams.get('shelfId') || 'all';
     const lockerParam = searchParams.get('lockerId') || 'all';
     const warehouseParam = searchParams.get('warehouseId') || 'all';
-    const addressParam = searchParams.get('addressId') || 'all';
     setFilterShelfId(shelfParam);
     setFilterLockerId(lockerParam);
     setFilterWarehouseId(warehouseParam);
-    setFilterAddressId(addressParam);
     setCurrentPage(1);
   }, [searchParams]);
 
@@ -128,6 +156,10 @@ function FolderPageContent() {
     fetchFolders({
       page: currentPage,
       limit: 5,
+      departmentId: activeDepartment === 'all' ? undefined : Number(activeDepartment),
+      divisionId: activeDivision === 'all' ? undefined : Number(activeDivision),
+      warehouseId: filterWarehouseId === 'all' ? undefined : filterWarehouseId,
+      lockerId: filterLockerId === 'all' ? undefined : filterLockerId,
       shelfId: filterShelfId === 'all' ? undefined : filterShelfId,
       search: debouncedSearch || undefined,
     });
@@ -148,6 +180,10 @@ function FolderPageContent() {
         fetchFolders({
           page: currentPage,
           limit: 5,
+          departmentId: activeDepartment === 'all' ? undefined : Number(activeDepartment),
+          divisionId: activeDivision === 'all' ? undefined : Number(activeDivision),
+          warehouseId: filterWarehouseId === 'all' ? undefined : filterWarehouseId,
+          lockerId: filterLockerId === 'all' ? undefined : filterLockerId,
           shelfId: filterShelfId === 'all' ? undefined : filterShelfId,
           search: debouncedSearch || undefined,
         });
@@ -172,6 +208,10 @@ function FolderPageContent() {
           fetchFolders({
             page: currentPage,
             limit: 5,
+            departmentId: activeDepartment === 'all' ? undefined : Number(activeDepartment),
+            divisionId: activeDivision === 'all' ? undefined : Number(activeDivision),
+            warehouseId: filterWarehouseId === 'all' ? undefined : filterWarehouseId,
+            lockerId: filterLockerId === 'all' ? undefined : filterLockerId,
             shelfId: filterShelfId === 'all' ? undefined : filterShelfId,
             search: debouncedSearch || undefined,
           });
@@ -267,18 +307,28 @@ function FolderPageContent() {
           onDelete={handleDelete}
           onUploadDocument={handleUploadDocument}
           onMove={handleOpenMoveModal}
+          onPrint={handlePrint}
           onManage={(folder) => {
             router.push(`/dashboard/folder/${folder.id}`);
           }}
-          addressOptions={addressDropdown.map(a => ({ value: String(a.id), label: a.name }))}
-          filterAddress={filterAddressId}
-          onFilterAddressChange={(id) => {
-            setFilterAddressId(id);
+          departmentOptions={departmentDropdown.map(dept => ({ value: dept.id.toString(), label: dept.name }))}
+          filterDepartment={activeDepartment}
+          onFilterDepartmentChange={(id) => {
+            setActiveDepartment(id);
+            setActiveDivision('all');
             setFilterWarehouseId('all');
             setFilterLockerId('all');
             setFilterShelfId('all');
             setCurrentPage(1);
-            router.replace(`/dashboard/folder?addressId=${id}`);
+          }}
+          divisionOptions={divisionDropdown.map(div => ({ value: div.id.toString(), label: div.name }))}
+          filterDivision={activeDivision}
+          onFilterDivisionChange={(id) => {
+            setActiveDivision(id);
+            setFilterWarehouseId('all');
+            setFilterLockerId('all');
+            setFilterShelfId('all');
+            setCurrentPage(1);
           }}
           warehouseOptions={warehouseDropdown.map(w => ({ value: String(w.id), label: w.name }))}
           filterWarehouse={filterWarehouseId}
@@ -287,8 +337,7 @@ function FolderPageContent() {
             setFilterLockerId('all');
             setFilterShelfId('all');
             setCurrentPage(1);
-            const addressParam = filterAddressId !== 'all' ? `addressId=${filterAddressId}&` : '';
-            router.replace(`/dashboard/folder?${addressParam}warehouseId=${id}`);
+            router.replace(`/dashboard/folder?warehouseId=${id}`);
           }}
           lockerOptions={lockerDropdown.map(l => ({ value: String(l.id), label: l.name || l.code || '' }))}
           filterLocker={filterLockerId}
@@ -296,19 +345,17 @@ function FolderPageContent() {
             setFilterLockerId(id);
             setFilterShelfId('all');
             setCurrentPage(1);
-            const addressParam = filterAddressId !== 'all' ? `addressId=${filterAddressId}&` : '';
             const warehouseParam = filterWarehouseId !== 'all' ? `warehouseId=${filterWarehouseId}&` : '';
-            router.replace(`/dashboard/folder?${addressParam}${warehouseParam}lockerId=${id}`);
+            router.replace(`/dashboard/folder?${warehouseParam}lockerId=${id}`);
           }}
           shelves={shelves}
           filterShelf={filterShelfId}
           onFilterShelfChange={(id) => {
             setFilterShelfId(id);
             setCurrentPage(1);
-            const addressParam = filterAddressId !== 'all' ? `addressId=${filterAddressId}&` : '';
             const warehouseParam = filterWarehouseId !== 'all' ? `warehouseId=${filterWarehouseId}&` : '';
             const lockerParam = filterLockerId !== 'all' ? `lockerId=${filterLockerId}&` : '';
-            router.replace(`/dashboard/folder?${addressParam}${warehouseParam}${lockerParam}shelfId=${id}`);
+            router.replace(`/dashboard/folder?${warehouseParam}${lockerParam}shelfId=${id}`);
           }}
         />
       </div>
@@ -343,6 +390,19 @@ function FolderPageContent() {
           defaultFolderId={uploadFolderId}
         />
       )}
+
+      {/* Hidden Print Container */}
+      <div style={{ display: 'none' }}>
+        <div ref={printRef}>
+          {selectedFolderForPrint && (
+            <FolderTagPrint
+              departmentName={(selectedFolderForPrint as any).shelf?.locker?.warehouse?.department?.name || 'ຝ່າຍບັນຊີ'}
+              folderName={selectedFolderForPrint.name}
+              qrData={selectedFolderForPrint.qrCode || ''}
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 }

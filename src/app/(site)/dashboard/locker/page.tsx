@@ -9,20 +9,21 @@ import LockerFormModal from '@/components/views/storage/LockerFormModal';
 import MoveFormModal from '@/components/views/storage/MoveFormModal';
 import { Locker, CreateLockerPayload } from '@/types/prisma-mapped';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAddressStore } from '@/store/useAddressStore';
-
+import { useDepartmentStore } from '@/store/useDepartmentStore';
+import { useDivisionStore } from '@/store/useDivisionStore';
 function LockerPageContent() {
   const { lockers, total, isLoading: isLockerLoading, fetchLockers, createLocker, updateLocker, deleteLocker } = useLockerStore();
   const { warehouseDropdown, fetchWarehouseDropdown } = useWarehouseStore();
-  const { addressDropdown, fetchAddressDropdown } = useAddressStore();
+  const { departmentDropdown, fetchDropdown: fetchDeptDropdown } = useDepartmentStore();
+  const { divisionDropdown, fetchDropdown: fetchDivDropdown } = useDivisionStore();
   
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialWarehouseId = searchParams.get('warehouseId') || 'all';
-  const initialAddressId = searchParams.get('addressId') || 'all';
 
+  const [activeDepartment, setActiveDepartment] = useState('all');
+  const [activeDivision, setActiveDivision] = useState('all');
   const [filterWarehouseId, setFilterWarehouseId] = useState<string>(initialWarehouseId);
-  const [filterAddressId, setFilterAddressId] = useState<string>(initialAddressId);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchName, setSearchName] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -50,30 +51,37 @@ function LockerPageContent() {
   }, [searchName]);
 
   useEffect(() => {
-    fetchAddressDropdown();
-    if (filterAddressId && filterAddressId !== 'all') {
-      fetchWarehouseDropdown({ addressId: filterAddressId });
-    } else {
-      fetchWarehouseDropdown();
+    fetchDeptDropdown();
+  }, [fetchDeptDropdown]);
+
+  useEffect(() => {
+    if (activeDepartment !== 'all') {
+      fetchDivDropdown({ departmentId: Number(activeDepartment) });
     }
-  }, [fetchAddressDropdown, fetchWarehouseDropdown, filterAddressId]);
+  }, [activeDepartment, fetchDivDropdown]);
+
+  useEffect(() => {
+    fetchWarehouseDropdown({
+      departmentId: activeDepartment === 'all' ? undefined : Number(activeDepartment),
+      divisionId: activeDivision === 'all' ? undefined : Number(activeDivision),
+    });
+  }, [activeDepartment, activeDivision, fetchWarehouseDropdown]);
 
   useEffect(() => {
     fetchLockers({
       page: currentPage,
       limit: 5,
-      addressId: filterAddressId === 'all' ? undefined : filterAddressId,
+      departmentId: activeDepartment === 'all' ? undefined : Number(activeDepartment),
+      divisionId: activeDivision === 'all' ? undefined : Number(activeDivision),
       warehouseId: filterWarehouseId === 'all' ? undefined : filterWarehouseId,
       search: debouncedSearch || undefined,
     });
-  }, [filterAddressId, filterWarehouseId, currentPage, debouncedSearch, fetchLockers]);
+  }, [activeDepartment, activeDivision, filterWarehouseId, currentPage, debouncedSearch, fetchLockers]);
 
   // Sync state if URL param changes
   useEffect(() => {
     const wId = searchParams.get('warehouseId') || 'all';
-    const aId = searchParams.get('addressId') || 'all';
     setFilterWarehouseId(wId);
-    setFilterAddressId(aId);
     setCurrentPage(1);
   }, [searchParams]);
 
@@ -101,7 +109,8 @@ function LockerPageContent() {
     fetchLockers({
       page: currentPage,
       limit: 5,
-      addressId: filterAddressId === 'all' ? undefined : filterAddressId,
+      departmentId: activeDepartment === 'all' ? undefined : Number(activeDepartment),
+      divisionId: activeDivision === 'all' ? undefined : Number(activeDivision),
       warehouseId: filterWarehouseId === 'all' ? undefined : filterWarehouseId,
       search: debouncedSearch || undefined,
     });
@@ -122,7 +131,8 @@ function LockerPageContent() {
         fetchLockers({
           page: currentPage,
           limit: 5,
-          addressId: filterAddressId === 'all' ? undefined : filterAddressId,
+          departmentId: activeDepartment === 'all' ? undefined : Number(activeDepartment),
+          divisionId: activeDivision === 'all' ? undefined : Number(activeDivision),
           warehouseId: filterWarehouseId === 'all' ? undefined : filterWarehouseId,
           search: debouncedSearch || undefined,
         });
@@ -147,7 +157,8 @@ function LockerPageContent() {
           fetchLockers({
             page: currentPage,
             limit: 5,
-            addressId: filterAddressId === 'all' ? undefined : filterAddressId,
+            departmentId: activeDepartment === 'all' ? undefined : Number(activeDepartment),
+            divisionId: activeDivision === 'all' ? undefined : Number(activeDivision),
             warehouseId: filterWarehouseId === 'all' ? undefined : filterWarehouseId,
             search: debouncedSearch || undefined,
           });
@@ -157,7 +168,7 @@ function LockerPageContent() {
     });
   };
 
-  const addressOptions = addressDropdown.map(a => ({ value: String(a.id), label: a.name }));
+
   const warehouseOptions = warehouseDropdown.map(w => ({ value: String(w.id), label: w.name }));
 
   const defaultLockerData = useMemo(() => {
@@ -226,21 +237,27 @@ function LockerPageContent() {
           onManage={(locker) => {
             router.push(`/dashboard/locker/${locker.id}`);
           }}
-          addressOptions={addressOptions}
-          filterAddress={filterAddressId}
-          onFilterAddressChange={(id) => {
-            setFilterAddressId(id);
+          departmentOptions={departmentDropdown.map(dept => ({ value: dept.id.toString(), label: dept.name }))}
+          filterDepartment={activeDepartment}
+          onFilterDepartmentChange={(id) => {
+            setActiveDepartment(id);
+            setActiveDivision('all');
             setFilterWarehouseId('all');
             setCurrentPage(1);
-            router.replace(`/dashboard/locker?addressId=${id}`);
+          }}
+          divisionOptions={divisionDropdown.map(div => ({ value: div.id.toString(), label: div.name }))}
+          filterDivision={activeDivision}
+          onFilterDivisionChange={(id) => {
+            setActiveDivision(id);
+            setFilterWarehouseId('all');
+            setCurrentPage(1);
           }}
           warehouseOptions={warehouseOptions}
           filterWarehouse={filterWarehouseId}
           onFilterWarehouseChange={(id) => {
             setFilterWarehouseId(id);
             setCurrentPage(1);
-            const addressParam = filterAddressId !== 'all' ? `addressId=${filterAddressId}&` : '';
-            router.replace(`/dashboard/locker?${addressParam}warehouseId=${id}`);
+            router.replace(`/dashboard/locker?warehouseId=${id}`);
           }}
         />
       </div>

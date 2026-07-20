@@ -45,6 +45,8 @@ next-env.d.ts
 edl-e-document.postman_collection.json
 E-Document_Collection.postman_collection.json
 .agent
+skills-lock.json
+.agents
 design-system
 Dockerfile
 docker-compose.yml

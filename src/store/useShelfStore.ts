@@ -15,7 +15,7 @@ interface ShelfState {
   currentShelf: Shelf | null;
 
   // ── Actions ──
-  fetchShelves: (params?: { page?: number; limit?: number; lockerId?: string; warehouseId?: string; search?: string; status?: string }) => Promise<void>;
+  fetchShelves: (params?: { page?: number; limit?: number; departmentId?: number; divisionId?: number; lockerId?: string; warehouseId?: string; search?: string; status?: string }) => Promise<void>;
   fetchShelfDropdown: (params?: { lockerId?: string; warehouseId?: string }) => Promise<void>;
   fetchShelfById: (id: string) => Promise<void>;
   fetchByLocker: (lockerId: string, params?: { page?: number; limit?: number }) => Promise<void>;

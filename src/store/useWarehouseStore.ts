@@ -16,9 +16,9 @@ interface WarehouseState {
   currentWarehouse: Warehouse | null;
 
   // ── Actions ──
-  fetchWarehouses: (params?: { page?: number; limit?: number; addressId?: string; search?: string; status?: string }) => Promise<void>;
+  fetchWarehouses: (params?: { page?: number; limit?: number; departmentId?: number | string; divisionId?: number | string; search?: string; status?: string }) => Promise<void>;
   fetchWarehouseById: (id: string) => Promise<void>;
-  fetchWarehouseDropdown: (params?: { addressId?: string }) => Promise<void>;
+  fetchWarehouseDropdown: (params?: { departmentId?: number | string; divisionId?: number | string }) => Promise<void>;
   createWarehouse: (payload: CreateWarehousePayload) => Promise<boolean>;
   updateWarehouse: (id: string | number, payload: Partial<CreateWarehousePayload & { status: string }>) => Promise<boolean>;
   deleteWarehouse: (id: string | number) => Promise<boolean>;
@@ -73,7 +73,8 @@ export const useWarehouseStore = create<WarehouseState>((set, get) => ({
         code: payload.code,
         name: payload.name,
         description: payload.description,
-        addressId: payload.addressId,
+        departmentId: payload.departmentId,
+        divisionId: payload.divisionId,
       };
       
       await api.post(`/warehouses`, finalPayload);
@@ -93,7 +94,8 @@ export const useWarehouseStore = create<WarehouseState>((set, get) => ({
       if (payload.code !== undefined) finalPayload.code = payload.code;
       if (payload.name !== undefined) finalPayload.name = payload.name;
       if (payload.description !== undefined) finalPayload.description = payload.description;
-      if (payload.addressId !== undefined) finalPayload.addressId = payload.addressId;
+      if (payload.departmentId !== undefined) finalPayload.departmentId = payload.departmentId;
+      if (payload.divisionId !== undefined) finalPayload.divisionId = payload.divisionId;
       if (payload.status !== undefined) finalPayload.status = payload.status;
       
       await api.put(`/warehouses/${id}`, finalPayload);

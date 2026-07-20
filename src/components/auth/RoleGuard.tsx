@@ -1,7 +1,7 @@
 // src/components/auth/RoleGuard.tsx
 'use client';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Spin } from 'antd';
 
@@ -12,6 +12,8 @@ interface RoleGuardProps {
 
 export default function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { user, isAuthenticated, isLoading, initialize } = useAuthStore();
   const [isReady, setIsReady] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
@@ -28,7 +30,9 @@ export default function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
     // Give it a small delay for hydration if needed, but checking user works once hydrated.
     if (!isLoading) {
       if (!isAuthenticated) {
-        router.replace('/login');
+        const queryString = searchParams.toString();
+        const currentUrl = queryString ? `${pathname}?${queryString}` : pathname;
+        router.replace(`/login?callbackUrl=${encodeURIComponent(currentUrl)}`);
       } else if (allowedRoles && allowedRoles.length > 0) {
         if (!user?.role || !allowedRoles.includes(user.role)) {
           // If logged in but role not allowed, redirect to dashboard root or show not authorized

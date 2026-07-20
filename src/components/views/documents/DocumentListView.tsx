@@ -12,7 +12,6 @@ import DocumentTable from './DocumentTable';
 import DocumentFormModal from './DocumentFormModal';
 import DocumentDetailModal from './DocumentDetailModal';
 import MoveFormModal from '@/components/views/storage/MoveFormModal';
-import BorrowDocumentModal from './BorrowDocumentModal';
 
 // Stores & Types
 import { useDocumentTypeStore } from '@/store/useDocumentTypeStore';
@@ -86,10 +85,6 @@ export default function DocumentListView() {
   const [movingDoc, setMovingDoc] = useState<Document | null>(null);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
 
-  // Borrow states
-  const [borrowDoc, setBorrowDoc] = useState<Document | null>(null);
-  const [isBorrowModalOpen, setIsBorrowModalOpen] = useState(false);
-
   const [docPage, setDocPage] = useState(1);
   const [docSearch, setDocSearch] = useState('');
   const [debouncedDocSearch, setDebouncedDocSearch] = useState('');
@@ -100,6 +95,9 @@ export default function DocumentListView() {
   const [endDateFilter, setEndDateFilter] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState<number | undefined>(undefined);
   const [divisionFilter, setDivisionFilter] = useState<number | undefined>(undefined);
+  const [warehouseFilter, setWarehouseFilter] = useState('');
+  const [lockerFilter, setLockerFilter] = useState('');
+  const [shelfFilter, setShelfFilter] = useState('');
 
   // Sync state if URL param changes
   useEffect(() => {
@@ -140,12 +138,16 @@ export default function DocumentListView() {
         departmentId: departmentFilter,
         divisionId: divisionFilter,
         retentionStatus: contractFilter || undefined,
+        warehouseId: warehouseFilter || undefined,
+        lockerId: lockerFilter || undefined,
+        shelfId: shelfFilter || undefined,
       });
     }
   }, [
     activeTab, fetchDocuments, docPage, debouncedDocSearch, 
     folderFilter, docTypeFilter, contractFilter, 
-    startDateFilter, endDateFilter, departmentFilter, divisionFilter
+    startDateFilter, endDateFilter, departmentFilter, divisionFilter,
+    warehouseFilter, lockerFilter, shelfFilter
   ]);
 
   // ── DocumentType CRUD Handlers ──
@@ -248,11 +250,6 @@ export default function DocumentListView() {
     }
   };
 
-  const handleBorrowDoc = (doc: Document) => {
-    setBorrowDoc(doc);
-    setIsBorrowModalOpen(true);
-  };
-
   const handleMoveSuccess = () => {
     fetchDocuments({
       page: docPage,
@@ -265,6 +262,9 @@ export default function DocumentListView() {
       departmentId: departmentFilter,
       divisionId: divisionFilter,
       retentionStatus: contractFilter || undefined,
+      warehouseId: warehouseFilter || undefined,
+      lockerId: lockerFilter || undefined,
+      shelfId: shelfFilter || undefined,
     });
   };
 
@@ -307,6 +307,9 @@ export default function DocumentListView() {
         departmentId: departmentFilter,
         divisionId: divisionFilter,
         retentionStatus: contractFilter || undefined,
+        warehouseId: warehouseFilter || undefined,
+        lockerId: lockerFilter || undefined,
+        shelfId: shelfFilter || undefined,
       });
     } else {
       messageApi.error('ເກີດຂໍ້ຜິດພາດໃນການບັນທຶກເອກະສານ');
@@ -330,7 +333,7 @@ export default function DocumentListView() {
       label: (
         <span className="flex items-center gap-2">
           <FileText size={16} />
-          ເອກະສານທັງໝົດ
+          ຈັດການເອກະສານ
         </span>
       ),
       children: (
@@ -356,13 +359,18 @@ export default function DocumentListView() {
           onDepartmentFilterChange={(val) => { setDepartmentFilter(val); setDocPage(1); }}
           divisionFilter={divisionFilter}
           onDivisionFilterChange={(val) => { setDivisionFilter(val); setDocPage(1); }}
+          warehouseFilter={warehouseFilter}
+          onWarehouseFilterChange={(val) => { setWarehouseFilter(val); setDocPage(1); }}
+          lockerFilter={lockerFilter}
+          onLockerFilterChange={(val) => { setLockerFilter(val); setDocPage(1); }}
+          shelfFilter={shelfFilter}
+          onShelfFilterChange={(val) => { setShelfFilter(val); setDocPage(1); }}
           isLoading={isDocLoading}
           onEdit={handleEditDoc}
           onDelete={handleDeleteDoc}
           onViewDetails={handleViewDetails}
           onViewQrCode={handleViewQrCode}
           onMove={handleOpenMoveModal}
-          onBorrow={handleBorrowDoc}
         />
       ),
     },
@@ -399,7 +407,7 @@ export default function DocumentListView() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#1C1C1E] tracking-tight">
-            {activeTab === 'documents' ? 'ເອກະສານທັງໝົດ' : 'ຈັດການປະເພດເອກະສານ'}
+            {activeTab === 'documents' ? 'ຈັດການເອກະສານ' : 'ຈັດການປະເພດເອກະສານ'}
           </h1>
           <p className="text-[#737373] text-sm mt-1">
             {activeTab === 'documents' 
@@ -463,15 +471,6 @@ export default function DocumentListView() {
           onSuccess={handleMoveSuccess}
           type="document"
           item={movingDoc}
-        />
-      )}
-
-      {isBorrowModalOpen && borrowDoc && (
-        <BorrowDocumentModal
-          isOpen={isBorrowModalOpen}
-          onClose={() => setIsBorrowModalOpen(false)}
-          onSuccess={() => setIsBorrowModalOpen(false)}
-          document={borrowDoc}
         />
       )}
 

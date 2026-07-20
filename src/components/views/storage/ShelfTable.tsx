@@ -14,9 +14,12 @@ interface ShelfTableProps {
   onEdit: (shelf: Shelf) => void;
   onDelete?: (id: string | number) => void;
   onManage?: (shelf: Shelf) => void;
-  addressOptions?: { value: string; label: string }[];
-  filterAddress?: string;
-  onFilterAddressChange?: (addressId: string) => void;
+  departmentOptions?: { value: string; label: string }[];
+  filterDepartment?: string;
+  onFilterDepartmentChange?: (departmentId: string) => void;
+  divisionOptions?: { value: string; label: string }[];
+  filterDivision?: string;
+  onFilterDivisionChange?: (divisionId: string) => void;
   warehouses?: { id: string | number; name: string }[];
   filterWarehouse?: string;
   onFilterWarehouseChange?: (warehouseId: string) => void;
@@ -37,9 +40,12 @@ export default function ShelfTable({
   onEdit,
   onDelete,
   onManage,
-  addressOptions = [],
-  filterAddress,
-  onFilterAddressChange,
+  departmentOptions = [],
+  filterDepartment,
+  onFilterDepartmentChange,
+  divisionOptions = [],
+  filterDivision,
+  onFilterDivisionChange,
   warehouses = [],
   filterWarehouse,
   onFilterWarehouseChange,
@@ -75,10 +81,17 @@ export default function ShelfTable({
           <div className="flex items-center gap-3 shrink-0">
             <SlidersHorizontal size={16} className="text-slate-400" />
             <Select
-              value={filterAddress || 'all'}
-              onChange={onFilterAddressChange}
-              options={[{ value: 'all', label: 'ທັງໝົດ (ສະຖານທີ່)' }, ...addressOptions]}
+              value={filterDepartment || 'all'}
+              onChange={onFilterDepartmentChange}
+              options={[{ value: 'all', label: 'ທັງໝົດ (ຝ່າຍ)' }, ...departmentOptions]}
               className="min-w-[160px] h-[40px] [&_.ant-select-selector]:rounded-xl! [&_.ant-select-selector]:h-[40px]! [&_.ant-select-selection-item]:leading-[38px]!"
+            />
+            <Select
+              value={filterDivision || 'all'}
+              onChange={onFilterDivisionChange}
+              options={[{ value: 'all', label: 'ທັງໝົດ (ພະແນກ)' }, ...divisionOptions]}
+              className="min-w-[160px] h-[40px] [&_.ant-select-selector]:rounded-xl! [&_.ant-select-selector]:h-[40px]! [&_.ant-select-selection-item]:leading-[38px]!"
+              disabled={divisionOptions.length === 0 && !!filterDepartment && filterDepartment !== 'all'}
             />
             {warehouses.length > 0 && (
               <Select
@@ -86,7 +99,7 @@ export default function ShelfTable({
                 onChange={onFilterWarehouseChange}
                 options={warehouseOptions}
                 className="min-w-[160px] h-[40px] [&_.ant-select-selector]:rounded-xl! [&_.ant-select-selector]:h-[40px]! [&_.ant-select-selection-item]:leading-[38px]!"
-                disabled={warehouseOptions.length === 1 && !!filterAddress && filterAddress !== 'all'}
+                disabled={warehouseOptions.length === 1 && !!filterDivision && filterDivision !== 'all'}
               />
             )}
             <Select

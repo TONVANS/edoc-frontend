@@ -45,7 +45,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           placement="left"
           open={mobileOpen}
           onClose={() => setMobileOpen(false)}
-          destroyOnClose
+          destroyOnHidden
           size="default"
           styles={{
             body: { padding: 0, overflow: 'hidden' }, // ซ่อน Scrollbar ของ Drawer หลัก

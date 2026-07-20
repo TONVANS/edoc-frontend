@@ -10,7 +10,12 @@ import FolderTable from '@/components/views/storage/FolderTable';
 import FolderFormModal from '@/components/views/storage/FolderFormModal';
 import ShelfFormModal from '@/components/views/storage/ShelfFormModal';
 import MoveFormModal from '@/components/views/storage/MoveFormModal';
-import { Folder, CreateFolderPayload, Shelf, CreateShelfPayload } from '@/types/prisma-mapped';
+import FolderTagPrint from '@/components/views/storage/FolderTagPrint';
+import DocumentFormModal from '@/components/views/documents/DocumentFormModal';
+import { useReactToPrint } from 'react-to-print';
+import { useRef } from 'react';
+import { Folder, CreateFolderPayload, Shelf, CreateShelfPayload, CreateDocumentPayload } from '@/types/prisma-mapped';
+import { useDocumentStore } from '@/store/useDocumentStore';
 
 export default function ShelfDetailPage() {
   const params = useParams();
@@ -22,6 +27,7 @@ export default function ShelfDetailPage() {
   // Stores
   const { currentShelf, fetchShelfById, deleteShelf, updateShelf, isLoading: isShelfLoading } = useShelfStore();
   const { folders, total, fetchFolders, createFolder, updateFolder, deleteFolder, isLoading: isFolderLoading } = useFolderStore();
+  const { createDocument, isLoading: isDocumentLoading } = useDocumentStore();
 
   // States
   const [currentPage, setCurrentPage] = useState(1);
@@ -32,6 +38,25 @@ export default function ShelfDetailPage() {
   const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
   const [isShelfModalOpen, setIsShelfModalOpen] = useState(false);
+  const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
+  const [folderToMove, setFolderToMove] = useState<Folder | null>(null);
+  const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
+  const [selectedFolderForDoc, setSelectedFolderForDoc] = useState<Folder | null>(null);
+
+  // Print states
+  const [selectedFolderForPrint, setSelectedFolderForPrint] = useState<Folder | null>(null);
+  const printRef = useRef(null);
+
+  const handlePrintTrigger = useReactToPrint({
+    contentRef: printRef,
+  });
+
+  const handlePrint = (folder: Folder) => {
+    setSelectedFolderForPrint(folder);
+    setTimeout(() => {
+      handlePrintTrigger();
+    }, 100);
+  };
 
   const initialFolderData = useMemo(() => ({ shelfId: id } as unknown as Folder), [id]);
 
@@ -111,6 +136,22 @@ export default function ShelfDetailPage() {
         }
       },
     });
+  };
+
+  const handleDocumentSubmit = async (values: CreateDocumentPayload & { status?: string }) => {
+    try {
+      if (!selectedFolderForDoc) return;
+      const payloadWithFolder = { ...values, folderId: selectedFolderForDoc.id };
+      const success = await createDocument(payloadWithFolder);
+
+      if (success) {
+        setIsDocumentModalOpen(false);
+        setSelectedFolderForDoc(null);
+        messageApi.success('ອັບໂຫຼດເອກະສານໃໝ່ສຳເລັດແລ້ວ!');
+      }
+    } catch (error) {
+      messageApi.error('ເກີດຂໍ້ຜິດພາດໃນລະບົບ.');
+    }
   };
 
   // Handle Shelf Actions
@@ -236,6 +277,15 @@ export default function ShelfDetailPage() {
             setIsFolderModalOpen(true);
           }}
           onDelete={handleDeleteFolder}
+          onUploadDocument={(folder) => {
+            setSelectedFolderForDoc(folder);
+            setIsDocumentModalOpen(true);
+          }}
+          onMove={(folder) => {
+            setFolderToMove(folder);
+            setIsMoveModalOpen(true);
+          }}
+          onPrint={handlePrint}
           onManage={(folder) => {
             router.push(`/dashboard/folder/${folder.id}`);
           }}
@@ -262,6 +312,37 @@ export default function ShelfDetailPage() {
           initialData={currentShelf}
         />
       )}
+
+      <DocumentFormModal
+        isOpen={isDocumentModalOpen}
+        onClose={() => { setIsDocumentModalOpen(false); setSelectedFolderForDoc(null); }}
+        onSubmit={handleDocumentSubmit}
+        isLoading={isDocumentLoading}
+        defaultFolderId={selectedFolderForDoc?.id}
+      />
+
+      <MoveFormModal
+        isOpen={isMoveModalOpen}
+        onClose={() => { setIsMoveModalOpen(false); setFolderToMove(null); }}
+        onSuccess={() => {
+          fetchFolders({ page: currentPage, limit: 8, shelfId: id, search: debouncedSearch || undefined });
+        }}
+        type="folder"
+        item={folderToMove}
+      />
+
+      {/* Hidden Print Container */}
+      <div style={{ display: 'none' }}>
+        <div ref={printRef}>
+          {selectedFolderForPrint && (
+            <FolderTagPrint
+              departmentName={(selectedFolderForPrint as any).shelf?.locker?.warehouse?.department?.name || 'ຝ່າຍບັນຊີ'}
+              folderName={selectedFolderForPrint.name}
+              qrData={selectedFolderForPrint.qrCode || ''}
+            />
+          )}
+        </div>
+      </div>
     </>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Warehouse as WarehouseIcon, Plus, Edit2, Trash2, MapPin, AlignLeft, Layout } from 'lucide-react';
+import { Warehouse as WarehouseIcon, Plus, Edit2, Trash2, MapPin, AlignLeft, Layout, Building2, GitBranch } from 'lucide-react';
 import { Button, message, Modal } from 'antd';
 import { useWarehouseStore } from '@/store/useWarehouseStore';
 import { useLockerStore } from '@/store/useLockerStore';
@@ -154,11 +154,7 @@ export default function WarehouseDetailPage() {
         const success = await deleteWarehouse(id);
         if (success) {
           messageApi.success('ລຶບຂໍ້ມູນສາງສຳເລັດແລ້ວ!');
-          if (currentWarehouse?.addressId) {
-            router.replace(`/dashboard/address/${currentWarehouse.addressId}`);
-          } else {
-            router.replace('/dashboard/warehouses');
-          }
+          router.replace('/dashboard/warehouses');
         } else {
           messageApi.error('ບໍ່ສາມາດລຶບຂໍ້ມູນໄດ້.');
         }
@@ -167,16 +163,14 @@ export default function WarehouseDetailPage() {
   };
 
   const breadcrumbs = [
-    ...(currentWarehouse?.address ? [
-      { label: 'ຂໍ້ມູນສະຖານທີ່', href: '/dashboard/address' },
-      { label: currentWarehouse.address.name, href: `/dashboard/address/${currentWarehouse.addressId}` }
-    ] : [{ label: 'ສາງ', href: '/dashboard/warehouses' }]),
+    { label: 'ສາງ', href: '/dashboard/warehouses' },
     { label: currentWarehouse?.name ? String(currentWarehouse.name) : 'ກຳລັງໂຫຼດ...', icon: <WarehouseIcon size={16} /> }
   ];
 
   const parentInfo = currentWarehouse ? [
     { label: 'ລະຫັດສາງ', value: currentWarehouse.code, icon: <AlignLeft size={16} /> },
-    { label: 'ສະຖານທີ່ຕັ້ງ', value: currentWarehouse.address?.name || '-', icon: <MapPin size={16} /> },
+    { label: 'ຝ່າຍ', value: currentWarehouse.department?.name || '-', icon: <Building2 size={16} /> },
+    { label: 'ພະແນກ', value: currentWarehouse.division?.name || '-', icon: <GitBranch size={16} /> },
     { label: 'ລາຍລະອຽດ', value: currentWarehouse.description || '-', icon: <AlignLeft size={16} /> },
   ] : [];
 

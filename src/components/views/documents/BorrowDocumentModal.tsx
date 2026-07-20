@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, Button, Select, Radio } from 'antd';
+import { Modal, Form, Input, Button, Select, DatePicker } from 'antd';
 import { useDivisionStore } from '@/store/useDivisionStore';
 import { useDocumentBorrowStore } from '@/store/useDocumentBorrowStore';
 import { Document } from '@/types/prisma-mapped';
 import { toast } from 'sonner';
-import { X, BookOpen, ArrowRight } from 'lucide-react';
+import { X, BookOpen, ArrowRight, Building2, Globe, Phone, User as UserIcon, MapPin, Calendar, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import dayjs from 'dayjs';
 
 interface BorrowDocumentModalProps {
   isOpen: boolean;
@@ -40,11 +41,13 @@ export default function BorrowDocumentModal({
     if (!document) return;
 
     const payload = {
-      documentId: document.id,
-      folderId: document.folderId,
+      documentIds: [document.id],
+      folderIds: document.folderId ? [document.folderId] : [],
       borrower: values.borrower,
+      phone: values.phone || undefined,
       purpose: values.purpose,
-      note: values.note,
+      note: values.note || undefined,
+      dueDate: values.dueDate ? values.dueDate.toISOString() : undefined,
       // Only include toDivisionId if it's an internal borrow, and toLocation if it's an external borrow
       ...(borrowType === 'INTERNAL' && { toDivisionId: values.toDivisionId }),
       ...(borrowType === 'EXTERNAL' && { toLocation: values.toLocation })
@@ -52,8 +55,11 @@ export default function BorrowDocumentModal({
 
     const success = await createBorrow(payload);
     if (success) {
+      toast.success('ບັນທຶກການຢືມເອກະສານສຳເລັດແລ້ວ');
       onSuccess();
       onClose();
+    } else {
+      toast.error('ບໍ່ສາມາດບັນທຶກການຢືມເອກະສານໄດ້');
     }
   };
 
@@ -68,7 +74,7 @@ export default function BorrowDocumentModal({
       onCancel={onClose}
       footer={null}
       destroyOnHidden
-      width={600}
+      width={620}
       centered
       title={null}
       closable={false}
@@ -112,6 +118,31 @@ export default function BorrowDocumentModal({
 
         {/* Body */}
         <main className="px-10 py-8 -mt-8 bg-white/80 backdrop-blur-2xl rounded-t-[32px] border-t border-white shadow-[0_-12px_40px_rgba(0,0,0,0.03)] relative z-10">
+          
+          {/* Document Preview Card */}
+          {document && (
+            <div className="bg-white/60 border border-white/80 rounded-2xl p-4 mb-6 shadow-xs flex items-start gap-3">
+              <div className="p-2.5 bg-[#185C4D]/10 rounded-xl text-[#185C4D]">
+                <FileText size={20} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] text-[#185C4D] font-bold uppercase tracking-wider">ເອກະສານທີ່ຈະຢືມ</div>
+                <div className="font-bold text-slate-700 text-sm truncate mt-0.5" title={document.title}>
+                  {document.title}
+                </div>
+                <div className="flex items-center gap-4 mt-1.5 text-xs text-slate-500">
+                  <span className="bg-[#185C4D]/5 text-[#185C4D] px-2 py-0.5 rounded font-mono font-bold">No: {document.docNo}</span>
+                  {document.folderId && (
+                    <span className="flex items-center gap-1 text-slate-400">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                      ແຟ້ມເກັບມ້ຽນ
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           <Form
             form={form}
             layout="vertical"
@@ -119,54 +150,95 @@ export default function BorrowDocumentModal({
             requiredMark={false}
             className="space-y-5"
           >
-            <div className="flex justify-center mb-4">
-              <Radio.Group 
-                value={borrowType} 
-                onChange={(e) => setBorrowType(e.target.value)}
-                buttonStyle="solid"
-                className="[&_.ant-radio-button-wrapper-checked]:bg-[#185C4D]! [&_.ant-radio-button-wrapper-checked]:border-[#185C4D]! [&_.ant-radio-button-wrapper-checked]:text-white! [&_.ant-radio-button-wrapper-checked:hover]:text-white!"
+            {/* Visual Borrow Type Selector */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <button
+                type="button"
+                onClick={() => setBorrowType('INTERNAL')}
+                className={cn(
+                  "p-4 rounded-2xl border text-center transition-all duration-300 flex flex-col items-center gap-2 cursor-pointer outline-hidden",
+                  borrowType === 'INTERNAL'
+                    ? "bg-[#185C4D]/10 border-[#185C4D] text-[#185C4D] shadow-md shadow-[#185C4D]/5"
+                    : "bg-white/40 border-white/60 text-slate-500 hover:bg-white/60 hover:text-slate-700"
+                )}
               >
-                <Radio.Button value="INTERNAL" className="px-6 h-10 leading-9 font-medium transition-colors hover:text-[#185C4D]">ພາຍໃນອົງກອນ</Radio.Button>
-                <Radio.Button value="EXTERNAL" className="px-6 h-10 leading-9 font-medium transition-colors hover:text-[#185C4D]">ພາຍນອກອົງກອນ</Radio.Button>
-              </Radio.Group>
+                <Building2 className="w-5 h-5" />
+                <span className="font-bold text-xs">ພາຍໃນອົງກອນ (Internal)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setBorrowType('EXTERNAL')}
+                className={cn(
+                  "p-4 rounded-2xl border text-center transition-all duration-300 flex flex-col items-center gap-2 cursor-pointer outline-hidden",
+                  borrowType === 'EXTERNAL'
+                    ? "bg-[#185C4D]/10 border-[#185C4D] text-[#185C4D] shadow-md shadow-[#185C4D]/5"
+                    : "bg-white/40 border-white/60 text-slate-500 hover:bg-white/60 hover:text-slate-700"
+                )}
+              >
+                <Globe className="w-5 h-5" />
+                <span className="font-bold text-xs">ພາຍນອກອົງກອນ (External)</span>
+              </button>
             </div>
 
-            <Form.Item
-              label={<span className="font-bold text-slate-700">ຊື່ຜູ້ຢືມ <span className="text-rose-500">*</span></span>}
-              name="borrower"
-              rules={[{ required: true, message: 'ກະລຸນາປ້ອນຊື່ຜູ້ຢືມ!' }]}
-            >
-              <Input placeholder="ປ້ອນຊື່ ແລະ ນາມສະກຸນ" className={inputCls} />
-            </Form.Item>
-
-            {borrowType === 'INTERNAL' && (
+            {/* Borrower & Phone Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Form.Item
-                label={<span className="font-bold text-slate-700">ພະແນກ <span className="text-rose-500">*</span></span>}
-                name="toDivisionId"
-                rules={[{ required: true, message: 'ກະລຸນາເລືອກພະແນກ!' }]}
+                label={<span className="font-bold text-slate-700 flex items-center gap-1.5"><UserIcon size={14} className="text-slate-400" /> ຊື່ຜູ້ຢືມ <span className="text-rose-500">*</span></span>}
+                name="borrower"
+                rules={[{ required: true, message: 'ກະລຸນາປ້ອນຊື່ຜູ້ຢືມ!' }]}
               >
-                <Select
-                  placeholder="ເລືອກພະແນກ"
-                  className={selectCls}
-                  showSearch
-                  optionFilterProp="children"
+                <Input placeholder="ປ້ອນຊື່ ແລະ ນາມສະກຸນ" className={inputCls} />
+              </Form.Item>
+
+              <Form.Item
+                label={<span className="font-bold text-slate-700 flex items-center gap-1.5"><Phone size={14} className="text-slate-400" /> ເບີໂທລະສັບ</span>}
+                name="phone"
+              >
+                <Input placeholder="ປ້ອນເບີໂທລະສັບຕິດຕໍ່" className={inputCls} />
+              </Form.Item>
+            </div>
+
+            {/* Destination & Due Date Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {borrowType === 'INTERNAL' ? (
+                <Form.Item
+                  label={<span className="font-bold text-slate-700 flex items-center gap-1.5"><Building2 size={14} className="text-slate-400" /> ພະແນກ <span className="text-rose-500">*</span></span>}
+                  name="toDivisionId"
+                  rules={[{ required: true, message: 'ກະລຸນາເລືອກພະແນກ!' }]}
                 >
-                  {divisionDropdown.map(d => (
-                    <Select.Option key={d.id} value={d.id}>{d.name}</Select.Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            )}
+                  <Select
+                    placeholder="ເລືອກພະແນກ"
+                    className={selectCls}
+                    showSearch
+                    optionFilterProp="children"
+                  >
+                    {divisionDropdown.map(d => (
+                      <Select.Option key={d.id} value={d.id}>{d.name}</Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              ) : (
+                <Form.Item
+                  label={<span className="font-bold text-slate-700 flex items-center gap-1.5"><MapPin size={14} className="text-slate-400" /> ພາກສ່ວນທີ່ນຳໄປໃຊ້ <span className="text-rose-500">*</span></span>}
+                  name="toLocation"
+                  rules={[{ required: true, message: 'ກະລຸນາປ້ອນພາກສ່ວນທີ່ນຳໄປໃຊ້!' }]}
+                >
+                  <Input placeholder="ປ້ອນຊື່ພາກສ່ວນທີ່ນຳໄປໃຊ້" className={inputCls} />
+                </Form.Item>
+              )}
 
-            {borrowType === 'EXTERNAL' && (
               <Form.Item
-                label={<span className="font-bold text-slate-700">ພາກສ່ວນທີ່ນຳໄປໃຊ້ <span className="text-rose-500">*</span></span>}
-                name="toLocation"
-                rules={[{ required: true, message: 'ກະລຸນາປ້ອນພາກສ່ວນທີ່ນຳໄປໃຊ້!' }]}
+                label={<span className="font-bold text-slate-700 flex items-center gap-1.5"><Calendar size={14} className="text-slate-400" /> ກຳນົດສົ່ງຄືນ (Due Date)</span>}
+                name="dueDate"
               >
-                <Input placeholder="ປ້ອນຊື່ພາກສ່ວນທີ່ນຳໄປໃຊ້" className={inputCls} />
+                <DatePicker
+                  placeholder="ເລືອກກຳນົດສົ່ງຄືນ"
+                  className={cn(inputCls, "w-full flex items-center [&_input]:text-slate-800 [&_input]:font-medium")}
+                  format="YYYY-MM-DD"
+                  disabledDate={(current) => current && current < dayjs().startOf('day')}
+                />
               </Form.Item>
-            )}
+            </div>
 
             <Form.Item
               label={<span className="font-bold text-slate-700">ຈຸດປະສົງການຢືມ <span className="text-rose-500">*</span></span>}

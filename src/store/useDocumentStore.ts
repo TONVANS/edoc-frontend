@@ -30,6 +30,9 @@ interface FetchDocumentsParams {
   endDate?: string;
   departmentId?: number;
   divisionId?: number;
+  warehouseId?: string;
+  lockerId?: string;
+  shelfId?: string;
   isContractBound?: boolean;
   retentionStatus?: string;
 }
@@ -57,6 +60,8 @@ interface DocumentState {
   viewAttachment: (attachmentId: string) => Promise<void>;
   fetchExpiredDocuments: () => Promise<void>;
   deleteExpiredDocuments: () => Promise<boolean>;
+  exportDocuments: (params?: FetchDocumentsParams) => Promise<void>;
+  approveDestruction: (documentIds: string[]) => Promise<boolean>;
 }
 
 export const useDocumentStore = create<DocumentState>((set, get) => ({
@@ -109,8 +114,6 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       formData.append("docNo", payload.docNo);
       if (payload.shortName) formData.append("shortName", payload.shortName);
       formData.append("docDate", payload.docDate);
-      if (payload.subDocNo) formData.append("subDocNo", payload.subDocNo);
-      if (payload.subDocDate) formData.append("subDocDate", payload.subDocDate);
       formData.append("title", payload.title);
       if (payload.description)
         formData.append("description", payload.description);
@@ -133,11 +136,25 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         });
       }
 
-      await api.post("/documents", formData, {
+      const response = await api.post("/documents", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
+
+      const newDocumentId = response.data?.data?.id || response.data?.id;
+
+      if (newDocumentId && payload.subDocuments && payload.subDocuments.length > 0) {
+        const validSubDocs = payload.subDocuments.filter(sub => sub.subDocNo && sub.subDocNo.trim() !== "");
+        if (validSubDocs.length > 0) {
+          await api.post(`/documents/${newDocumentId}/sub-documents`, {
+            subDocuments: validSubDocs.map(sub => ({
+              subDocNo: sub.subDocNo,
+              subDocDate: sub.subDocDate || null,
+            })),
+          });
+        }
+      }
 
       return true;
     } catch (error: any) {
@@ -164,8 +181,6 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         const allowedKeys = [
           "docNo",
           "docDate",
-          "subDocNo",
-          "subDocDate",
           "title",
           "description",
           "docExpire",
@@ -198,8 +213,6 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         const allowedKeys = [
           "docNo",
           "docDate",
-          "subDocNo",
-          "subDocDate",
           "title",
           "description",
           "docExpire",
@@ -218,6 +231,18 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         );
 
         await api.put(`/documents/${id}`, cleanPayload);
+      }
+
+      if (payload.subDocuments && payload.subDocuments.length > 0) {
+        const validSubDocs = payload.subDocuments.filter(sub => sub.subDocNo && sub.subDocNo.trim() !== "");
+        if (validSubDocs.length > 0) {
+          await api.post(`/documents/${id}/sub-documents`, {
+            subDocuments: validSubDocs.map(sub => ({
+              subDocNo: sub.subDocNo,
+              subDocDate: sub.subDocDate || null,
+            })),
+          });
+        }
       }
 
       return true;
@@ -338,6 +363,37 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     } catch (error) {
       set({ isLoading: false });
       console.error("Failed to delete expired documents:", error);
+      return false;
+    }
+  },
+
+  exportDocuments: async (params) => {
+    try {
+      const response = await api.get(`/documents/export`, {
+        params,
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `documents_export_${new Date().getTime()}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      console.error("Failed to export documents:", error);
+    }
+  },
+
+  approveDestruction: async (documentIds: string[]) => {
+    set({ isLoading: true });
+    try {
+      await api.post(`/documents/approve-destruction`, { documentIds });
+      await get().fetchExpiredDocuments();
+      return true;
+    } catch (error) {
+      set({ isLoading: false });
+      console.error("Failed to approve destruction:", error);
       return false;
     }
   },

@@ -6,8 +6,6 @@ import { useRouter } from 'next/navigation';
 import { Html5Qrcode } from 'html5-qrcode';
 import api from '@/lib/api';
 import { toast } from 'sonner';
-import DocumentDetailModal from '@/components/views/documents/DocumentDetailModal';
-import FolderDetailModal from '@/components/views/storage/FolderDetailModal';
 import { Document, Folder } from '@/types/prisma-mapped';
 
 export default function QRScannerView() {
@@ -15,12 +13,6 @@ export default function QRScannerView() {
   const [isScanning, setIsScanning] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [manualCode, setManualCode] = useState('');
-  
-  const [scannedDocument, setScannedDocument] = useState<Document | null>(null);
-  const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
-
-  const [scannedFolder, setScannedFolder] = useState<any | null>(null);
-  const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
   
   const scannerRef = useRef<Html5Qrcode | null>(null);
 
@@ -58,32 +50,18 @@ export default function QRScannerView() {
     };
   }, [isScanning]);
 
-  const handleCodeSubmit = async (code: string) => {
+  const handleCodeSubmit = (code: string) => {
     if (!code) {
       toast.error('ກະລຸນາປ້ອນລະຫັດ QR');
       return;
     }
     
-    setIsLoading(true);
-    try {
-      const res = await api.get(`/search/qr?code=${code}`);
-      
-      if (res.data?.type === 'folder') {
-        toast.success('ພົບຂໍ້ມູນແຟ້ມເອກະສານ');
-        setScannedFolder(res.data.data);
-        setIsFolderModalOpen(true);
-      } else if (res.data?.type === 'document') {
-        toast.success('ພົບຂໍ້ມູນເອກະສານ');
-        setScannedDocument(res.data.data as Document);
-        setIsDocumentModalOpen(true);
-      } else {
-        toast.error('ບໍ່ພົບຂໍ້ມູນຈາກລະຫັດນີ້');
-      }
-    } catch (err: any) {
-      // api interceptor will handle error toast
-      console.error(err);
-    } finally {
-      setIsLoading(false);
+    // If it's a full URL (from scanner), redirect to it directly
+    if (code.startsWith('http://') || code.startsWith('https://')) {
+      window.location.href = code;
+    } else {
+      // If it's a manual code entry, build the URL
+      router.push(`/dashboard/scan?code=${encodeURIComponent(code)}`);
     }
   };
 
@@ -160,24 +138,6 @@ export default function QRScannerView() {
           </Button>
         </div>
       </div>
-
-      <DocumentDetailModal 
-        isOpen={isDocumentModalOpen}
-        onClose={() => {
-            setIsDocumentModalOpen(false);
-            setScannedDocument(null);
-        }}
-        document={scannedDocument}
-      />
-
-      <FolderDetailModal 
-        isOpen={isFolderModalOpen}
-        onClose={() => {
-            setIsFolderModalOpen(false);
-            setScannedFolder(null);
-        }}
-        folder={scannedFolder}
-      />
     </div>
   );
 }

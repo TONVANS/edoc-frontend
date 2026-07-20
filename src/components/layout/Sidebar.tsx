@@ -17,7 +17,6 @@ const BASE_MENU_ITEMS = [
     label: 'ເມນູຫຼັກ',
     children: [
       { key: '/dashboard', icon: <LayoutDashboard size={18} />, label: 'ພາບລວມລະບົບ' },
-      { key: '/dashboard/address', icon: <MapPin size={18} />, label: 'ຂໍ້ມູນສະຖານທີ່', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN'] },
       { key: '/dashboard/warehouses', icon: <Warehouse size={18} />, label: 'ຈັດການສາງ', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN'] },
       { key: '/dashboard/locker', icon: <Package size={18} />, label: 'ຈັດການຕູ້ເກັບ', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN'] },
       { key: '/dashboard/shelves', icon: <Layers size={18} />, label: 'ຈັດການຊັ້ນວາງ', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN'] },
@@ -29,9 +28,9 @@ const BASE_MENU_ITEMS = [
     label: 'ການດຳເນີນງານ',
     children: [
       { key: '/dashboard/scan', icon: <QrCode size={18} />, label: 'ສະແກນ QR Code' },
-      { key: '/dashboard/documents', icon: <FileText size={18} />, label: 'ເອກະສານທັງໝົດ' },
+      { key: '/dashboard/documents', icon: <FileText size={18} />, label: 'ຈັດການເອກະສານທັງໝົດ' },
       { key: '/dashboard/document-expired', icon: <FileWarning size={18} />, label: 'ເອກະສານໝົດອາຍຸ' },
-      { key: '/dashboard/tracking', icon: <History size={18} />, label: 'ຕິດຕາມ ແລະ ປະຫວັດ' },
+      { key: '/dashboard/tracking', icon: <History size={18} />, label: 'ຕິດຕາມ - ປະຫວັດການຢືມ' },
     ],
   },
   {
@@ -40,6 +39,16 @@ const BASE_MENU_ITEMS = [
     children: [
       { key: '/dashboard/document-types', icon: <FileText size={18} />, label: 'ປະເພດເອກະສານ', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN'] },
       { key: '/dashboard/users', icon: <Users size={18} />, label: 'ຈັດການຜູ້ໃຊ້ງານ', allowedRoles: ['SUPER_ADMIN'] },
+    ],
+  },
+  {
+    type: 'group' as const,
+    label: 'ໂຄງຮ່າງການຈັດຕັ້ງ',
+    children: [
+      { key: '/dashboard/departments', icon: <Building2 size={18} />, label: 'ຝ່າຍ', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN'] },
+      { key: '/dashboard/divisions', icon: <GitBranch size={18} />, label: 'ພະແນກ/ສາຂາ', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN'] },
+      { key: '/dashboard/offices', icon: <MapPin size={18} />, label: 'ຫ້ອງການໄຟຟ້າ', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN'] },
+      { key: '/dashboard/units', icon: <Users size={18} />, label: 'ໜ່ວຍງານ', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN'] },
     ],
   },
 ];

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Plus, Warehouse as WarehouseIcon } from 'lucide-react';
 import { Button, message, Modal } from 'antd';
 import { useWarehouseStore } from '@/store/useWarehouseStore';
-import { useAddressStore } from '@/store/useAddressStore';
+
 import { useDepartmentStore } from '@/store/useDepartmentStore';
 import { useDivisionStore } from '@/store/useDivisionStore';
 import WarehouseTable from '@/components/views/storage/WarehouseTable';
@@ -13,13 +13,13 @@ import { useRouter } from 'next/navigation';
 
 export default function WarehousesPage() {
   const { warehouses, total, isLoading: isWarehouseLoading, fetchWarehouses, createWarehouse, updateWarehouse, deleteWarehouse } = useWarehouseStore();
-  const { addressDropdown, fetchAddressDropdown } = useAddressStore();
+
   const { departmentDropdown, fetchDropdown: fetchDeptDropdown } = useDepartmentStore();
   const { divisionDropdown, fetchDropdown: fetchDivDropdown } = useDivisionStore();
 
   const [activeDepartment, setActiveDepartment] = useState('all');
   const [activeDivision, setActiveDivision] = useState('all');
-  const [activeAddress, setActiveAddress] = useState('all');
+
   const [currentPage, setCurrentPage] = useState(1);
   const [searchName, setSearchName] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -53,22 +53,17 @@ export default function WarehousesPage() {
     }
   }, [activeDepartment, fetchDivDropdown]);
 
-  useEffect(() => {
-    fetchAddressDropdown({
-      departmentId: activeDepartment === 'all' ? undefined : Number(activeDepartment),
-      divisionId: activeDivision === 'all' ? undefined : Number(activeDivision),
-    });
-  }, [activeDepartment, activeDivision, fetchAddressDropdown]);
 
   useEffect(() => {
     fetchWarehouses({
       page: currentPage,
       limit: 5,
       status: 'A',
-      addressId: activeAddress === 'all' ? undefined : activeAddress,
+      departmentId: activeDepartment === 'all' ? undefined : Number(activeDepartment),
+      divisionId: activeDivision === 'all' ? undefined : Number(activeDivision),
       search: debouncedSearch || undefined,
     });
-  }, [activeAddress, currentPage, debouncedSearch, fetchWarehouses]);
+  }, [activeDepartment, activeDivision, currentPage, debouncedSearch, fetchWarehouses]);
 
   const handleOpenCreateModal = () => {
     setEditingWarehouse(null);
@@ -96,7 +91,8 @@ export default function WarehousesPage() {
           page: currentPage,
           limit: 5,
           status: 'A',
-          addressId: activeAddress === 'all' ? undefined : activeAddress,
+          departmentId: activeDepartment === 'all' ? undefined : Number(activeDepartment),
+          divisionId: activeDivision === 'all' ? undefined : Number(activeDivision),
           search: debouncedSearch || undefined,
         });
       }
@@ -121,7 +117,8 @@ export default function WarehousesPage() {
             page: currentPage,
             limit: 5,
             status: 'A',
-            addressId: activeAddress === 'all' ? undefined : activeAddress,
+            departmentId: activeDepartment === 'all' ? undefined : Number(activeDepartment),
+            divisionId: activeDivision === 'all' ? undefined : Number(activeDivision),
             search: debouncedSearch || undefined,
           });
         }
@@ -191,24 +188,17 @@ export default function WarehousesPage() {
           onManage={(warehouse) => {
             router.push(`/dashboard/warehouses/${warehouse.id}`);
           }}
-          filterAddress={activeAddress}
-          onFilterAddressChange={(addressId) => {
-            setActiveAddress(addressId);
-            setCurrentPage(1);
-          }}
-          addressOptions={addressDropdown.map(addr => ({ value: addr.id.toString(), label: addr.name }))}
+
           filterDepartment={activeDepartment}
           onFilterDepartmentChange={(deptId) => {
             setActiveDepartment(deptId);
             setActiveDivision('all');
-            setActiveAddress('all');
             setCurrentPage(1);
           }}
           departmentOptions={departmentDropdown.map(dept => ({ value: dept.id.toString(), label: dept.name }))}
           filterDivision={activeDivision}
           onFilterDivisionChange={(divId) => {
             setActiveDivision(divId);
-            setActiveAddress('all');
             setCurrentPage(1);
           }}
           divisionOptions={divisionDropdown.map(div => ({ value: div.id.toString(), label: div.name }))}

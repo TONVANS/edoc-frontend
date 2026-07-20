@@ -1,7 +1,8 @@
 "use client";
 import React, { useState } from 'react';
-import { Modal, Button, Divider } from 'antd';
+import { Button, Divider } from 'antd';
 import { Document } from '@/types/prisma-mapped';
+import { useRouter } from 'next/navigation';
 import { useFolderStore } from '@/store/useFolderStore';
 import { useDocumentTypeStore } from '@/store/useDocumentTypeStore';
 import { useDocumentStore } from '@/store/useDocumentStore';
@@ -32,17 +33,14 @@ import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 import { DatePicker, Input, Form, message, Popconfirm } from 'antd';
 
-interface DocumentDetailModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+interface DocumentDetailViewProps {
   document: Document | null;
 }
 
-export default function DocumentDetailModal({
-  isOpen,
-  onClose,
+export default function DocumentDetailView({
   document: doc,
-}: DocumentDetailModalProps) {
+}: DocumentDetailViewProps) {
+  const router = useRouter();
   const { folders } = useFolderStore();
   const { documentTypes } = useDocumentTypeStore();
   const { downloadAttachment, viewAttachment } = useDocumentStore();
@@ -56,11 +54,11 @@ export default function DocumentDetailModal({
   const [subDocForm] = Form.useForm();
 
   React.useEffect(() => {
-    if (isOpen && doc?.id) {
+    if (doc?.id) {
       fetchSubDocuments(doc.id);
       setShowAddSubDoc(false);
     }
-  }, [isOpen, doc?.id, fetchSubDocuments]);
+  }, [doc?.id, fetchSubDocuments]);
 
   const handleView = async (id: string) => {
     setLoadingViewId(id);
@@ -132,35 +130,15 @@ export default function DocumentDetailModal({
   const retention = getRetentionLabel(doc.retentionStatus);
 
   return (
-    <Modal
-      open={isOpen}
-      onCancel={onClose}
-      footer={null}
-      width={750}
-      centered
-      title={null}
-      closable={false}
-      className={cn(
-        '[&_.ant-modal-content]:p-0',
-        '[&_.ant-modal-content]:bg-transparent',
-        '[&_.ant-modal-content]:shadow-none',
-        '[&_.ant-modal-content]:rounded-[32px]'
-      )}
-      wrapClassName="backdrop-blur-md"
-    >
+    <div className="w-full max-w-5xl mx-auto">
       {contextHolder}
-      <div className="bg-white/75 backdrop-blur-3xl rounded-[32px] overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.12)] border border-white/60 relative flex flex-col max-h-[90vh]">
+      <div className="bg-white/75 backdrop-blur-3xl rounded-[32px] overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.12)] border border-white/60 relative flex flex-col min-h-[50vh]">
         
         {/* ══ HEADER ══════════════════════════════════════════ */}
         <header className="relative px-10 pt-10 pb-14 overflow-hidden bg-linear-to-br from-[#185C4D] via-[#1c6958] to-[#257c66] shrink-0">
           <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] bg-size-[20px_20px]" />
           
-          <button
-            onClick={onClose}
-            className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/20 transition-all duration-300 z-20 active:scale-90 cursor-pointer"
-          >
-            <X size={22} strokeWidth={2.5} />
-          </button>
+          {/* Close button removed */}
 
           <div className="flex items-center gap-6 relative z-10">
             <div className="w-16 h-16 bg-white/10 backdrop-blur-xl rounded-2xl flex items-center justify-center shrink-0 border border-white/20 shadow-xl shadow-black/5">
@@ -415,19 +393,18 @@ export default function DocumentDetailModal({
 
           <Divider className="my-6 border-slate-100" />
 
-          {/* Action controls */}
           <footer className="flex items-center justify-end gap-3 pt-2">
             <Button 
               type="primary" 
-              onClick={onClose} 
+              onClick={() => router.push('/dashboard/scan')} 
               className="h-11 px-8 rounded-2xl bg-linear-to-r from-[#185C4D] to-[#206E5B] border-none font-bold text-white shadow-md hover:shadow-lg transition-all cursor-pointer"
             >
-              ປິດໜ້າຕ່າງ
+              ກັບຄືນ
             </Button>
           </footer>
 
         </main>
       </div>
-    </Modal>
+    </div>
   );
 }

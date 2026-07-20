@@ -16,7 +16,8 @@ import {
   Scale,
   ArrowRightLeft,
   Filter,
-  BookOpen
+  BookOpen,
+  ShoppingCart
 } from 'lucide-react';
 import { Button, Input, Select, Dropdown, Pagination, DatePicker, Popover } from 'antd';
 import { Document } from '@/types/prisma-mapped';
@@ -24,10 +25,11 @@ import { useFolderStore } from '@/store/useFolderStore';
 import { useDocumentTypeStore } from '@/store/useDocumentTypeStore';
 import { useDepartmentStore } from '@/store/useDepartmentStore';
 import { useDivisionStore } from '@/store/useDivisionStore';
-import { useAddressStore } from '@/store/useAddressStore';
 import { useWarehouseStore } from '@/store/useWarehouseStore';
 import { useLockerStore } from '@/store/useLockerStore';
 import { useShelfStore } from '@/store/useShelfStore';
+import { useBorrowCartStore } from '@/store/useBorrowCartStore';
+import { useAddToCart } from '@/components/views/borrow/useAddToCart';
 import dayjs from 'dayjs';
 import StatusBadge from '@/components/dashboard/StatusBadge';
 
@@ -55,6 +57,12 @@ interface DocumentTableProps {
   onDepartmentFilterChange?: (id: number | undefined) => void;
   divisionFilter?: number | undefined;
   onDivisionFilterChange?: (id: number | undefined) => void;
+  warehouseFilter?: string;
+  onWarehouseFilterChange?: (id: string) => void;
+  lockerFilter?: string;
+  onLockerFilterChange?: (id: string) => void;
+  shelfFilter?: string;
+  onShelfFilterChange?: (id: string) => void;
   isLoading: boolean;
   onEdit: (doc: Document) => void;
   onDelete?: (id: string) => void;
@@ -87,6 +95,12 @@ export default function DocumentTable({
   onDepartmentFilterChange = () => { },
   divisionFilter,
   onDivisionFilterChange = () => { },
+  warehouseFilter = '',
+  onWarehouseFilterChange = () => { },
+  lockerFilter = '',
+  onLockerFilterChange = () => { },
+  shelfFilter = '',
+  onShelfFilterChange = () => { },
   isLoading,
   onEdit,
   onDelete,
@@ -100,27 +114,22 @@ export default function DocumentTable({
   const { documentTypes, fetchDocumentTypes } = useDocumentTypeStore();
   const { departmentDropdown, fetchDropdown: fetchDepartmentDropdown } = useDepartmentStore();
   const { divisionDropdown, fetchDropdown: fetchDivisionDropdown } = useDivisionStore();
-
-  const { addresses, fetchAddresses } = useAddressStore();
   const { warehouses, fetchWarehouses } = useWarehouseStore();
   const { lockers, fetchLockers } = useLockerStore();
   const { shelves, fetchShelves } = useShelfStore();
-
-  const [filterAddress, setFilterAddress] = React.useState<string>('');
-  const [filterWarehouse, setFilterWarehouse] = React.useState<string>('');
-  const [filterLocker, setFilterLocker] = React.useState<string>('');
-  const [filterShelf, setFilterShelf] = React.useState<string>('');
+  
+  const { isInCart } = useBorrowCartStore();
+  const { handleAddToCart, contextHolder } = useAddToCart();
 
   // Load folders and document types for display/filter mappings
   useEffect(() => {
     fetchFolders({ limit: 1000 });
     fetchDocumentTypes({ limit: 1000 });
     fetchDepartmentDropdown();
-    fetchAddresses({ limit: 1000 });
     fetchWarehouses({ limit: 1000 });
     fetchLockers({ limit: 1000 });
     fetchShelves({ limit: 1000 });
-  }, [fetchFolders, fetchDocumentTypes, fetchDepartmentDropdown, fetchAddresses, fetchWarehouses, fetchLockers, fetchShelves]);
+  }, [fetchFolders, fetchDocumentTypes, fetchDepartmentDropdown, fetchWarehouses, fetchLockers, fetchShelves]);
 
   useEffect(() => {
     fetchDivisionDropdown(departmentFilter ? { departmentId: departmentFilter } : undefined);
@@ -128,82 +137,59 @@ export default function DocumentTable({
 
   // Derived options for cascading filters
   const warehouseOptions = React.useMemo(() => {
-    if (!filterAddress) return warehouses;
-    return warehouses.filter(w => String(w.addressId) === filterAddress);
-  }, [warehouses, filterAddress]);
+    let filtered = warehouses;
+    if (departmentFilter) filtered = filtered.filter(w => w.departmentId === departmentFilter);
+    if (divisionFilter) filtered = filtered.filter(w => w.divisionId === divisionFilter);
+    return filtered;
+  }, [warehouses, departmentFilter, divisionFilter]);
 
   const lockerOptions = React.useMemo(() => {
-    if (filterWarehouse) return lockers.filter(l => String(l.warehouseId) === filterWarehouse);
-    if (filterAddress) return lockers.filter(l => warehouseOptions.some(w => String(w.id) === String(l.warehouseId)));
+    if (warehouseFilter) return lockers.filter(l => String(l.warehouseId) === warehouseFilter);
     return lockers;
-  }, [lockers, filterWarehouse, filterAddress, warehouseOptions]);
+  }, [lockers, warehouseFilter]);
 
   const shelfOptions = React.useMemo(() => {
-    if (filterLocker) return shelves.filter(s => String(s.lockerId) === filterLocker);
-    if (filterWarehouse || filterAddress) return shelves.filter(s => lockerOptions.some(l => String(l.id) === String(s.lockerId)));
+    if (lockerFilter) return shelves.filter(s => String(s.lockerId) === lockerFilter);
+    if (warehouseFilter) return shelves.filter(s => lockerOptions.some(l => String(l.id) === String(s.lockerId)));
     return shelves;
-  }, [shelves, filterLocker, filterWarehouse, filterAddress, lockerOptions]);
+  }, [shelves, lockerFilter, warehouseFilter, lockerOptions]);
 
   const folderOptions = React.useMemo(() => {
-    if (filterShelf) return folders.filter(f => String(f.shelfId) === filterShelf);
-    if (filterLocker || filterWarehouse || filterAddress) return folders.filter(f => shelfOptions.some(s => String(s.id) === String(f.shelfId)));
+    if (shelfFilter) return folders.filter(f => String(f.shelfId) === shelfFilter);
+    if (lockerFilter || warehouseFilter) return folders.filter(f => shelfOptions.some(s => String(s.id) === String(f.shelfId)));
     return folders;
-  }, [folders, filterShelf, filterLocker, filterWarehouse, filterAddress, shelfOptions]);
+  }, [folders, shelfFilter, lockerFilter, warehouseFilter, shelfOptions]);
 
   // Handlers for cascading selects
-  const handleAddressChange = (val: string) => {
-    setFilterAddress(val || '');
-    setFilterWarehouse('');
-    setFilterLocker('');
-    setFilterShelf('');
-    onFolderFilterChange('');
-  };
-
   const handleWarehouseChange = (val: string) => {
-    setFilterWarehouse(val || '');
-    setFilterLocker('');
-    setFilterShelf('');
+    onWarehouseFilterChange(val || '');
+    onLockerFilterChange('');
+    onShelfFilterChange('');
     onFolderFilterChange('');
-    if (val) {
-      const warehouse = warehouses.find(w => String(w.id) === val);
-      if (warehouse && warehouse.addressId && !filterAddress) {
-        setFilterAddress(String(warehouse.addressId));
-      }
-    }
   };
 
   const handleLockerChange = (val: string) => {
-    setFilterLocker(val || '');
-    setFilterShelf('');
+    onLockerFilterChange(val || '');
+    onShelfFilterChange('');
     onFolderFilterChange('');
     if (val) {
       const locker = lockers.find(l => String(l.id) === val);
-      if (locker && locker.warehouseId && !filterWarehouse) {
-        setFilterWarehouse(String(locker.warehouseId));
-        // Also auto-select address if possible
-        const warehouse = warehouses.find(w => String(w.id) === String(locker.warehouseId));
-        if (warehouse && warehouse.addressId && !filterAddress) {
-          setFilterAddress(String(warehouse.addressId));
-        }
+      if (locker && locker.warehouseId && !warehouseFilter) {
+        onWarehouseFilterChange(String(locker.warehouseId));
       }
     }
   };
 
   const handleShelfChange = (val: string) => {
-    setFilterShelf(val || '');
+    onShelfFilterChange(val || '');
     onFolderFilterChange('');
     if (val) {
       const shelf = shelves.find(s => String(s.id) === val);
-      if (shelf && shelf.lockerId && !filterLocker) {
-        setFilterLocker(String(shelf.lockerId));
-        // We could bubble up all the way, but standard cascading usually goes one up
+      if (shelf && shelf.lockerId && !lockerFilter) {
+        onLockerFilterChange(String(shelf.lockerId));
         const locker = lockers.find(l => String(l.id) === String(shelf.lockerId));
-        if (locker && locker.warehouseId && !filterWarehouse) {
-          setFilterWarehouse(String(locker.warehouseId));
-          const warehouse = warehouses.find(w => String(w.id) === String(locker.warehouseId));
-          if (warehouse && warehouse.addressId && !filterAddress) {
-            setFilterAddress(String(warehouse.addressId));
-          }
+        if (locker && locker.warehouseId && !warehouseFilter) {
+          onWarehouseFilterChange(String(locker.warehouseId));
         }
       }
     }
@@ -213,7 +199,7 @@ export default function DocumentTable({
     onFolderFilterChange(val || '');
     if (val) {
       const folder = folders.find(f => String(f.id) === val);
-      if (folder && folder.shelfId && !filterShelf) {
+      if (folder && folder.shelfId && !shelfFilter) {
         handleShelfChange(String(folder.shelfId));
       }
     }
@@ -221,28 +207,24 @@ export default function DocumentTable({
 
   // Auto-populate parent filters if folderFilter is provided externally (e.g. in Folder Detail Page)
   useEffect(() => {
-    if (folderFilter && !filterShelf && folders.length > 0 && shelves.length > 0 && lockers.length > 0 && warehouses.length > 0) {
+    if (folderFilter && !shelfFilter && folders.length > 0 && shelves.length > 0 && lockers.length > 0 && warehouses.length > 0) {
       const folder = folders.find(f => String(f.id) === String(folderFilter));
       if (folder && folder.shelfId) {
-        setFilterShelf(String(folder.shelfId));
+        onShelfFilterChange(String(folder.shelfId));
         const shelf = shelves.find(s => String(s.id) === String(folder.shelfId));
         if (shelf && shelf.lockerId) {
-          setFilterLocker(String(shelf.lockerId));
+          onLockerFilterChange(String(shelf.lockerId));
           const locker = lockers.find(l => String(l.id) === String(shelf.lockerId));
           if (locker && locker.warehouseId) {
-            setFilterWarehouse(String(locker.warehouseId));
-            const warehouse = warehouses.find(w => String(w.id) === String(locker.warehouseId));
-            if (warehouse && warehouse.addressId) {
-              setFilterAddress(String(warehouse.addressId));
-            }
+            onWarehouseFilterChange(String(locker.warehouseId));
           }
         }
       }
     }
-  }, [folderFilter, folders, shelves, lockers, warehouses, filterShelf]);
+  }, [folderFilter, folders, shelves, lockers, warehouses, shelfFilter]);
 
   const hasAdvancedFilters = Boolean(
-    (!hideLocationFilters && (filterAddress || filterWarehouse || filterLocker || filterShelf || folderFilter)) ||
+    (!hideLocationFilters && (warehouseFilter || lockerFilter || shelfFilter || folderFilter)) ||
     departmentFilter ||
     divisionFilter ||
     (startDateFilter && endDateFilter)
@@ -278,6 +260,7 @@ export default function DocumentTable({
 
   return (
     <section className="w-full flex flex-col gap-6" aria-label="ຕາຕະລາງຂໍ້ມູນເອກະສານ">
+      {contextHolder}
       {/* ── Filter / Search Bar ── */}
       <header className="flex flex-wrap items-center justify-between gap-4 bg-white/40 backdrop-blur-xl p-5 rounded-[24px] shadow-glass border border-white/60">
         <div className="flex flex-wrap items-center gap-4 flex-1 min-w-0">
@@ -330,7 +313,10 @@ export default function DocumentTable({
                       type="link"
                       size="small"
                       onClick={() => {
-                        handleAddressChange('');
+                        onWarehouseFilterChange('');
+                        onLockerFilterChange('');
+                        onShelfFilterChange('');
+                        onFolderFilterChange('');
                         onDepartmentFilterChange?.(undefined);
                         onDivisionFilterChange?.(undefined);
                         onStartDateFilterChange?.('');
@@ -347,16 +333,13 @@ export default function DocumentTable({
                   <div className="flex flex-col gap-2">
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">ສະຖານທີ່ເກັບຮັກສາ</span>
                     <div className="grid grid-cols-2 gap-3">
-                      <Select placeholder="ສະຖານທີ່" value={filterAddress || undefined} onChange={handleAddressChange} allowClear className="w-full h-[40px]" classNames={{ popup: { root: "rounded-xl shadow-glass" } }}>
-                        {addresses.map(a => <Select.Option key={a.id} value={String(a.id)}>{a.name}</Select.Option>)}
-                      </Select>
-                      <Select placeholder="ສາງ" value={filterWarehouse || undefined} onChange={handleWarehouseChange} allowClear className="w-full h-[40px]" classNames={{ popup: { root: "rounded-xl shadow-glass" } }}>
+                      <Select placeholder="ສາງ" value={warehouseFilter || undefined} onChange={handleWarehouseChange} allowClear className="w-full h-[40px]" classNames={{ popup: { root: "rounded-xl shadow-glass" } }}>
                         {warehouseOptions.map(w => <Select.Option key={w.id} value={String(w.id)}>{w.name}</Select.Option>)}
                       </Select>
-                      <Select placeholder="ຕູ້" value={filterLocker || undefined} onChange={handleLockerChange} allowClear className="w-full h-[40px]" classNames={{ popup: { root: "rounded-xl shadow-glass" } }}>
+                      <Select placeholder="ຕູ້" value={lockerFilter || undefined} onChange={handleLockerChange} allowClear className="w-full h-[40px]" classNames={{ popup: { root: "rounded-xl shadow-glass" } }}>
                         {lockerOptions.map(l => <Select.Option key={l.id} value={String(l.id)}>{l.name || l.code}</Select.Option>)}
                       </Select>
-                      <Select placeholder="ຊັ້ນວາງ" value={filterShelf || undefined} onChange={handleShelfChange} allowClear className="w-full h-[40px]" classNames={{ popup: { root: "rounded-xl shadow-glass" } }}>
+                      <Select placeholder="ຊັ້ນວາງ" value={shelfFilter || undefined} onChange={handleShelfChange} allowClear className="w-full h-[40px]" classNames={{ popup: { root: "rounded-xl shadow-glass" } }}>
                         {shelfOptions.map(s => <Select.Option key={s.id} value={String(s.id)}>{s.name}</Select.Option>)}
                       </Select>
                     </div>
@@ -542,9 +525,18 @@ export default function DocumentTable({
                             },
                             {
                               key: 'borrow',
-                              icon: <BookOpen size={16} className="text-purple-500" />,
-                              label: <span className="text-slate-700 font-medium text-[13px]">ຢືມເອກະສານ</span>,
-                              onClick: () => onBorrow?.(item),
+                              icon: <ShoppingCart size={16} className="text-purple-500" />,
+                              label: isInCart(item.id)
+                                ? <span className="text-emerald-600 font-medium text-[13px]">ຢູ່ໃນກະຕ່າແລ້ວ ✓</span>
+                                : <span className="text-slate-700 font-medium text-[13px]">ເພີ່ມໃສ່ກະຕ່າຢືມ</span>,
+                              onClick: () => handleAddToCart({
+                                id: item.id,
+                                type: 'document',
+                                name: item.title,
+                                code: item.docNo,
+                                folderId: item.folderId || undefined,
+                                folderName: folderName,
+                              }),
                             },
                             onViewQrCode ? {
                               key: 'qrcode',

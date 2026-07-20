@@ -25,33 +25,9 @@ export interface Branch {
   status?: string;
 }
 
-// ── Address ──────────────────────────────────────────────────
-// API: POST /addresses requires code, name, departmentId, divisionId
-
-export interface Address {
-  id: string;
-  code: string;
-  name: string;
-  details: string;
-  status: string;
-  departmentId: number;
-  divisionId: number | null;
-  createdAt: string;
-  updatedAt: string;
-  departmentData?: Department;
-  divisionData?: Division;
-}
-
-export interface CreateAddressPayload {
-  code: string;
-  name: string;
-  details?: string;
-  departmentId: number;
-  divisionId?: number | null;
-}
-
+// ── Address removed ──
 // ── Warehouse ────────────────────────────────────────────────
-// API: Warehouse only has addressId (no branchId or divisionId)
+// API: Warehouse only has departmentId and divisionId
 
 export interface Warehouse {
   id: string;
@@ -59,18 +35,21 @@ export interface Warehouse {
   name: string;
   description: string | null;
   status: string;
-  addressId: string | null;
+  departmentId: number | null;
+  divisionId: number | null;
   createdAt: string;
   updatedAt: string;
-  // Optional relation
-  address?: Address;
+  // Optional relations
+  department?: Department;
+  division?: Division;
 }
 
 export interface CreateWarehousePayload {
   code?: string;
   name: string;
   description?: string;
-  addressId?: string;
+  departmentId?: number;
+  divisionId?: number;
 }
 
 // ── Locker ───────────────────────────────────────────────────
@@ -184,6 +163,28 @@ export interface Attachment {
   updatedAt: string;
 }
 
+// ── Sub-Document ──────────────────────────────────────────────
+
+export interface SubDocument {
+  id: string;
+  subDocNo: string;
+  subDocDate: string;
+  documentId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateSubDocumentPayload {
+  subDocNo: string;
+  subDocDate: string;
+  subDocuments?: { subDocNo: string; subDocDate: string }[];
+}
+
+export interface UpdateSubDocumentPayload {
+  subDocNo?: string;
+  subDocDate?: string;
+}
+
 // ── Document ─────────────────────────────────────────────────
 
 export interface Document {
@@ -207,6 +208,7 @@ export interface Document {
   createdAt: string;
   updatedAt: string;
   attachments: Attachment[];
+  subDocuments?: SubDocument[];
 
   // Optional relations
   folder?: Folder;
@@ -214,7 +216,6 @@ export interface Document {
   department?: Department;
   division?: Division;
   user?: any; // To be mapped properly if User type exists
-  address?: Address;
   warehouse?: Warehouse;
   locker?: Locker;
   shelf?: Shelf;
@@ -224,8 +225,7 @@ export interface CreateDocumentPayload {
   docNo: string;
   shortName?: string;
   docDate: string;
-  subDocNo?: string;
-  subDocDate?: string;
+  subDocuments?: { subDocNo: string; subDocDate?: string }[];
   title: string;
   description?: string;
   docExpire?: string;
@@ -242,8 +242,7 @@ export interface UpdateDocumentPayload {
   docNo?: string;
   shortName?: string;
   docDate?: string;
-  subDocNo?: string;
-  subDocDate?: string;
+  subDocuments?: { subDocNo: string; subDocDate?: string }[];
   title?: string;
   description?: string;
   docExpire?: string;
@@ -261,14 +260,20 @@ export interface DocumentBorrow {
   id: string;
   documentId: string | null;
   folderId: string | null;
+  documentIds?: string[];
+  folderIds?: string[];
   borrower: string;
+  phone?: string | null;
   purpose: string | null;
   toDivisionId: number | null;
   toLocation: string | null;
   note: string | null;
+  dueDate?: string | null;
+  borrowedAt?: string | null;
   createdAt: string;
   returnedAt: string | null;
   createdById?: string;
+  status?: string | null;
 
   // Optional relations
   document?: Document;
@@ -278,13 +283,15 @@ export interface DocumentBorrow {
 }
 
 export interface CreateDocumentBorrowPayload {
-  documentId?: string;
-  folderId?: string;
+  documentIds?: string[];
+  folderIds?: string[];
   borrower: string;
+  phone?: string;
   purpose?: string;
   toDivisionId?: number;
   toLocation?: string;
   note?: string;
+  dueDate?: string;
 }
 
 // ── Global Search ────────────────────────────────────────────
@@ -304,7 +311,6 @@ export interface GlobalSearchResult {
   lockers?: GlobalSearchEntityResult<Locker>;
   shelves?: GlobalSearchEntityResult<Shelf>;
   users?: GlobalSearchEntityResult<unknown>;
-  addresses?: GlobalSearchEntityResult<Address>;
   departments?: GlobalSearchEntityResult<unknown>;
   divisions?: GlobalSearchEntityResult<unknown>;
 }
@@ -317,7 +323,6 @@ export interface QRLookupResult {
     shelf?: Shelf;
     locker?: Locker;
     warehouse?: Warehouse;
-    address?: Address;
   };
 }
 

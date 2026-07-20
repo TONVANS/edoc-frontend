@@ -3,7 +3,8 @@
 import React, { useEffect } from 'react';
 import { Modal, Form, Input, Button, Switch, Select } from 'antd';
 import { Locker, CreateLockerPayload } from '@/types/prisma-mapped';
-import { useAddressStore } from '@/store/useAddressStore';
+import { useDepartmentStore } from '@/store/useDepartmentStore';
+import { useDivisionStore } from '@/store/useDivisionStore';
 import {
   Layout as LockerIcon,
   Warehouse as WarehouseIcon,
@@ -12,7 +13,8 @@ import {
   ArrowRight,
   Hash,
   FileText,
-  MapPin
+  Building2,
+  GitBranch
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWarehouseStore } from '@/store/useWarehouseStore';
@@ -41,20 +43,27 @@ export default function LockerFormModal({
   initialData,
 }: LockerFormModalProps) {
   const [form] = Form.useForm<FormValues>();
-  const { addressDropdown, fetchAddressDropdown } = useAddressStore();
+  const { departmentDropdown, fetchDropdown: fetchDeptDropdown } = useDepartmentStore();
+  const { divisionDropdown, fetchDropdown: fetchDivDropdown } = useDivisionStore();
   const { warehouseDropdown, fetchWarehouseDropdown } = useWarehouseStore();
 
-  const [filterAddressId, setFilterAddressId] = React.useState<string | undefined>();
+  const [filterDeptId, setFilterDeptId] = React.useState<number | undefined>();
+  const [filterDivId, setFilterDivId] = React.useState<number | undefined>();
 
   useEffect(() => {
     if (isOpen) {
-      fetchAddressDropdown();
+      fetchDeptDropdown();
       const isEditing = initialData && 'id' in initialData;
 
       if (isEditing) {
-        const addressId = (initialData as any)?.warehouse?.addressId;
-        setFilterAddressId(addressId);
-        fetchWarehouseDropdown({ addressId });
+        const deptId = (initialData as any)?.warehouse?.departmentId;
+        const divId = (initialData as any)?.warehouse?.divisionId;
+        
+        setFilterDeptId(deptId);
+        setFilterDivId(divId);
+        
+        if (deptId) fetchDivDropdown({ departmentId: deptId });
+        fetchWarehouseDropdown({ departmentId: deptId, divisionId: divId });
 
         form.setFieldsValue({
           warehouseId: initialData.warehouseId || undefined,
@@ -64,7 +73,8 @@ export default function LockerFormModal({
           isActive: initialData.status === 'A' || initialData.status === 'ACTIVE',
         });
       } else {
-        setFilterAddressId(undefined);
+        setFilterDeptId(undefined);
+        setFilterDivId(undefined);
         fetchWarehouseDropdown();
         form.resetFields();
         form.setFieldsValue({ 
@@ -73,12 +83,20 @@ export default function LockerFormModal({
         });
       }
     }
-  }, [isOpen, initialData, form, fetchAddressDropdown, fetchWarehouseDropdown]);
+  }, [isOpen, initialData, form, fetchDeptDropdown, fetchDivDropdown, fetchWarehouseDropdown]);
 
-  const handleAddressChange = (val: string) => {
-    setFilterAddressId(val);
+  const handleDeptChange = (val: number) => {
+    setFilterDeptId(val);
+    setFilterDivId(undefined);
     form.setFieldsValue({ warehouseId: undefined });
-    fetchWarehouseDropdown({ addressId: val });
+    fetchDivDropdown({ departmentId: val });
+    fetchWarehouseDropdown({ departmentId: val });
+  };
+
+  const handleDivChange = (val: number) => {
+    setFilterDivId(val);
+    form.setFieldsValue({ warehouseId: undefined });
+    fetchWarehouseDropdown({ departmentId: filterDeptId, divisionId: val });
   };
 
   const handleFinish = (values: FormValues) => {
@@ -162,17 +180,32 @@ export default function LockerFormModal({
             requiredMark={false}
             className="space-y-6"
           >
-            <Form.Item label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><MapPin size={14} className="text-[#185C4D]" /> ເລືອກສະຖານທີ່ (Address)</span>}>
-              <Select
-                placeholder="ເລືອກສະຖານທີ່ (ຖ້າມີ)"
-                className={selectCls}
-                allowClear
-                loading={addressDropdown.length === 0}
-                options={addressDropdown.map(a => ({ value: a.id, label: a.name }))}
-                value={filterAddressId}
-                onChange={handleAddressChange}
-              />
-            </Form.Item>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <Form.Item label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><Building2 size={14} className="text-[#185C4D]" /> ເລືອກຝ່າຍ (Department)</span>}>
+                <Select
+                  placeholder="ເລືອກຝ່າຍ (ຖ້າມີ)"
+                  className={selectCls}
+                  allowClear
+                  loading={departmentDropdown.length === 0}
+                  options={departmentDropdown.map(d => ({ value: d.id, label: d.name }))}
+                  value={filterDeptId}
+                  onChange={handleDeptChange}
+                />
+              </Form.Item>
+
+              <Form.Item label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><GitBranch size={14} className="text-[#185C4D]" /> ເລືອກພະແນກ (Division)</span>}>
+                <Select
+                  placeholder="ເລືອກພະແນກ (ຖ້າມີ)"
+                  className={selectCls}
+                  allowClear
+                  loading={divisionDropdown.length === 0 && !!filterDeptId}
+                  options={divisionDropdown.map(d => ({ value: d.id, label: d.name }))}
+                  value={filterDivId}
+                  onChange={handleDivChange}
+                  disabled={!filterDeptId}
+                />
+              </Form.Item>
+            </div>
 
             <Form.Item
               label={<span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-700 ml-1"><WarehouseIcon size={14} className="text-[#185C4D]" /> ເລືອກສາງ (Warehouse) <span className="text-rose-500">*</span></span>}
@@ -184,7 +217,7 @@ export default function LockerFormModal({
                 className={selectCls}
                 loading={warehouseDropdown.length === 0}
                 options={warehouseDropdown.map(w => ({ value: w.id, label: w.name }))}
-                disabled={warehouseDropdown.length === 0 && !!filterAddressId}
+                disabled={warehouseDropdown.length === 0 && !!filterDivId}
               />
             </Form.Item>
 

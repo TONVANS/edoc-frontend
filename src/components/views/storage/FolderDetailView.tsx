@@ -1,6 +1,6 @@
 "use client";
 import React from 'react';
-import { Modal, Button, Divider } from 'antd';
+import { Button, Divider } from 'antd';
 import { QRCodeSVG } from 'qrcode.react';
 import { 
   X, 
@@ -16,17 +16,13 @@ import { cn } from '@/lib/utils';
 import { Folder } from '@/types/prisma-mapped';
 import { useRouter } from 'next/navigation';
 
-interface FolderDetailModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  folder: any | null; // Using any to accommodate the nested shelf->locker->warehouse structure from backend
+interface FolderDetailViewProps {
+  folder: any | null; // Using any to accommodate the nested shelf->locker->warehouse->address structure from backend
 }
 
-export default function FolderDetailModal({
-  isOpen,
-  onClose,
+export default function FolderDetailView({
   folder,
-}: FolderDetailModalProps) {
+}: FolderDetailViewProps) {
   const router = useRouter();
   
   if (!folder) return null;
@@ -41,34 +37,14 @@ export default function FolderDetailModal({
   const isActive = folder.status === 'A';
 
   return (
-    <Modal
-      open={isOpen}
-      onCancel={onClose}
-      footer={null}
-      width={750}
-      centered
-      title={null}
-      closable={false}
-      className={cn(
-        '[&_.ant-modal-content]:p-0',
-        '[&_.ant-modal-content]:bg-transparent',
-        '[&_.ant-modal-content]:shadow-none',
-        '[&_.ant-modal-content]:rounded-[32px]'
-      )}
-      wrapClassName="backdrop-blur-md"
-    >
-      <div className="bg-white/75 backdrop-blur-3xl rounded-[32px] overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.12)] border border-white/60 relative flex flex-col max-h-[90vh]">
+    <div className="w-full max-w-4xl mx-auto">
+      <div className="bg-white/75 backdrop-blur-3xl rounded-[32px] overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.12)] border border-white/60 relative flex flex-col min-h-[50vh]">
         
-        {/* ══ HEADER ══════════════════════════════════════════ */}
+        {/* -------------------------------- HEADER --------------------------------- */}
         <header className="relative px-10 pt-10 pb-14 overflow-hidden bg-linear-to-br from-[#185C4D] via-[#1c6958] to-[#257c66] shrink-0">
           <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] bg-size-[20px_20px]" />
           
-          <button
-            onClick={onClose}
-            className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/20 transition-all duration-300 z-20 active:scale-90 cursor-pointer"
-          >
-            <X size={22} strokeWidth={2.5} />
-          </button>
+          {/* Close button removed as this is no longer a modal */}
 
           <div className="flex items-center gap-6 relative z-10">
             <div className="w-16 h-16 bg-white/10 backdrop-blur-xl rounded-2xl flex items-center justify-center shrink-0 border border-white/20 shadow-xl shadow-black/5">
@@ -85,7 +61,7 @@ export default function FolderDetailModal({
           </div>
         </header>
 
-        {/* ══ BODY ════════════════════════════════════════════ */}
+        {/* -------------------------------- BODY --------------------------------- */}
         <main className="px-10 py-8 -mt-8 bg-white/85 backdrop-blur-2xl rounded-t-[32px] border-t border-white shadow-[0_-12px_40px_rgba(0,0,0,0.03)] relative z-10 overflow-y-auto flex-1">
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -179,7 +155,6 @@ export default function FolderDetailModal({
               type="default"
               onClick={() => {
                   router.push(`/dashboard/folder/${folder.id}`);
-                  onClose();
               }}
               className="h-11 px-6 rounded-2xl font-bold border-slate-200 text-slate-600 hover:text-[#185C4D] hover:border-[#185C4D] flex items-center gap-2"
             >
@@ -187,15 +162,15 @@ export default function FolderDetailModal({
             </Button>
             <Button 
               type="primary" 
-              onClick={onClose} 
+              onClick={() => router.push('/dashboard/scan')} 
               className="h-11 px-8 rounded-2xl bg-linear-to-r from-[#185C4D] to-[#206E5B] border-none font-bold text-white shadow-md hover:shadow-lg transition-all cursor-pointer"
             >
-              ປິດໜ້າຕ່າງ
+              ກັບຄືນ
             </Button>
           </footer>
 
         </main>
       </div>
-    </Modal>
+    </div>
   );
 }

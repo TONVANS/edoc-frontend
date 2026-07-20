@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
-import { Folder as FolderIcon, Edit2, Trash2, Search, SlidersHorizontal, QrCode, FileUp, MoreVertical, ChevronRight, ArrowRightLeft } from 'lucide-react';
+import { Folder as FolderIcon, Edit2, Trash2, Search, SlidersHorizontal, QrCode, FileUp, MoreVertical, ChevronRight, ArrowRightLeft, ShoppingCart } from 'lucide-react';
 import { Button, Input, Select, Tooltip, Dropdown, Pagination } from 'antd';
-import AddressStatusBadge from '../address/AddressStatusBadge';
 import { Folder } from '@/types/prisma-mapped';
+import { useBorrowCartStore } from '@/store/useBorrowCartStore';
+import { useAddToCart } from '@/components/views/borrow/useAddToCart';
 
 interface FolderTableProps {
   data: Folder[];
@@ -16,9 +17,13 @@ interface FolderTableProps {
   onDelete?: (id: string | number) => void;
   onUploadDocument?: (folder: Folder) => void;
   onMove?: (folder: Folder) => void;
-  addressOptions?: { value: string; label: string }[];
-  filterAddress?: string;
-  onFilterAddressChange?: (addressId: string) => void;
+  onPrint?: (folder: Folder) => void;
+  departmentOptions?: { value: string; label: string }[];
+  filterDepartment?: string;
+  onFilterDepartmentChange?: (departmentId: string) => void;
+  divisionOptions?: { value: string; label: string }[];
+  filterDivision?: string;
+  onFilterDivisionChange?: (divisionId: string) => void;
   warehouseOptions?: { value: string; label: string }[];
   filterWarehouse?: string;
   onFilterWarehouseChange?: (warehouseId: string) => void;
@@ -44,9 +49,13 @@ export default function FolderTable({
   onDelete,
   onUploadDocument,
   onMove,
-  addressOptions = [],
-  filterAddress,
-  onFilterAddressChange,
+  onPrint,
+  departmentOptions = [],
+  filterDepartment,
+  onFilterDepartmentChange,
+  divisionOptions = [],
+  filterDivision,
+  onFilterDivisionChange,
   warehouseOptions = [],
   filterWarehouse,
   onFilterWarehouseChange,
@@ -65,8 +74,12 @@ export default function FolderTable({
     ...shelves.map(s => ({ value: s.id, label: s.name || s.code }))
   ], [shelves]);
 
+  const { isInCart } = useBorrowCartStore();
+  const { handleAddToCart, contextHolder } = useAddToCart();
+
   return (
     <section className="w-full flex flex-col gap-6 font-lao" aria-label="ຕາຕະລາງຂໍ້ມູນແຟ້ມ">
+      {contextHolder}
       <header className="flex flex-wrap items-center justify-between gap-4 bg-white/40 backdrop-blur-xl p-5 rounded-[24px] shadow-glass border border-white/60">
         <div className="flex flex-wrap items-center gap-4 flex-1 min-w-0">
           <Input
@@ -84,11 +97,19 @@ export default function FolderTable({
               <SlidersHorizontal size={16} className="text-slate-400 mr-1" />
 
               <Select
-                value={filterAddress || 'all'}
-                onChange={onFilterAddressChange}
-                options={[{ value: 'all', label: 'ທັງໝົດ (ສະຖານທີ່)' }, ...addressOptions]}
+                value={filterDepartment || 'all'}
+                onChange={onFilterDepartmentChange}
+                options={[{ value: 'all', label: 'ທັງໝົດ (ຝ່າຍ)' }, ...departmentOptions]}
                 size="large"
                 className="min-w-[150px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
+              />
+              <Select
+                value={filterDivision || 'all'}
+                onChange={onFilterDivisionChange}
+                options={[{ value: 'all', label: 'ທັງໝົດ (ພະແນກ)' }, ...divisionOptions]}
+                size="large"
+                className="min-w-[150px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
+                disabled={divisionOptions.length === 0 && !!filterDepartment && filterDepartment !== 'all'}
               />
 
               <Select
@@ -97,7 +118,7 @@ export default function FolderTable({
                 options={[{ value: 'all', label: 'ທັງໝົດ (ສາງ)' }, ...warehouseOptions]}
                 size="large"
                 className="min-w-[150px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
-                disabled={warehouseOptions.length === 0 && !!filterAddress && filterAddress !== 'all'}
+                disabled={warehouseOptions.length === 0 && !!filterDivision && filterDivision !== 'all'}
               />
 
               <Select
@@ -186,7 +207,7 @@ export default function FolderTable({
                         </span>
                         {(item as any).shelf && (
                           <div className="flex items-center flex-wrap text-xs text-slate-400 gap-1 mt-0.5">
-                            {(item as any).shelf?.locker?.warehouse?.address?.name && <span>{(item as any).shelf.locker.warehouse.address.name} <ChevronRight size={10} className="inline" /></span>}
+
                             {(item as any).shelf?.locker?.warehouse?.name && <span>{(item as any).shelf.locker.warehouse.name} <ChevronRight size={10} className="inline" /></span>}
                             {(item as any).shelf?.locker?.name && <span>ຕູ້ {(item as any).shelf.locker.name} <ChevronRight size={10} className="inline" /></span>}
                             {(item as any).shelf?.name && <span className="text-slate-600 font-semibold">ຊັ້ນ {(item as any).shelf.name}</span>}
@@ -216,6 +237,25 @@ export default function FolderTable({
                               icon: <ArrowRightLeft size={18} className="text-[#185C4D]" />,
                               label: <span className="text-[#185C4D] font-bold text-[15px]">ຍ້າຍຊັ້ນວາງ</span>,
                               onClick: () => onMove?.(item),
+                            },
+                            {
+                              key: 'borrow',
+                              icon: <ShoppingCart size={18} className="text-purple-500" />,
+                              label: isInCart(item.id)
+                                ? <span className="text-emerald-600 font-bold text-[15px]">ຢູ່ໃນກະຕ່າແລ້ວ ✓</span>
+                                : <span className="text-purple-600 font-bold text-[15px]">ເພີ່ມໃສ່ກະຕ່າຢືມ</span>,
+                              onClick: () => handleAddToCart({
+                                id: item.id,
+                                type: 'folder',
+                                name: item.name,
+                                code: item.code,
+                              }),
+                            },
+                            {
+                              key: 'print',
+                              icon: <QrCode size={18} className="text-teal-600" />,
+                              label: <span className="text-teal-600 font-bold text-[15px]">ພິມ Tag (QR Code)</span>,
+                              onClick: () => onPrint?.(item),
                             },
                             {
                               type: 'divider',

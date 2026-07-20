@@ -1,30 +1,48 @@
 "use client";
-import React, { useState, useEffect } from 'react';
-import { Button, Input, Select, Badge, Dropdown, App } from 'antd';
-import { Search, Filter, Plus, Users, Shield, UserCog, MoreVertical, Key, AlertCircle, CheckCircle, Edit, GitBranch } from 'lucide-react';
-import StatusBadge from '@/components/dashboard/StatusBadge';
+import { useState, useEffect } from 'react';
+import { Button, Input, Select, Dropdown, Pagination } from 'antd';
+import { Search, Plus, Shield, UserCog, MoreVertical, Key, CheckCircle, Edit, GitBranch, Eye } from 'lucide-react';
 import { useUserStore } from '@/store/useUserStore';
-import { useDivisionStore } from '@/store/useDivisionStore';
 import CreateUserModal from './CreateUserModal';
+import UserDetailModal from './UserDetailModal';
+import UserActionModals from './UserActionModals';
 
 export default function UserListView() {
-  const { modal, message } = App.useApp();
-  const { users, fetchUsers, resetPassword, updateRole, approveUser, updateDivisions, isLoading } = useUserStore();
+  const { users, total, fetchUsers, isLoading } = useUserStore();
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [roleFilter, setRoleFilter] = useState('ALL');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+  const [modalAction, setModalAction] = useState<'approve' | 'updateRole' | 'updateDivisions' | 'resetPassword' | null>(null);
 
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(1); // Reset page on search change
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    fetchUsers({
+      page,
+      limit,
+      status: statusFilter,
+      search: debouncedSearch
+    });
+  }, [fetchUsers, page, limit, statusFilter, debouncedSearch]);
 
   return (
     <div className="w-full flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#1C1C1E] tracking-tight">User Management</h1>
-          <p className="text-[#737373] text-sm mt-1">Manage system users, roles, and employee statuses.</p>
+          <h1 className="text-2xl font-bold text-[#1C1C1E] tracking-tight">ຄຸ້ມຄອງຜູ້ໃຊ້</h1>
+          <p className="text-[#737373] text-sm mt-1">ຄຸ້ມຄອງຂໍ້ມູນຜູ້ໃຊ້, ສິດທິການນຳໃຊ້ ແລະ ສະຖານະ.</p>
         </div>
         <div className="flex items-center gap-3">
           <Button 
@@ -33,27 +51,27 @@ export default function UserListView() {
             className="shadow-soft hover:-translate-y-0.5 transition-transform"
             onClick={() => setIsCreateModalVisible(true)}
           >
-            Add User
+            ເພີ່ມຜູ້ໃຊ້
           </Button>
         </div>
       </div>
 
       {/* Filter / Search Bar */}
-      <div className="bg-white/40 backdrop-blur-2xl border border-white/60 p-4 rounded-2xl shadow-[0_8px_32px_rgba(31,38,135,0.04)] flex flex-wrap gap-4 items-center">
+      <div className="bg-[rgba(255,255,255,0.7)] backdrop-blur-lg border border-white/60 p-4 rounded-2xl shadow-soft flex flex-wrap gap-4 items-center">
         <Input 
-          placeholder="Search by Name, Emp ID..." 
+          placeholder="ຄົ້ນຫາດ້ວຍຊື່, ລະຫັດພະນັກງານ..." 
           prefix={<Search size={16} className="text-[#737373]" />}
           className="max-w-xs rounded-xl bg-white/70 hover:bg-white focus:bg-white border-white/80"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
         <Select 
-          placeholder="Role" 
+          placeholder="ສິດທິ" 
           value={roleFilter}
           onChange={setRoleFilter}
           className="w-40 [&_.ant-select-selector]:rounded-xl! [&_.ant-select-selector]:h-[40px]! [&_.ant-select-selection-item]:leading-[38px]!"
           options={[
-            { value: 'ALL', label: 'All Roles' },
+            { value: 'ALL', label: 'ສິດທິທັງໝົດ' },
             { value: 'SUPER_ADMIN', label: 'Super Admin' },
             { value: 'HQ_ADMIN', label: 'HQ Admin' },
             { value: 'BRANCH_ADMIN', label: 'Branch Admin' },
@@ -61,54 +79,50 @@ export default function UserListView() {
           ]}
         />
         <Select 
-          placeholder="Status" 
+          placeholder="ສະຖານະ" 
           value={statusFilter}
-          onChange={setStatusFilter}
+          onChange={(val) => { setStatusFilter(val); setPage(1); }}
           className="w-32 [&_.ant-select-selector]:rounded-xl! [&_.ant-select-selector]:h-[40px]! [&_.ant-select-selection-item]:leading-[38px]!"
           options={[
-            { value: 'ALL', label: 'All Status' },
-            { value: 'ACTIVE', label: 'Active' },
-            { value: 'INACTIVE', label: 'Inactive' },
-            { value: 'SUSPENDED', label: 'Suspended' },
+            { value: 'ALL', label: 'ສະຖານະທັງໝົດ' },
+            { value: 'A', label: 'ນຳໃຊ້ງານ' },
+            { value: 'P', label: 'ລໍຖ້າອະນຸມັດ' },
           ]}
         />
       </div>
 
       {/* Layer 1 Glass Container */}
-      <div className="w-full bg-white/40 backdrop-blur-2xl border border-white/60 p-6 rounded-[32px] shadow-[0_8px_32px_rgba(31,38,135,0.04)] overflow-x-auto">
+      <div className="w-full bg-[rgba(255,255,255,0.7)] backdrop-blur-lg border border-white/60 p-6 rounded-2xl shadow-soft overflow-x-auto">
         <div className="min-w-[800px]">
           {/* Header */}
-          <div className="bg-table-header text-white grid grid-cols-12 gap-4 py-4 px-6 rounded-2xl shadow-sm mb-4 text-sm font-medium tracking-wide">
-            <div className="col-span-3">Employee Name</div>
-            <div className="col-span-2">Emp ID</div>
-            <div className="col-span-3">Department</div>
-            <div className="col-span-2">Role</div>
-            <div className="col-span-1 text-center">Status</div>
-            <div className="col-span-1 text-right">Actions</div>
+          <div className="bg-linear-to-r from-[#185C4D] to-[#398270] text-white grid grid-cols-12 gap-4 py-4 px-6 rounded-2xl shadow-sm mb-4 text-sm font-medium tracking-wide">
+            <div className="col-span-3">ຊື່ພະນັກງານ</div>
+            <div className="col-span-2">ລະຫັດພະນັກງານ</div>
+            <div className="col-span-3">ພະແນກ / ຝ່າຍ</div>
+            <div className="col-span-2">ສິດທິ</div>
+            <div className="col-span-1 text-center">ສະຖານະ</div>
+            <div className="col-span-1 text-right">ຈັດການ</div>
           </div>
           
           {/* Rows Layer 2 Glass */}
           {isLoading ? (
-            <div className="flex justify-center items-center py-20 bg-white/30 backdrop-blur-2xl border border-white/50 rounded-[32px] shadow-[0_8px_32px_rgba(31,38,135,0.04)]">
+            <div className="flex justify-center items-center py-20 bg-[rgba(255,255,255,0.7)] backdrop-blur-lg border border-white/50 rounded-2xl shadow-soft">
               <span className="text-slate-500 font-bold">ກຳລັງໂຫຼດຂໍ້ມູນ...</span>
             </div>
           ) : (
             <div className="flex flex-col gap-3.5">
               {users.filter(u => {
-                const searchStr = searchTerm.toLowerCase();
-                const matchesSearch = (u.firstNameLa + ' ' + u.lastNameLa).toLowerCase().includes(searchStr) || 
-                                      (u.empCode || '').toLowerCase().includes(searchStr);
                 const matchesRole = roleFilter === 'ALL' || u.role === roleFilter;
-                const matchesStatus = statusFilter === 'ALL' || u.status === statusFilter || (statusFilter === 'ACTIVE' && u.status === 'A') || (statusFilter === 'INACTIVE' && u.status === 'I');
-                
-                return matchesSearch && matchesRole && matchesStatus;
+                return matchesRole;
               }).map(user => {
                 const fullName = `${user.firstNameLa} ${user.lastNameLa}`;
-                const isActive = user.status === 'ACTIVE' || user.status === 'A';
+                const isActive = user.status === 'A';
+                const isPending = user.status === 'P';
                 return (
                   <div 
                     key={user.id} 
-                    className={`bg-white/60 backdrop-blur-lg border border-white/80 grid grid-cols-12 gap-4 items-center py-4 px-6 rounded-2xl shadow-sm transition-all duration-300 hover:bg-white/80 hover:-translate-y-1 hover:shadow-sm cursor-pointer ${!isActive ? 'opacity-60' : ''}`}
+                    className={`bg-white border-0 grid grid-cols-12 gap-4 items-center py-4 px-6 rounded-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md cursor-pointer ${isPending ? 'opacity-60' : ''}`}
+                    style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}
                   >
                     <div className="col-span-3 flex items-center gap-3">
                       <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-[#185C4D] font-bold shadow-sm">
@@ -126,30 +140,38 @@ export default function UserListView() {
                       <span className="text-sm font-medium text-[#1C1C1E]">{user.role}</span>
                     </div>
                     <div className="col-span-1 text-center">
-                      <StatusBadge status={isActive ? 'success' : 'danger'}>
-                        {isActive ? 'ACTIVE' : user.status}
-                      </StatusBadge>
+                      <div 
+                        style={{ 
+                          backgroundColor: isActive ? '#E1F2E8' : isPending ? '#FFF3CD' : '#FCE4E4', 
+                          color: isActive ? '#1A7A44' : isPending ? '#856404' : '#B83131', 
+                          borderColor: isActive ? '#BEE4CE' : isPending ? '#FFEEBA' : '#F8CACA',
+                          borderRadius: '6px' 
+                        }} 
+                        className="px-2 py-1 text-xs font-medium border inline-block"
+                      >
+                        {isActive ? 'ນຳໃຊ້ງານ' : isPending ? 'ລໍຖ້າອະນຸມັດ' : 'ບໍ່ໄດ້ນຳໃຊ້'}
+                      </div>
                     </div>
-                    <div className="col-span-1 flex justify-end" onClick={(e) => e.stopPropagation()}>
+                    <div className="col-span-1 flex justify-end font-lao" onClick={(e) => e.stopPropagation()}>
                       <Dropdown
                         menu={{
                           items: [
-                            !isActive ? {
+                            {
+                              key: 'detail',
+                              icon: <Eye size={16} className="text-indigo-500" />,
+                              label: <span className="font-medium text-indigo-500">ລາຍລະອຽດ</span>,
+                              onClick: () => {
+                                setSelectedUser(user);
+                                setIsDetailModalVisible(true);
+                              }
+                            },
+                            isPending ? {
                               key: 'approve',
                               icon: <CheckCircle size={16} className="text-[#1A7A44]" />,
                               label: <span className="font-medium text-[#1A7A44]">ອະນຸມັດຜູ້ໃຊ້</span>,
                               onClick: () => {
-                                modal.confirm({
-                                  title: 'ຢືນຢັນອະນຸມັດຜູ້ໃຊ້?',
-                                  content: `ທ່ານຕ້ອງການອະນຸມັດຜູ້ໃຊ້ ${fullName} ເຂົ້າສູ່ລະບົບແທ້ຫຼືບໍ່?`,
-                                  okText: 'ຢືນຢັນ',
-                                  cancelText: 'ຍົກເລີກ',
-                                  onOk: async () => {
-                                    const success = await approveUser(user.id, { role: 'USER' });
-                                    if (success) message.success('ອະນຸມັດຜູ້ໃຊ້ສຳເລັດແລ້ວ');
-                                    else message.error('ບໍ່ສາມາດອະນຸມັດຜູ້ໃຊ້ໄດ້');
-                                  }
-                                });
+                                setSelectedUser(user);
+                                setModalAction('approve');
                               }
                             } : null,
                             {
@@ -157,71 +179,17 @@ export default function UserListView() {
                               icon: <Edit size={16} className="text-[#185C4D]" />,
                               label: <span className="font-medium text-[#185C4D]">ປ່ຽນສິດທິຜູ້ໃຊ້</span>,
                               onClick: () => {
-                                const infoModal = modal.info({
-                                  title: 'ປ່ຽນສິດທິຜູ້ໃຊ້ (Role)',
-                                  content: (
-                                    <div className="mt-4">
-                                      <p className="mb-2">ເລືອກສິດທິໃໝ່ສຳລັບ {fullName}:</p>
-                                      <Select
-                                        className="w-full"
-                                        defaultValue={user.role}
-                                        options={[
-                                          { value: 'SUPER_ADMIN', label: 'Super Admin' },
-                                          { value: 'HQ_ADMIN', label: 'HQ Admin' },
-                                          { value: 'BRANCH_ADMIN', label: 'Branch Admin' },
-                                          { value: 'USER', label: 'User' },
-                                        ]}
-                                        onChange={async (val) => {
-                                          infoModal.destroy();
-                                          const success = await updateRole(user.id, val);
-                                          if (success) message.success('ປ່ຽນສິດທິສຳເລັດແລ້ວ');
-                                          else message.error('ບໍ່ສາມາດປ່ຽນສິດທິໄດ້');
-                                        }}
-                                      />
-                                    </div>
-                                  ),
-                                  footer: null,
-                                  closable: true,
-                                });
+                                setSelectedUser(user);
+                                setModalAction('updateRole');
                               }
                             },
                             {
                               key: 'update-divisions',
                               icon: <GitBranch size={16} className="text-[#3B82F6]" />,
-                              label: <span className="font-medium text-[#3B82F6]">ສິດເຂົ້າເຖິງ ພະແນກ/ສາຂາ</span>,
-                              onClick: async () => {
-                                await useDivisionStore.getState().fetchDropdown();
-                                const options = useDivisionStore.getState().divisionDropdown;
-                                let selectedDivisions = user.divisions?.map(d => d.id) || [];
-                                
-                                modal.confirm({
-                                  title: 'ສິດເຂົ້າເຖິງ ພະແນກ/ສາຂາ',
-                                  content: (
-                                    <div className="mt-4">
-                                      <p className="mb-2">ເລືອກພະແນກ/ສາຂາ ສຳລັບ {fullName}:</p>
-                                      <Select
-                                        mode="multiple"
-                                        className="w-full"
-                                        defaultValue={selectedDivisions}
-                                        options={options.map(opt => ({ value: opt.id as number, label: opt.name }))}
-                                        onChange={(vals) => {
-                                          selectedDivisions = vals;
-                                        }}
-                                        placeholder="ເລືອກພະແນກ/ສາຂາ"
-                                        filterOption={(input, option) =>
-                                          (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                                        }
-                                      />
-                                    </div>
-                                  ),
-                                  okText: 'ບັນທຶກ',
-                                  cancelText: 'ຍົກເລີກ',
-                                  onOk: async () => {
-                                    const success = await updateDivisions(user.id, selectedDivisions);
-                                    if (success) message.success('ອັບເດດສິດເຂົ້າເຖິງສຳເລັດແລ້ວ');
-                                    else message.error('ອັບເດດສິດເຂົ້າເຖິງບໍ່ສຳເລັດ');
-                                  },
-                                });
+                              label: <span className="font-medium text-[#3B82F6] font-lao">ສິດເຂົ້າເຖິງ ພະແນກ/ສາຂາ</span>,
+                              onClick: () => {
+                                setSelectedUser(user);
+                                setModalAction('updateDivisions');
                               }
                             },
                             {
@@ -229,19 +197,8 @@ export default function UserListView() {
                               icon: <Key size={16} className="text-[#9B7016]" />,
                               label: <span className="font-medium text-[#9B7016]">ຣີເຊັດລະຫັດຜ່ານ</span>,
                               onClick: () => {
-                                modal.confirm({
-                                  title: 'ຢືນຢັນການຣີເຊັດລະຫັດຜ່ານ?',
-                                  icon: <AlertCircle className="text-amber-500" />,
-                                  content: `ທ່ານຕ້ອງການຣີເຊັດລະຫັດຜ່ານສຳລັບຜູ້ໃຊ້ ${fullName} ແທ້ຫຼືບໍ່?`,
-                                  okText: 'ຢືນຢັນ',
-                                  okType: 'danger',
-                                  cancelText: 'ຍົກເລີກ',
-                                  onOk: async () => {
-                                    const success = await resetPassword(user.id);
-                                    if (success) message.success('ຣີເຊັດລະຫັດຜ່ານສຳເລັດແລ້ວ');
-                                    else message.error('ຣີເຊັດລະຫັດຜ່ານບໍ່ສຳເລັດ');
-                                  }
-                                });
+                                setSelectedUser(user);
+                                setModalAction('resetPassword');
                               }
                             }
                           ].filter(Boolean) as any[]
@@ -259,10 +216,37 @@ export default function UserListView() {
           )}
         </div>
       </div>
+      
+      {/* Pagination */}
+      {!isLoading && users.length > 0 && (
+        <div className="flex justify-end mt-4">
+          <Pagination
+            current={page}
+            pageSize={limit}
+            total={total}
+            onChange={(newPage, newLimit) => {
+              setPage(newPage);
+              setLimit(newLimit);
+            }}
+            showSizeChanger
+            pageSizeOptions={['10', '20', '50']}
+          />
+        </div>
+      )}
 
       <CreateUserModal 
         open={isCreateModalVisible} 
         onClose={() => setIsCreateModalVisible(false)} 
+      />
+      <UserDetailModal
+        user={selectedUser}
+        open={isDetailModalVisible}
+        onClose={() => setIsDetailModalVisible(false)}
+      />
+      <UserActionModals
+        user={selectedUser}
+        action={modalAction}
+        onClose={() => setModalAction(null)}
       />
     </div>
   );

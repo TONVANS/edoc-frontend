@@ -1,9 +1,6 @@
-import React from 'react';
 import { Warehouse as WarehouseIcon, Edit2, Trash2, Search, Building2, ChevronRight, MoreVertical } from 'lucide-react';
-import { Button, Input, Select, Tooltip, Dropdown, Pagination } from 'antd';
-import AddressStatusBadge from '../address/AddressStatusBadge';
+import { Button, Input, Select, Dropdown, Pagination } from 'antd';
 import { Warehouse } from '@/types/prisma-mapped';
-import { cn } from '@/lib/utils';
 
 interface WarehouseTableProps {
   data: Warehouse[];
@@ -16,9 +13,7 @@ interface WarehouseTableProps {
   onEdit: (warehouse: Warehouse) => void;
   onDelete?: (id: string | number) => void;
   onManage?: (warehouse: Warehouse) => void;
-  filterAddress?: string;
-  onFilterAddressChange?: (addressId: string) => void;
-  addressOptions?: { value: string; label: string }[];
+
   filterDepartment?: string;
   onFilterDepartmentChange?: (departmentId: string) => void;
   departmentOptions?: { value: string; label: string }[];
@@ -39,9 +34,7 @@ export default function WarehouseTable({
   onEdit,
   onDelete,
   onManage,
-  filterAddress = 'all',
-  onFilterAddressChange,
-  addressOptions = [],
+
   filterDepartment = 'all',
   onFilterDepartmentChange,
   departmentOptions = [],
@@ -88,18 +81,7 @@ export default function WarehouseTable({
                 disabled={filterDepartment === 'all'}
               />
 
-              <div className="flex items-center gap-2">
-                <Building2 size={16} className="text-slate-400" />
-                <Select
-                  value={filterAddress}
-                  onChange={onFilterAddressChange}
-                  options={[{ value: 'all', label: 'ທັງໝົດ (ທີ່ຢູ່)' }, ...addressOptions]}
-                  size="large"
-                  showSearch
-                  optionFilterProp="label"
-                  className="min-w-[160px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
-                />
-              </div>
+
             </div>
           )}
 
@@ -158,11 +140,11 @@ export default function WarehouseTable({
                     </div>
 
                     <div className="col-span-3 flex items-center gap-2 min-w-0">
-                      {item.address?.name ? (
+                      {item.department?.name ? (
                         <>
                           <Building2 size={16} className="text-slate-400 shrink-0" />
-                          <span className="text-slate-700 text-[14px] font-medium truncate flex-1 min-w-0" title={item.address.name}>
-                            {item.address.name}
+                          <span className="text-slate-700 text-[14px] font-medium truncate flex-1 min-w-0" title={item.department.name}>
+                            {item.department.name} {item.division?.name ? `> ${item.division.name}` : ''}
                           </span>
                         </>
                       ) : (

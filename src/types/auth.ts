@@ -43,8 +43,8 @@ export interface User {
   role: string;
   gender: string;
   status: string;
-  addressId?: string | null;
-  department: number | null;
+  departmentId?: number | null;
+  divisionId?: number | null;
   office: number | null;
   unit: number | null;
   departmentData: Department | null;

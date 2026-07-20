@@ -1,7 +1,7 @@
 // src/components/auth/LoginForm.tsx
 "use client";
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, Waves } from 'lucide-react';
 import Link from 'next/link';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -10,6 +10,19 @@ import LoginInputField from './LoginInputField';
 
 export default function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // Sanitize callbackUrl to prevent open redirects (must start with / and not //)
+  const rawCallbackUrl = searchParams.get('callbackUrl');
+  let callbackUrl = (rawCallbackUrl && rawCallbackUrl.startsWith('/') && !rawCallbackUrl.startsWith('//'))
+    ? rawCallbackUrl
+    : '/dashboard';
+
+  // Prevent redirecting back to login if the callbackUrl is /login
+  if (callbackUrl.startsWith('/login')) {
+    callbackUrl = '/dashboard';
+  }
+
   const { login, isLoading, isAuthenticated, initialize } = useAuthStore();
 
   const [empCode, setEmpCode] = useState('');
@@ -27,9 +40,10 @@ export default function LoginForm() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      router.push('/dashboard');
+      router.refresh();
+      router.replace(callbackUrl);
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, router, callbackUrl]);
 
   const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -56,7 +70,10 @@ export default function LoginForm() {
         toast.success('ເຂົ້າສູ່ລະບົບສຳເລັດ', {
           description: 'ກຳລັງນຳທາງໄປໜ້າຫຼັກ...', // Navigating to dashboard...
         });
-        router.push('/dashboard');
+        // Force a refresh of the router cache to ensure the middleware/server components 
+        // pick up the new authentication cookie before replacing the route
+        router.refresh();
+        router.replace(callbackUrl);
       } catch (error: any) {
         const backendMessage = error.response?.data?.message;
         // Handle array of messages (e.g. validation errors from NestJS)

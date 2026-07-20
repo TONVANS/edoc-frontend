@@ -14,7 +14,7 @@ interface FolderState {
   currentFolder: Folder | null;
 
   // ── Actions ──
-  fetchFolders: (params?: { page?: number; limit?: number; shelfId?: string; search?: string; status?: string }) => Promise<void>;
+  fetchFolders: (params?: { page?: number; limit?: number; departmentId?: number; divisionId?: number; warehouseId?: string; lockerId?: string; shelfId?: string; search?: string; status?: string }) => Promise<void>;
   fetchFolderById: (id: string) => Promise<void>;
   createFolder: (payload: CreateFolderPayload) => Promise<boolean>;
   updateFolder: (id: string | number, payload: Partial<CreateFolderPayload & { status: string }>) => Promise<boolean>;
