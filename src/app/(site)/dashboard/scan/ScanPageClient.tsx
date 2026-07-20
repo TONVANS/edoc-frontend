@@ -52,10 +52,9 @@ export default function ScanPageClient() {
   }
 
   const handleBack = () => {
-    setData(null);
-    setType(null);
-    setError(null);
-    router.replace('/dashboard/scan');
+    // Force a hard navigation to clear URL parameters reliably
+    // This also helps cleanly release the camera hardware stream
+    window.location.href = '/dashboard/scan';
   };
 
   if (isLoading) {
