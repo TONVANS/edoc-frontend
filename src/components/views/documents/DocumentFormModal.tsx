@@ -1,21 +1,22 @@
 "use client";
 import { useEffect, useState } from 'react';
-import { Modal, Form, Input, Button, DatePicker, Select, Switch, Upload, Radio } from 'antd';
+import { Modal, Form, Input, Button, DatePicker, Select, Switch, Upload, Radio, Progress, message } from 'antd';
 import { Document } from '@/types/prisma-mapped';
 import { useFolderStore } from '@/store/useFolderStore';
 import { useDocumentTypeStore } from '@/store/useDocumentTypeStore';
+import { useDocumentStore } from '@/store/useDocumentStore';
 import { useDepartmentStore } from '@/store/useDepartmentStore';
 import dayjs from 'dayjs';
-import { 
-  FileText, 
-  X, 
-  Sparkles, 
-  ArrowRight, 
-  Calendar, 
-  Paperclip, 
-  FolderOpen, 
-  Scale, 
-  UploadCloud, 
+import {
+  FileText,
+  X,
+  Sparkles,
+  ArrowRight,
+  Calendar,
+  Paperclip,
+  FolderOpen,
+  Scale,
+  UploadCloud,
   Info,
   Layers,
   Download,
@@ -25,7 +26,8 @@ import {
   Archive,
   Server,
   Plus,
-  Trash2
+  Trash2,
+  QrCode
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
@@ -37,6 +39,12 @@ interface DocumentFormModalProps {
   isLoading: boolean;
   initialData?: Document | null;
   defaultFolderId?: string;
+  defaultLocation?: {
+    warehouseId?: string;
+    lockerId?: string;
+    shelfId?: string;
+    folderId?: string;
+  };
 }
 
 export default function DocumentFormModal({
@@ -46,62 +54,104 @@ export default function DocumentFormModal({
   isLoading,
   initialData,
   defaultFolderId,
+  defaultLocation,
 }: DocumentFormModalProps) {
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState<any[]>([]);
   const { folders, fetchFolders } = useFolderStore();
   const { documentTypes, fetchDocumentTypes } = useDocumentTypeStore();
+  const { uploadProgress } = useDocumentStore();
 
-  useEffect(() => {
-    if (folders.length === 0) fetchFolders({ limit: 100 });
-    if (documentTypes.length === 0) fetchDocumentTypes({ limit: 100 });
-  }, [folders.length, documentTypes.length, fetchFolders, fetchDocumentTypes]);
+  const [hasInitializedForm, setHasInitializedForm] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      setFileList([]);
-      if (initialData) {
-        const docDate = initialData.docDate ? dayjs(initialData.docDate) : undefined;
-        const docExpire = initialData.docExpire ? dayjs(initialData.docExpire) : undefined;
-        let expireYears = undefined;
-        if (docDate && docExpire) {
-          expireYears = docExpire.diff(docDate, 'year');
-        }
+      if (folders.length === 0) fetchFolders({ limit: 100 });
+      if (documentTypes.length === 0) fetchDocumentTypes({ limit: 100 });
+    } else {
+      // Reset initialization state when modal closes
+      setHasInitializedForm(false);
+    }
+  }, [isOpen, folders.length, documentTypes.length, fetchFolders, fetchDocumentTypes]);
 
-        form.setFieldsValue({
-          docNo: initialData.docNo,
-          shortName: initialData.shortName || undefined,
-          docDate: docDate,
-          expireYears: expireYears,
-          subDocuments: initialData.subDocuments && initialData.subDocuments.length > 0 
-            ? initialData.subDocuments.map((sub: any) => ({
+  useEffect(() => {
+    if (isOpen && !hasInitializedForm) {
+      // Wait for folders to load if we need them to resolve locations
+      const needsFolders = (initialData && folders.length === 0) || (!initialData && defaultFolderId && !defaultLocation && folders.length === 0);
+      if (needsFolders) return;
+
+      setFileList([]);
+      setTimeout(() => {
+        if (initialData) {
+          const docDate = initialData.docDate ? dayjs(initialData.docDate) : undefined;
+          const docExpire = initialData.docExpire ? dayjs(initialData.docExpire) : undefined;
+          let expireYears = undefined;
+          if (docDate && docExpire) {
+            expireYears = docExpire.diff(docDate, 'year');
+          }
+          
+          // Try to find the folder from the global folders list to auto-populate parent locations
+          const docFolder = folders.find(f => f.id === initialData.folderId);
+          const docFolderAny = docFolder as any;
+          const formLocation = {
+            warehouseId: docFolderAny?.shelf?.locker?.warehouseId || docFolderAny?.shelf?.locker?.warehouse?.id,
+            lockerId: docFolderAny?.shelf?.lockerId || docFolderAny?.shelf?.locker?.id,
+            shelfId: docFolder?.shelfId,
+            folderId: initialData.folderId,
+          };
+
+          form.setFieldsValue({
+            docNo: initialData.docNo,
+            shortName: initialData.shortName || undefined,
+            docDate: docDate,
+            expireYears: expireYears,
+            subDocuments: initialData.subDocuments && initialData.subDocuments.length > 0
+              ? initialData.subDocuments.map((sub: any) => ({
+                id: sub.id,
                 subDocNo: sub.subDocNo,
                 subDocDate: sub.subDocDate ? dayjs(sub.subDocDate) : undefined,
               }))
-            : [{ subDocNo: undefined, subDocDate: undefined }],
-          title: initialData.title,
-          description: initialData.description || undefined,
-          qrCode: initialData.qrCode || undefined,
-          folderId: initialData.folderId,
-          documentTypeId: initialData.documentTypeId,
-          departmentId: (initialData as any).departmentId,
-          divisionId: (initialData as any).divisionId || undefined,
-          isContractBound: initialData.isContractBound ?? false,
-          retentionStatus: initialData.retentionStatus,
-        });
-      } else {
-        form.resetFields();
-        form.setFieldsValue({
-          isContractBound: false,
-          retentionStatus: 'ACTIVE',
-          docDate: dayjs(), // Default today
-          expireYears: 5, // Default 5 years
-          subDocuments: [{ subDocNo: undefined, subDocDate: undefined }],
-          ...(defaultFolderId ? { folderId: defaultFolderId } : {}),
-        });
-      }
+              : [{ subDocNo: undefined, subDocDate: undefined }],
+            title: initialData.title,
+            description: initialData.description || undefined,
+            qrCode: initialData.qrCode || undefined,
+            ...formLocation,
+            documentTypeId: initialData.documentTypeId,
+            departmentId: (initialData as any).departmentId,
+            divisionId: (initialData as any).divisionId || undefined,
+            isContractBound: initialData.isContractBound ?? false,
+            retentionStatus: initialData.retentionStatus,
+          });
+        } else {
+          form.resetFields();
+          
+          let locationValues = {};
+          if (defaultLocation) {
+             locationValues = defaultLocation;
+          } else if (defaultFolderId) {
+             const docFolder = folders.find(f => f.id === defaultFolderId);
+             const docFolderAny = docFolder as any;
+             locationValues = {
+               warehouseId: docFolderAny?.shelf?.locker?.warehouseId || docFolderAny?.shelf?.locker?.warehouse?.id,
+               lockerId: docFolderAny?.shelf?.lockerId || docFolderAny?.shelf?.locker?.id,
+               shelfId: docFolder?.shelfId,
+               folderId: defaultFolderId,
+             };
+          }
+
+          form.setFieldsValue({
+            isContractBound: false,
+            retentionStatus: 'ACTIVE',
+            docDate: dayjs(), // Default today
+            expireYears: 5, // Default 5 years
+            subDocuments: [{ subDocNo: undefined, subDocDate: undefined }],
+            ...locationValues,
+          });
+        }
+        setHasInitializedForm(true);
+      }, 0);
     }
-  }, [isOpen, initialData, form]);
+  }, [isOpen, initialData, form, defaultFolderId, defaultLocation?.warehouseId, defaultLocation?.lockerId, defaultLocation?.shelfId, defaultLocation?.folderId, folders.length, hasInitializedForm]);
 
   const handleFinish = (values: any) => {
     // Remove temporary location fields used only for dropdown filtering
@@ -109,14 +159,15 @@ export default function DocumentFormModal({
 
     let docExpire = undefined;
     if (expireYears && restValues.docDate) {
-      docExpire = restValues.docDate.add(expireYears, 'year').toISOString();
+      docExpire = restValues.docDate.add(expireYears, 'year').format('YYYY-MM-DD');
     }
 
     const formattedValues = {
       ...restValues,
-      docDate: restValues.docDate ? restValues.docDate.toISOString() : undefined,
+      docDate: restValues.docDate ? restValues.docDate.format('YYYY-MM-DD') : undefined,
       docExpire: docExpire,
       subDocuments: restValues.subDocuments?.map((sub: any) => ({
+        id: sub.id,
         subDocNo: sub.subDocNo,
         subDocDate: sub.subDocDate ? sub.subDocDate.toISOString() : undefined,
       })),
@@ -128,10 +179,16 @@ export default function DocumentFormModal({
   };
 
   const uploadProps = {
+    accept: ".pdf,application/pdf",
     onRemove: (file: any) => {
       setFileList(prev => prev.filter(f => f.uid !== file.uid));
     },
     beforeUpload: (file: any) => {
+      const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+      if (!isPDF) {
+        message.error(`${file.name} ບໍ່ແມ່ນໄຟລ໌ PDF. ກະລຸນາອັບໂຫຼດສະເພາະໄຟລ໌ PDF ເທົ່ານັ້ນ!`);
+        return Upload.LIST_IGNORE;
+      }
       setFileList(prev => [...prev, file]);
       return false; // Stop auto upload
     },
@@ -152,7 +209,7 @@ export default function DocumentFormModal({
       open={isOpen}
       onCancel={onClose}
       footer={null}
-      forceRender
+
       width={800}
       centered
       title={null}
@@ -167,7 +224,7 @@ export default function DocumentFormModal({
       wrapClassName="backdrop-blur-md"
     >
       <div className="bg-white/70 backdrop-blur-3xl rounded-[32px] overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.12)] border border-white/60 relative flex flex-col max-h-[90vh]">
-        
+
         {/* ══ HEADER ══════════════════════════════════════════ */}
         <header className="relative px-10 pt-10 pb-14 overflow-hidden bg-linear-to-br from-[#185C4D] via-[#1c6958] to-[#257c66] shrink-0">
           <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] bg-size-[20px_20px]" />
@@ -211,7 +268,7 @@ export default function DocumentFormModal({
               <h3 className="flex items-center gap-2 text-[#185C4D] font-bold text-[15px] mb-4 border-b border-slate-100 pb-2">
                 <Info size={16} /> ຂໍ້ມູນທົ່ວໄປຂອງເອກະສານ
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <Form.Item
                   label={<span className="text-[13px] font-bold text-slate-700 ml-1">ຫົວຂໍ້ເອກະສານ <span className="text-rose-500">*</span></span>}
@@ -271,6 +328,9 @@ export default function DocumentFormModal({
                       <div className="space-y-4">
                         {fields.map(({ key, name, ...restField }) => (
                           <div key={key} className="flex items-start gap-4 bg-white/40 border border-white/60 p-4 rounded-2xl shadow-xs">
+                            <Form.Item {...restField} name={[name, 'id']} hidden>
+                              <Input />
+                            </Form.Item>
                             <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
                               <Form.Item
                                 {...restField}
@@ -300,9 +360,9 @@ export default function DocumentFormModal({
                             )}
                           </div>
                         ))}
-                        <Button 
-                          type="dashed" 
-                          onClick={() => add()} 
+                        <Button
+                          type="dashed"
+                          onClick={() => add()}
                           icon={<Plus size={16} />}
                           className="w-full h-12 rounded-2xl border-slate-300 hover:border-[#185C4D] hover:text-[#185C4D] font-bold text-slate-600 flex items-center justify-center gap-2 transition-all bg-white/30 cursor-pointer"
                         >
@@ -328,7 +388,7 @@ export default function DocumentFormModal({
               <h3 className="flex items-center gap-2 text-[#185C4D] font-bold text-[15px] mb-4 border-b border-slate-100 pb-2">
                 <Building2 size={16} /> ມາຈາກພາກສ່ວນ
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <Form.Item
                   label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1.5"><Building2 size={14} className="text-slate-400" /> ຝ່າຍ <span className="text-rose-500">*</span></span>}
@@ -352,7 +412,7 @@ export default function DocumentFormModal({
               <h3 className="flex items-center gap-2 text-[#185C4D] font-bold text-[15px] mb-4 border-b border-slate-100 pb-2">
                 <Layers size={16} /> ໝວດໝູ່ເອກະສານ
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <Form.Item
                   label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1"><Layers size={14} className="text-slate-400" /> ປະເພດເອກະສານ <span className="text-rose-500">*</span></span>}
@@ -401,7 +461,7 @@ export default function DocumentFormModal({
               <h3 className="flex items-center gap-2 text-[#185C4D] font-bold text-[15px] mb-4 border-b border-slate-100 pb-2">
                 <FolderOpen size={16} /> ສະຖານທີ່ຈັດເກັບ
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <DocumentStorageCascader form={form} folders={folders} />
               </div>
@@ -430,8 +490,8 @@ export default function DocumentFormModal({
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Button 
-                            type="text" 
+                          <Button
+                            type="text"
                             size="small"
                             icon={<Download size={14} className="text-[#185C4D]" />}
                             href={getAttachmentDownloadUrl(att.id)}
@@ -462,16 +522,27 @@ export default function DocumentFormModal({
             </div>
 
             {/* Footer buttons */}
-            <footer className="flex items-center justify-end gap-4 pt-6 border-t border-slate-100">
-              <Button onClick={onClose} disabled={isLoading} className="h-12 px-8 rounded-2xl border-white bg-white/50 text-slate-600 font-bold hover:bg-white transition-all cursor-pointer">ຍົກເລີກ</Button>
-              <Button
-                type="primary"
-                htmlType="submit"
-                loading={isLoading}
-                className="h-12 px-10 rounded-2xl bg-linear-to-r from-[#185C4D] to-[#206E5B] font-black shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 border-none flex items-center gap-2 cursor-pointer"
-              >
-                ບັນທຶກຂໍ້ມູນ <ArrowRight size={18} strokeWidth={2.5} />
-              </Button>
+            <footer className="flex flex-col pt-6 border-t border-slate-100">
+              {isLoading && uploadProgress > 0 && (
+                <div className="mb-4 w-full">
+                  <div className="flex justify-between text-xs text-slate-500 font-bold mb-1">
+                    <span>ກຳລັງອັບໂຫຼດໄຟລ໌...</span>
+                    <span>{uploadProgress}%</span>
+                  </div>
+                  <Progress percent={uploadProgress} showInfo={false} strokeColor="#185C4D" railColor="#e2e8f0" status={uploadProgress === 100 ? "success" : "active"} />
+                </div>
+              )}
+              <div className="flex items-center justify-end gap-4">
+                <Button onClick={onClose} disabled={isLoading} className="h-12 px-8 rounded-2xl border-white bg-white/50 text-slate-600 font-bold hover:bg-white transition-all cursor-pointer">ຍົກເລີກ</Button>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={isLoading}
+                  className="h-12 px-10 rounded-2xl bg-linear-to-r from-[#185C4D] to-[#206E5B] font-black shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 border-none flex items-center gap-2 cursor-pointer"
+                >
+                  ບັນທຶກຂໍ້ມູນ <ArrowRight size={18} strokeWidth={2.5} />
+                </Button>
+              </div>
             </footer>
           </Form>
         </main>
@@ -482,7 +553,7 @@ export default function DocumentFormModal({
 
 function DocumentDepartmentSelect(props: any) {
   const { departments, fetchAll, isLoading } = useDepartmentStore();
-  
+
   useEffect(() => {
     if (departments.length === 0) fetchAll();
   }, [departments.length, fetchAll]);
@@ -522,7 +593,10 @@ function DocumentDivisionSelect({ form, ...props }: any) {
       fetchDivisions();
     } else {
       setDivisions([]);
-      form.setFieldsValue({ divisionId: undefined });
+      // Prevent warning when form is not fully connected on mount
+      if (form.getFieldValue('divisionId') !== undefined) {
+        form.setFieldsValue({ divisionId: undefined });
+      }
     }
   }, [departmentId, form]);
 
@@ -548,7 +622,7 @@ function DocumentStorageCascader({ form, folders }: { form: any, folders: any[] 
   const [lockers, setLockers] = useState<any[]>([]);
   const [shelves, setShelves] = useState<any[]>([]);
   const [filteredFolders, setFilteredFolders] = useState<any[]>(folders);
-  
+
   const [isLoading, setIsLoading] = useState({
     address: false,
     warehouse: false,
@@ -569,7 +643,7 @@ function DocumentStorageCascader({ form, folders }: { form: any, folders: any[] 
       const queryParams = new URLSearchParams();
       queryParams.append('departmentId', String(departmentId));
       if (divisionId) queryParams.append('divisionId', String(divisionId));
-      
+
       api.get(`/warehouses/dropdown?${queryParams.toString()}`).then(res => {
         setWarehouses(res.data?.data || res.data || []);
       }).finally(() => setIsLoading(prev => ({ ...prev, warehouse: false })));
@@ -639,7 +713,7 @@ function DocumentStorageCascader({ form, folders }: { form: any, folders: any[] 
         label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1.5"><Package size={14} className="text-slate-400" /> ສາງ (Warehouse)</span>}
         name="warehouseId"
       >
-        <Select 
+        <Select
           showSearch
           optionFilterProp="label"
           placeholder="ເລືອກສາງ"
@@ -647,15 +721,15 @@ function DocumentStorageCascader({ form, folders }: { form: any, folders: any[] 
           loading={isLoading.warehouse}
           onChange={() => form.setFieldsValue({ lockerId: undefined, shelfId: undefined, folderId: undefined })}
           options={warehouses.map(w => ({ label: w.name, value: w.id }))}
-          className="w-full h-12 [&_.ant-select-selector]:rounded-2xl!" 
-          size="large" 
+          className="w-full h-12 [&_.ant-select-selector]:rounded-2xl!"
+          size="large"
         />
       </Form.Item>
       <Form.Item
         label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1.5"><Archive size={14} className="text-slate-400" /> ຕູ້ (Locker)</span>}
         name="lockerId"
       >
-        <Select 
+        <Select
           showSearch
           optionFilterProp="label"
           placeholder={warehouseId ? "ເລືອກຕູ້" : "ກະລຸນາເລືອກສາງກ່ອນ"}
@@ -664,15 +738,15 @@ function DocumentStorageCascader({ form, folders }: { form: any, folders: any[] 
           loading={isLoading.locker}
           onChange={() => form.setFieldsValue({ shelfId: undefined, folderId: undefined })}
           options={lockers.map(l => ({ label: l.name, value: l.id }))}
-          className="w-full h-12 [&_.ant-select-selector]:rounded-2xl!" 
-          size="large" 
+          className="w-full h-12 [&_.ant-select-selector]:rounded-2xl!"
+          size="large"
         />
       </Form.Item>
       <Form.Item
         label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1.5"><Server size={14} className="text-slate-400" /> ຊັ້ນ (Shelf)</span>}
         name="shelfId"
       >
-        <Select 
+        <Select
           showSearch
           optionFilterProp="label"
           placeholder={lockerId ? "ເລືອກຊັ້ນ" : "ກະລຸນາເລືອກຕູ້ກ່ອນ"}
@@ -681,8 +755,8 @@ function DocumentStorageCascader({ form, folders }: { form: any, folders: any[] 
           loading={isLoading.shelf}
           onChange={() => form.setFieldsValue({ folderId: undefined })}
           options={shelves.map(s => ({ label: s.name, value: s.id }))}
-          className="w-full h-12 [&_.ant-select-selector]:rounded-2xl!" 
-          size="large" 
+          className="w-full h-12 [&_.ant-select-selector]:rounded-2xl!"
+          size="large"
         />
       </Form.Item>
       <Form.Item
@@ -690,15 +764,15 @@ function DocumentStorageCascader({ form, folders }: { form: any, folders: any[] 
         name="folderId"
         rules={[{ required: true, message: 'ກະລຸນາເລືອກແຟ້ມເອກະສານ!' }]}
       >
-        <Select 
+        <Select
           showSearch
           optionFilterProp="label"
           placeholder={shelfId ? "ເລືອກແຟ້ມເອກະສານ" : "ເລືອກແຟ້ມເອກະສານ (ທັງໝົດ)"}
           allowClear
           loading={isLoading.folder}
           options={filteredFolders.map(f => ({ label: f.name || f.code, value: f.id }))}
-          className="w-full h-12 [&_.ant-select-selector]:rounded-2xl!" 
-          size="large" 
+          className="w-full h-12 [&_.ant-select-selector]:rounded-2xl!"
+          size="large"
         />
       </Form.Item>
     </>

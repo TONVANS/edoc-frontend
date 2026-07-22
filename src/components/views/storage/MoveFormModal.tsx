@@ -45,6 +45,8 @@ export default function MoveFormModal({
   type,
   item,
 }: MoveFormModalProps) {
+
+
   const [form] = Form.useForm<FormValues>();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -68,7 +70,9 @@ export default function MoveFormModal({
   // Reset and load initial data (warehouses)
   useEffect(() => {
     if (isOpen && item) {
-      form.resetFields();
+      setTimeout(() => {
+        form.resetFields();
+      }, 0);
       setLockersList([]);
       setShelvesList([]);
       setFoldersList([]);
@@ -231,7 +235,7 @@ export default function MoveFormModal({
       open={isOpen}
       onCancel={onClose}
       footer={null}
-      forceRender
+
       width={600}
       centered
       title={null}

@@ -58,7 +58,12 @@ export default function ShelfDetailPage() {
     }, 100);
   };
 
-  const initialFolderData = useMemo(() => ({ shelfId: id } as unknown as Folder), [id]);
+  const initialFolderData = useMemo(() => {
+    if (currentShelf) {
+      return { shelfId: id, shelf: currentShelf } as unknown as Folder;
+    }
+    return { shelfId: id } as unknown as Folder;
+  }, [id, currentShelf]);
 
   // Debounce search
   useEffect(() => {
@@ -197,7 +202,7 @@ export default function ShelfDetailPage() {
   const currentShelfAny = currentShelf as any;
   const breadcrumbs = [
     ...(currentShelf?.locker ? [
-      ...(currentShelfAny.locker?.warehouse?.address ? [{ label: currentShelfAny.locker.warehouse.address.name }] : []),
+      ...(currentShelfAny.locker?.warehouse?.department ? [{ label: currentShelfAny.locker.warehouse.department.name }] : []),
       ...(currentShelfAny.locker?.warehouse ? [{ label: currentShelfAny.locker.warehouse.name, href: `/dashboard/warehouses/${currentShelfAny.locker.warehouse.id || currentShelfAny.locker.warehouseId}` }] : []),
       { label: currentShelf.locker.name ? String(currentShelf.locker.name) : 'ກຳລັງໂຫຼດ...', href: `/dashboard/locker/${currentShelf.lockerId}` }
     ] : [{ label: 'ຊັ້ນວາງ', href: '/dashboard/shelves' }]),
@@ -205,8 +210,10 @@ export default function ShelfDetailPage() {
   ];
 
   const parentInfo = currentShelf ? [
-    { label: 'ສາງທີ່ຕັ້ງຢູ່', value: currentShelfAny.locker?.warehouse?.name || '-', icon: <MapPin size={16} /> },
-    { label: 'ຕູ້ທີ່ຕັ້ງຢູ່', value: currentShelf.locker?.name || '-', icon: <MapPin size={16} /> },
+    { label: 'ຝ່າຍ', value: currentShelfAny.locker?.warehouse?.department?.name || '-', icon: <Layers size={16} /> },
+    { label: 'ພະແນກ / ສາຂາ', value: currentShelfAny.locker?.warehouse?.division?.name || '-', icon: <Layers size={16} /> },
+    { label: 'ສາງ', value: currentShelfAny.locker?.warehouse?.name || '-', icon: <MapPin size={16} /> },
+    { label: 'ຕູ້', value: currentShelf.locker?.name || '-', icon: <MapPin size={16} /> },
     { label: 'ຈຳນວນແຟ້ມ', value: currentShelf.maxQty ? `${folders?.length || 0} / ${currentShelf.maxQty}` : '-', icon: <BarChart3 size={16} /> },
   ] : [];
 

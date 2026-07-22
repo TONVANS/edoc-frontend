@@ -20,6 +20,8 @@ interface BorrowCartDrawerProps {
 }
 
 export default function BorrowCartDrawer({ isOpen, onClose }: BorrowCartDrawerProps) {
+
+
   const [form] = Form.useForm();
   const [borrowType, setBorrowType] = useState<'INTERNAL' | 'EXTERNAL'>('INTERNAL');
   
@@ -32,8 +34,10 @@ export default function BorrowCartDrawer({ isOpen, onClose }: BorrowCartDrawerPr
   useEffect(() => {
     if (isOpen) {
       // Don't reset fields on every open, so users don't lose data if they just close and reopen
-      const currentDeptId = form.getFieldValue('departmentId');
-      fetchDivisionDropdown(currentDeptId ? { departmentId: currentDeptId } : undefined);
+      setTimeout(() => {
+        const currentDeptId = form.getFieldValue('departmentId');
+        fetchDivisionDropdown(currentDeptId ? { departmentId: currentDeptId } : undefined);
+      }, 0);
       fetchDepartmentDropdown();
     }
   }, [isOpen, fetchDivisionDropdown, fetchDepartmentDropdown, form]);
@@ -144,7 +148,7 @@ export default function BorrowCartDrawer({ isOpen, onClose }: BorrowCartDrawerPr
                 <p className="text-slate-500 font-medium">ຍັງບໍ່ມີລາຍການໃນກະຕ່າ</p>
               </div>
             ) : (
-              <div className="flex flex-col gap-3 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="flex flex-col gap-3 max-h-55 overflow-y-auto pr-2 custom-scrollbar">
                 {items.map(item => (
                   <div key={item.id} className="bg-white border border-slate-200 rounded-xl p-3 flex items-start gap-3 shadow-sm group">
                     <div className={cn(

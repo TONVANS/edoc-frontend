@@ -42,6 +42,8 @@ export default function LockerFormModal({
   isLoading,
   initialData,
 }: LockerFormModalProps) {
+
+
   const [form] = Form.useForm<FormValues>();
   const { departmentDropdown, fetchDropdown: fetchDeptDropdown } = useDepartmentStore();
   const { divisionDropdown, fetchDropdown: fetchDivDropdown } = useDivisionStore();
@@ -54,10 +56,11 @@ export default function LockerFormModal({
     if (isOpen) {
       fetchDeptDropdown();
       const isEditing = initialData && 'id' in initialData;
+      const warehouse = (initialData as any)?.warehouse;
 
-      if (isEditing) {
-        const deptId = (initialData as any)?.warehouse?.departmentId;
-        const divId = (initialData as any)?.warehouse?.divisionId;
+      if (isEditing || warehouse) {
+        const deptId = warehouse?.departmentId;
+        const divId = warehouse?.divisionId;
         
         setFilterDeptId(deptId);
         setFilterDivId(divId);
@@ -65,22 +68,27 @@ export default function LockerFormModal({
         if (deptId) fetchDivDropdown({ departmentId: deptId });
         fetchWarehouseDropdown({ departmentId: deptId, divisionId: divId });
 
-        form.setFieldsValue({
-          warehouseId: initialData.warehouseId || undefined,
-          code: initialData.code,
-          name: initialData.name || undefined,
-          description: initialData.description || undefined,
-          isActive: initialData.status === 'A' || initialData.status === 'ACTIVE',
-        });
+        setTimeout(() => {
+          if (!isEditing) form.resetFields();
+          form.setFieldsValue({
+            warehouseId: (initialData as any)?.warehouseId || undefined,
+            code: isEditing ? (initialData as any).code : undefined,
+            name: isEditing ? (initialData as any).name || undefined : undefined,
+            description: isEditing ? (initialData as any).description || undefined : undefined,
+            isActive: isEditing ? (initialData as any).status === 'A' || (initialData as any).status === 'ACTIVE' : true,
+          });
+        }, 0);
       } else {
         setFilterDeptId(undefined);
         setFilterDivId(undefined);
         fetchWarehouseDropdown();
-        form.resetFields();
-        form.setFieldsValue({ 
-          isActive: true,
-          warehouseId: (initialData as any)?.warehouseId || undefined 
-        });
+        setTimeout(() => {
+          form.resetFields();
+          form.setFieldsValue({ 
+            isActive: true,
+            warehouseId: (initialData as any)?.warehouseId || undefined 
+          });
+        }, 0);
       }
     }
   }, [isOpen, initialData, form, fetchDeptDropdown, fetchDivDropdown, fetchWarehouseDropdown]);

@@ -242,7 +242,7 @@ export interface UpdateDocumentPayload {
   docNo?: string;
   shortName?: string;
   docDate?: string;
-  subDocuments?: { subDocNo: string; subDocDate?: string }[];
+  subDocuments?: { id?: string; subDocNo: string; subDocDate?: string }[];
   title?: string;
   description?: string;
   docExpire?: string;

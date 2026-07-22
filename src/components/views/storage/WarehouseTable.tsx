@@ -67,7 +67,7 @@ export default function WarehouseTable({
                 size="large"
                 showSearch
                 optionFilterProp="label"
-                className="min-w-[160px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
+                className="min-w-[160px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-12! [&_.ant-select-selection-item]:leading-11.5!"
               />
 
               <Select
@@ -77,7 +77,7 @@ export default function WarehouseTable({
                 size="large"
                 showSearch
                 optionFilterProp="label"
-                className="min-w-[160px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
+                className="min-w-[160px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-12! [&_.ant-select-selection-item]:leading-11.5!"
                 disabled={filterDepartment === 'all'}
               />
 
@@ -93,8 +93,8 @@ export default function WarehouseTable({
         </div>
       </header>
 
-      <div className="w-full bg-white/30 backdrop-blur-2xl border border-white/50 p-6 rounded-[32px] shadow-glass overflow-x-auto">
-        <div className="min-w-[1000px]">
+      <div className="w-full bg-white/30 backdrop-blur-2xl border border-white/50 p-6 rounded-4xl shadow-glass overflow-x-auto">
+        <div className="min-w-250">
           <div className="bg-table-header text-white grid grid-cols-12 gap-4 py-5 px-8 rounded-2xl shadow-md mb-5 text-[14px] font-bold tracking-wider uppercase">
             <div className="col-span-1">ລະຫັດສາງ</div>
             <div className="col-span-3">ຊື່ສາງເກັບມ້ຽນ</div>

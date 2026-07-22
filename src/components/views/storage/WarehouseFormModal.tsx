@@ -48,6 +48,8 @@ export default function WarehouseFormModal({
   isLoading,
   initialData,
 }: WarehouseFormModalProps) {
+
+
   const [form] = Form.useForm<FormValues>();
 
   const { departmentDropdown, fetchDropdown: fetchDeptDropdown } = useDepartmentStore();
@@ -65,17 +67,21 @@ export default function WarehouseFormModal({
         const divId = initialData.divisionId || undefined;
         if (deptId) fetchDivDropdown({ departmentId: deptId });
 
-        form.setFieldsValue({
-          departmentId: deptId,
-          divisionId: divId,
-          code: initialData.code,
-          name: initialData.name,
-          description: initialData.description || undefined,
-          isActive: initialData.status === 'A' || initialData.status === 'ACTIVE',
-        });
+        setTimeout(() => {
+          form.setFieldsValue({
+            departmentId: deptId,
+            divisionId: divId,
+            code: initialData.code,
+            name: initialData.name,
+            description: initialData.description || undefined,
+            isActive: initialData.status === 'A' || initialData.status === 'ACTIVE',
+          });
+        }, 0);
       } else {
-        form.resetFields();
-        form.setFieldsValue({ isActive: true });
+        setTimeout(() => {
+          form.resetFields();
+          form.setFieldsValue({ isActive: true });
+        }, 0);
       }
     }
   }, [isOpen, initialData, form, fetchDeptDropdown, fetchDivDropdown]);

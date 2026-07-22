@@ -43,6 +43,7 @@ interface DocumentState {
   total: number;
   totalPages: number;
   isLoading: boolean;
+  uploadProgress: number;
 
   fetchDocuments: (params?: FetchDocumentsParams) => Promise<void>;
   fetchDocumentById: (id: string) => Promise<Document | null>;
@@ -70,6 +71,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   total: 0,
   totalPages: 1,
   isLoading: false,
+  uploadProgress: 0,
 
   fetchDocuments: async (params) => {
     set({ isLoading: true });
@@ -107,7 +109,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
 
   createDocument: async (payload: CreateDocumentPayload) => {
-    set({ isLoading: true });
+    set({ isLoading: true, uploadProgress: 0 });
     try {
       const formData = new FormData();
 
@@ -139,6 +141,10 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       const response = await api.post("/documents", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
+          set({ uploadProgress: percentCompleted });
         },
       });
 
@@ -172,7 +178,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     payload: UpdateDocumentPayload,
     files?: File[],
   ) => {
-    set({ isLoading: true });
+    set({ isLoading: true, uploadProgress: 0 });
     try {
       // If files are included, use multipart/form-data
       if (files && files.length > 0) {
@@ -207,6 +213,10 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
 
         await api.put(`/documents/${id}`, formData, {
           headers: { "Content-Type": "multipart/form-data" },
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
+            set({ uploadProgress: percentCompleted });
+          },
         });
       } else {
         // JSON payload (no files)
@@ -236,25 +246,43 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       if (payload.subDocuments && payload.subDocuments.length > 0) {
         const validSubDocs = payload.subDocuments.filter(sub => sub.subDocNo && sub.subDocNo.trim() !== "");
         if (validSubDocs.length > 0) {
-          await api.post(`/documents/${id}/sub-documents`, {
-            subDocuments: validSubDocs.map(sub => ({
-              subDocNo: sub.subDocNo,
-              subDocDate: sub.subDocDate || null,
-            })),
-          });
+          const existingSubDocs = validSubDocs.filter(sub => sub.id);
+          const newSubDocs = validSubDocs.filter(sub => !sub.id);
+
+          // Update existing sub-documents
+          if (existingSubDocs.length > 0) {
+            await Promise.all(
+              existingSubDocs.map(sub =>
+                api.put(`/documents/${id}/sub-documents/${sub.id}`, {
+                  subDocNo: sub.subDocNo,
+                  subDocDate: sub.subDocDate || null,
+                })
+              )
+            );
+          }
+
+          // Create new sub-documents
+          if (newSubDocs.length > 0) {
+            await api.post(`/documents/${id}/sub-documents`, {
+              subDocuments: newSubDocs.map(sub => ({
+                subDocNo: sub.subDocNo,
+                subDocDate: sub.subDocDate || null,
+              })),
+            });
+          }
         }
       }
 
       return true;
     } catch (error) {
-      set({ isLoading: false });
+      set({ isLoading: false, uploadProgress: 0 });
       console.error("Failed to update document:", error);
       return false;
     }
   },
 
   uploadAttachments: async (id: string, files: File[]) => {
-    set({ isLoading: true });
+    set({ isLoading: true, uploadProgress: 0 });
     try {
       const formData = new FormData();
       files.forEach((file) => {
@@ -265,11 +293,15 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         headers: {
           "Content-Type": "multipart/form-data",
         },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
+          set({ uploadProgress: percentCompleted });
+        },
       });
 
       return true;
     } catch (error) {
-      set({ isLoading: false });
+      set({ isLoading: false, uploadProgress: 0 });
       console.error("Failed to upload attachments:", error);
       return false;
     }

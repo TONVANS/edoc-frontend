@@ -17,9 +17,9 @@ const BASE_MENU_ITEMS = [
     label: 'ເມນູຫຼັກ',
     children: [
       { key: '/dashboard', icon: <LayoutDashboard size={18} />, label: 'ພາບລວມລະບົບ' },
-      { key: '/dashboard/warehouses', icon: <Warehouse size={18} />, label: 'ຈັດການສາງ', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN'] },
-      { key: '/dashboard/locker', icon: <Package size={18} />, label: 'ຈັດການຕູ້ເກັບ', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN'] },
-      { key: '/dashboard/shelves', icon: <Layers size={18} />, label: 'ຈັດການຊັ້ນວາງ', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN'] },
+      { key: '/dashboard/warehouses', icon: <Warehouse size={18} />, label: 'ຈັດການສາງ', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN', 'BRANCH_ADMIN'] },
+      { key: '/dashboard/locker', icon: <Package size={18} />, label: 'ຈັດການຕູ້ເກັບ', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN', 'BRANCH_ADMIN'] },
+      { key: '/dashboard/shelves', icon: <Layers size={18} />, label: 'ຈັດການຊັ້ນວາງ', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN', 'BRANCH_ADMIN'] },
       { key: '/dashboard/folder', icon: <Inbox size={18} />, label: 'ຈັດການແຟ້ມ (Kono)' },
     ],
   },
@@ -29,7 +29,7 @@ const BASE_MENU_ITEMS = [
     children: [
       { key: '/dashboard/scan', icon: <QrCode size={18} />, label: 'ສະແກນ QR Code' },
       { key: '/dashboard/documents', icon: <FileText size={18} />, label: 'ຈັດການເອກະສານທັງໝົດ' },
-      { key: '/dashboard/document-expired', icon: <FileWarning size={18} />, label: 'ເອກະສານໝົດອາຍຸ' },
+      { key: '/dashboard/document-expired', icon: <FileWarning size={18} />, label: 'ເອກະສານໝົດອາຍຸ', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN', 'BRANCH_ADMIN'] },
       { key: '/dashboard/tracking', icon: <History size={18} />, label: 'ຕິດຕາມ - ປະຫວັດການຢືມ' },
     ],
   },

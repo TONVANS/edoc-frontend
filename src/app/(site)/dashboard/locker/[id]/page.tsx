@@ -33,7 +33,12 @@ export default function LockerDetailPage() {
   const [editingShelf, setEditingShelf] = useState<Shelf | null>(null);
   const [isLockerModalOpen, setIsLockerModalOpen] = useState(false);
 
-  const initialShelfData = useMemo(() => ({ lockerId: id } as unknown as Shelf), [id]);
+  const initialShelfData = useMemo(() => {
+    if (currentLocker) {
+      return { lockerId: id, locker: currentLocker } as unknown as Shelf;
+    }
+    return { lockerId: id } as unknown as Shelf;
+  }, [id, currentLocker]);
 
   // Debounce search
   useEffect(() => {
@@ -75,11 +80,10 @@ export default function LockerDetailPage() {
   const handleShelfSubmit = async (values: CreateShelfPayload & { status?: string }) => {
     try {
       let success = false;
-      const payloadWithLocker = { ...values, lockerId: id };
       if (editingShelf) {
-        success = await updateShelf(editingShelf.id, payloadWithLocker);
+        success = await updateShelf(editingShelf.id, values);
       } else {
-        success = await createShelf(payloadWithLocker);
+        success = await createShelf(values);
       }
 
       if (success) {
@@ -155,14 +159,15 @@ export default function LockerDetailPage() {
 
   const breadcrumbs = [
     ...(currentLocker?.warehouse ? [
-      ...((currentLocker as any).warehouse?.address ? [{ label: (currentLocker as any).warehouse.address.name }] : []),
+      ...((currentLocker as any).warehouse?.department ? [{ label: (currentLocker as any).warehouse.department.name }] : []),
       { label: currentLocker.warehouse.name, href: `/dashboard/warehouses/${currentLocker.warehouseId}` }
     ] : [{ label: 'ຕູ້', href: '/dashboard/locker' }]),
     { label: currentLocker?.name ? String(currentLocker.name) : 'ກຳລັງໂຫຼດ...', icon: <LockerIcon size={16} /> }
   ];
 
   const parentInfo = currentLocker ? [
-    { label: 'ສະຖານທີ່ (ສາຂາ)', value: (currentLocker as any).warehouse?.address?.name || '-', icon: <MapPin size={16} /> },
+    { label: 'ຝ່າຍ', value: (currentLocker as any).warehouse?.department?.name || '-', icon: <Layers size={16} /> },
+    { label: 'ພະແນກ / ສາຂາ', value: (currentLocker as any).warehouse?.division?.name || '-', icon: <Layers size={16} /> },
     { label: 'ສາງທີ່ຕັ້ງຢູ່', value: currentLocker.warehouse?.name || '-', icon: <MapPin size={16} /> },
     { label: 'ຈຳນວນຊັ້ນວາງ', value: (currentLocker as any).shelvesCount ? `${(currentLocker as any).shelvesCount} ຊັ້ນ` : '-', icon: <AlignLeft size={16} /> },
   ] : [];

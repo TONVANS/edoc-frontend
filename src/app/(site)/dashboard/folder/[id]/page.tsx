@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Inbox, Plus, Edit2, Trash2, MapPin, AlignLeft, QrCode } from 'lucide-react';
+import { Inbox, Plus, Edit2, Trash2, MapPin, AlignLeft, QrCode, Layers } from 'lucide-react';
 import { Button, message, Modal, Badge } from 'antd';
 import { useFolderStore } from '@/store/useFolderStore';
 import { useDocumentStore } from '@/store/useDocumentStore';
@@ -88,13 +88,13 @@ export default function FolderDetailPage() {
     setIsDocumentModalOpen(true);
   };
 
-  const handleDocumentSubmit = async (values: CreateDocumentPayload & { status?: string }) => {
+  const handleDocumentSubmit = async (values: CreateDocumentPayload & { status?: string }, files?: File[]) => {
     try {
       let success = false;
-      const payloadWithFolder = { ...values, folderId: id };
+      const payloadWithFolder = { ...values, folderId: id, files };
       
       if (editingDocument) {
-        success = await updateDocument(editingDocument.id, payloadWithFolder, values.files);
+        success = await updateDocument(editingDocument.id, payloadWithFolder, files);
       } else {
         success = await createDocument(payloadWithFolder);
       }
@@ -163,7 +163,7 @@ export default function FolderDetailPage() {
   const currentFolderAny = currentFolder as any;
   const breadcrumbs = [
     ...(currentFolder?.shelf ? [
-      ...(currentFolderAny.shelf?.locker?.warehouse?.address ? [{ label: currentFolderAny.shelf.locker.warehouse.address.name }] : []),
+      ...(currentFolderAny.shelf?.locker?.warehouse?.department ? [{ label: currentFolderAny.shelf.locker.warehouse.department.name }] : []),
       ...(currentFolderAny.shelf?.locker?.warehouse ? [{ label: currentFolderAny.shelf.locker.warehouse.name, href: `/dashboard/warehouses/${currentFolderAny.shelf.locker.warehouse.id || currentFolderAny.shelf.locker.warehouseId}` }] : []),
       ...(currentFolderAny.shelf?.locker ? [{ label: currentFolderAny.shelf.locker.name, href: `/dashboard/locker/${currentFolderAny.shelf.locker.id || currentFolderAny.shelf.lockerId}` }] : []),
       { label: currentFolder.shelf.name, href: `/dashboard/shelves/${currentFolder.shelfId}` }
@@ -172,9 +172,12 @@ export default function FolderDetailPage() {
   ];
 
   const parentInfo = currentFolder ? [
-    { label: 'ຕູ້ທີ່ຕັ້ງຢູ່', value: currentFolderAny.shelf?.locker?.name || '-', icon: <MapPin size={16} /> },
-    { label: 'ຊັ້ນວາງທີ່ຕັ້ງຢູ່', value: currentFolder.shelf?.name || '-', icon: <MapPin size={16} /> },
-    { label: 'QR Code', value: currentFolder.qrCode || '-', icon: <QrCode size={16} /> },
+    { label: 'ຝ່າຍ', value: currentFolderAny.shelf?.locker?.warehouse?.department?.name || '-', icon: <Layers size={16} /> },
+    { label: 'ພະແນກ / ສາຂາ', value: currentFolderAny.shelf?.locker?.warehouse?.division?.name || '-', icon: <Layers size={16} /> },
+    { label: 'ສາງ', value: currentFolderAny.shelf?.locker?.warehouse?.name || '-', icon: <MapPin size={16} /> },
+    { label: 'ຕູ້', value: currentFolderAny.shelf?.locker?.name || '-', icon: <MapPin size={16} /> },
+    { label: 'ຊັ້ນວາງ', value: currentFolder.shelf?.name || '-', icon: <MapPin size={16} /> },
+    { label: 'ລະຫັດ Code', value: currentFolder.qrCode || '-', icon: <QrCode size={16} /> },
     { label: 'ຈຳນວນເອກະສານ', value: (currentFolderAny as any).documentCount ? `${(currentFolderAny as any).documentCount} ໄຟລ໌` : '-', icon: <AlignLeft size={16} /> },
   ] : [];
 
@@ -272,6 +275,12 @@ export default function FolderDetailPage() {
         isLoading={isDocumentLoading}
         initialData={editingDocument}
         defaultFolderId={id}
+        defaultLocation={currentFolder ? {
+          folderId: currentFolder.id,
+          shelfId: currentFolder.shelfId,
+          lockerId: currentFolderAny?.shelf?.lockerId || currentFolderAny?.shelf?.locker?.id,
+          warehouseId: currentFolderAny?.shelf?.locker?.warehouseId || currentFolderAny?.shelf?.locker?.warehouse?.id
+        } : undefined}
       />
 
       <DocumentDetailModal

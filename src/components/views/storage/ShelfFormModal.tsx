@@ -49,6 +49,8 @@ export default function ShelfFormModal({
   isLoading,
   initialData,
 }: ShelfFormModalProps) {
+
+
   const [form] = Form.useForm<FormValues>();
   const { departmentDropdown, fetchDropdown: fetchDeptDropdown } = useDepartmentStore();
   const { divisionDropdown, fetchDropdown: fetchDivDropdown } = useDivisionStore();
@@ -63,9 +65,9 @@ export default function ShelfFormModal({
     if (isOpen) {
       fetchDeptDropdown();
       const isEditing = initialData && 'id' in initialData;
+      const locker = (initialData as any)?.locker;
       
-      if (isEditing) {
-        const locker = (initialData as any)?.locker;
+      if (isEditing || locker) {
         const warehouseId = locker?.warehouseId;
         const deptId = locker?.warehouse?.departmentId;
         const divId = locker?.warehouse?.divisionId;
@@ -80,29 +82,34 @@ export default function ShelfFormModal({
         if (warehouseId) fetchLockerDropdown({ warehouseId });
         else fetchLockerDropdown();
 
-        form.setFieldsValue({
-          lockerId: initialData.lockerId,
-          shelves: [
-            {
-              name: initialData.name,
-              maxQty: initialData.maxQty,
-              description: initialData.description || undefined,
-            }
-          ],
-          isActive: initialData.status === 'A' || initialData.status === 'ACTIVE',
-        });
+        setTimeout(() => {
+          if (!isEditing) form.resetFields();
+          form.setFieldsValue({
+            lockerId: (initialData as any)?.lockerId,
+            shelves: isEditing ? [
+              {
+                name: (initialData as any)?.name,
+                maxQty: (initialData as any)?.maxQty,
+                description: (initialData as any)?.description || undefined,
+              }
+            ] : [{ maxQty: 30 }],
+            isActive: isEditing ? (initialData as any)?.status === 'A' || (initialData as any)?.status === 'ACTIVE' : true,
+          });
+        }, 0);
       } else {
         setFilterDeptId(undefined);
         setFilterDivId(undefined);
         setFilterWarehouseId(undefined);
         fetchWarehouseDropdown();
         fetchLockerDropdown();
-        form.resetFields();
-        form.setFieldsValue({ 
-          isActive: true, 
-          lockerId: (initialData as any)?.lockerId || undefined,
-          shelves: [{ maxQty: 30 }]
-        });
+        setTimeout(() => {
+          form.resetFields();
+          form.setFieldsValue({ 
+            isActive: true, 
+            lockerId: (initialData as any)?.lockerId || undefined,
+            shelves: [{ maxQty: 30 }]
+          });
+        }, 0);
       }
     }
   }, [isOpen, initialData, form, fetchDeptDropdown, fetchDivDropdown, fetchWarehouseDropdown, fetchLockerDropdown]);
@@ -169,7 +176,7 @@ export default function ShelfFormModal({
       open={isOpen}
       onCancel={onClose}
       footer={null}
-      forceRender
+
       width={600}
       centered
       title={null}

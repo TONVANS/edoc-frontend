@@ -37,7 +37,12 @@ export default function WarehouseDetailPage() {
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [movingLocker, setMovingLocker] = useState<Locker | null>(null);
 
-  const initialLockerData = useMemo(() => ({ warehouseId: id } as unknown as Locker), [id]);
+  const initialLockerData = useMemo(() => {
+    if (currentWarehouse) {
+      return { warehouseId: id, warehouse: currentWarehouse } as unknown as Locker;
+    }
+    return { warehouseId: id } as unknown as Locker;
+  }, [id, currentWarehouse]);
 
   // Debounce search
   useEffect(() => {

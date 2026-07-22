@@ -10,6 +10,8 @@ interface CreateUserModalProps {
 }
 
 export default function CreateUserModal({ open, onClose }: CreateUserModalProps) {
+  if (!open) return null;
+
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const { message } = App.useApp();

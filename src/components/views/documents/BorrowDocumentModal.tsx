@@ -23,6 +23,8 @@ export default function BorrowDocumentModal({
   document,
   onSuccess,
 }: BorrowDocumentModalProps) {
+
+
   const [form] = Form.useForm();
   const [borrowType, setBorrowType] = useState<'INTERNAL' | 'EXTERNAL'>('INTERNAL');
   
@@ -31,7 +33,9 @@ export default function BorrowDocumentModal({
 
   useEffect(() => {
     if (isOpen) {
-      form.resetFields();
+      setTimeout(() => {
+        form.resetFields();
+      }, 0);
       setBorrowType('INTERNAL');
       fetchDivisionDropdown();
     }

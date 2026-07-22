@@ -34,19 +34,23 @@ export default function DocumentTypeFormModal({
   isLoading,
   initialData,
 }: DocumentTypeFormModalProps) {
+
+
   const [form] = Form.useForm<FormValues>();
 
   useEffect(() => {
     if (isOpen) {
-      if (initialData) {
-        form.setFieldsValue({
-          code: initialData.code || undefined,
-          name: initialData.name,
-          description: initialData.description || undefined,
-        });
-      } else {
-        form.resetFields();
-      }
+      setTimeout(() => {
+        if (initialData) {
+          form.setFieldsValue({
+            code: initialData.code || undefined,
+            name: initialData.name,
+            description: initialData.description || undefined,
+          });
+        } else {
+          form.resetFields();
+        }
+      }, 0);
     }
   }, [isOpen, initialData, form]);
 

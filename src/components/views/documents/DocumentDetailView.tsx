@@ -157,7 +157,7 @@ export default function DocumentDetailView({
               <span className="inline-flex items-center font-mono font-bold text-[12px] text-emerald-200 bg-white/10 border border-white/15 px-3 py-1 rounded-lg shadow-sm mb-2">
                 {doc.docNo}
               </span>
-              <h2 className="text-white font-black text-2xl tracking-tight leading-tight truncate max-w-[450px]" title={doc.title}>
+              <h2 className="text-white font-black text-2xl tracking-tight leading-tight truncate max-w-112.5" title={doc.title}>
                 {doc.title}
               </h2>
             </div>
@@ -165,7 +165,7 @@ export default function DocumentDetailView({
         </header>
 
         {/* ══ BODY ════════════════════════════════════════════ */}
-        <main className="px-10 py-8 -mt-8 bg-white/85 backdrop-blur-2xl rounded-t-[32px] border-t border-white shadow-[0_-12px_40px_rgba(0,0,0,0.03)] relative z-10 overflow-y-auto flex-1">
+        <main className="px-10 py-8 -mt-8 bg-white/85 backdrop-blur-2xl rounded-t-4xl border-t border-white shadow-[0_-12px_40px_rgba(0,0,0,0.03)] relative z-10 overflow-y-auto flex-1">
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             

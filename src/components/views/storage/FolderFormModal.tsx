@@ -45,6 +45,8 @@ export default function FolderFormModal({
   isLoading,
   initialData,
 }: FolderFormModalProps) {
+
+
   const [form] = Form.useForm<FormValues>();
   const { departmentDropdown, fetchDropdown: fetchDeptDropdown } = useDepartmentStore();
   const { divisionDropdown, fetchDropdown: fetchDivDropdown } = useDivisionStore();
@@ -61,9 +63,9 @@ export default function FolderFormModal({
     if (isOpen) {
       fetchDeptDropdown();
       const isEditing = initialData && 'id' in initialData;
+      const shelf = (initialData as any)?.shelf;
 
-      if (isEditing) {
-        const shelf = (initialData as any)?.shelf;
+      if (isEditing || shelf) {
         const lockerId = shelf?.lockerId;
         const warehouseId = shelf?.locker?.warehouseId;
         const deptId = shelf?.locker?.warehouse?.departmentId;
@@ -83,11 +85,14 @@ export default function FolderFormModal({
         if (lockerId) fetchShelves({ lockerId, limit: 1000 });
         else fetchShelves({ limit: 1000 });
 
-        form.setFieldsValue({
-          shelfId: initialData.shelfId,
-          name: initialData.name,
-          description: initialData.description || undefined,
-        });
+        setTimeout(() => {
+          if (!isEditing) form.resetFields();
+          form.setFieldsValue({
+            shelfId: (initialData as any)?.shelfId,
+            name: isEditing ? (initialData as any).name : undefined,
+            description: isEditing ? (initialData as any).description || undefined : undefined,
+          });
+        }, 0);
       } else {
         setFilterDeptId(undefined);
         setFilterDivId(undefined);
@@ -96,10 +101,12 @@ export default function FolderFormModal({
         fetchWarehouseDropdown();
         fetchLockerDropdown();
         fetchShelves({ limit: 1000 });
-        form.resetFields();
-        form.setFieldsValue({ 
-          shelfId: (initialData as any)?.shelfId || undefined
-        });
+        setTimeout(() => {
+          form.resetFields();
+          form.setFieldsValue({ 
+            shelfId: (initialData as any)?.shelfId || undefined
+          });
+        }, 0);
       }
     }
   }, [isOpen, initialData, form, fetchDeptDropdown, fetchDivDropdown, fetchWarehouseDropdown, fetchLockerDropdown, fetchShelves]);
@@ -162,7 +169,7 @@ export default function FolderFormModal({
       open={isOpen}
       onCancel={onClose}
       footer={null}
-      forceRender
+
       width={600}
       centered
       title={null}
