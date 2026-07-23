@@ -20,7 +20,7 @@ async function proxyRequest(
 
     const method = request.method;
     // Only read body for methods that support it
-    const body = method !== "GET" && method !== "HEAD" ? await request.text() : undefined;
+    const body = method !== "GET" && method !== "HEAD" ? await request.arrayBuffer() : undefined;
 
     const cookieStore = await cookies();
     const token = cookieStore.get("accessToken")?.value;
