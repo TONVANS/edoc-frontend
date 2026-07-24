@@ -16,7 +16,7 @@ interface ShelfState {
 
   // ── Actions ──
   fetchShelves: (params?: { page?: number; limit?: number; departmentId?: number; divisionId?: number; lockerId?: string; warehouseId?: string; search?: string; status?: string }) => Promise<void>;
-  fetchShelfDropdown: (params?: { lockerId?: string; warehouseId?: string }) => Promise<void>;
+  fetchShelfDropdown: (params?: { lockerId?: string; warehouseId?: string; search?: string }) => Promise<void>;
   fetchShelfById: (id: string) => Promise<void>;
   fetchByLocker: (lockerId: string, params?: { page?: number; limit?: number }) => Promise<void>;
   createShelf: (payload: CreateShelfPayload) => Promise<boolean>;
@@ -83,13 +83,20 @@ export const useShelfStore = create<ShelfState>((set, get) => ({
   createShelf: async (payload: CreateShelfPayload & { status?: string }) => {
     set({ isLoading: true });
     try {
-      const { status, ...restPayload } = payload as any;
-      const finalPayload = Object.fromEntries(
-        Object.entries(restPayload).filter(([_, v]) => v !== undefined)
-      );
-      await api.post(`/shelves`, finalPayload);
-      if (payload.lockerId) {
-        await get().fetchByLocker(payload.lockerId);
+      const { status, shelves, lockerId, ...restPayload } = payload as any;
+      
+      if (shelves && lockerId) {
+        await api.post(`/shelves/locker/${lockerId}`, { shelves });
+      } else {
+        const finalPayload = Object.fromEntries(
+          Object.entries(restPayload).filter(([_, v]) => v !== undefined)
+        );
+        if (lockerId) finalPayload.lockerId = lockerId;
+        await api.post(`/shelves`, finalPayload);
+      }
+      
+      if (lockerId || payload.lockerId) {
+        await get().fetchByLocker(lockerId || payload.lockerId);
       } else {
         await get().fetchShelves();
       }

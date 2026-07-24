@@ -7,6 +7,8 @@ interface FolderTagPrintProps {
   departmentName: string;
   folderName: string;
   qrData: string;
+  code: string;
+  locationRef: string;
 }
 
 export default function FolderTagPrint({
@@ -15,6 +17,8 @@ export default function FolderTagPrint({
   departmentName,
   folderName,
   qrData,
+  code,
+  locationRef,
 }: FolderTagPrintProps) {
   const [qrUrl, setQrUrl] = React.useState<string>('');
 
@@ -33,14 +37,14 @@ export default function FolderTagPrint({
         boxSizing: 'border-box',
         display: 'flex',
         flexDirection: 'column',
-        margin: '0 auto',
+        margin: '0',
         overflow: 'hidden',
       }}
     >
       <style>{`
         @media print {
           @page {
-            size: 5.5cm 19cm;
+            size: A4 landscape;
             margin: 0;
           }
           body {
@@ -161,22 +165,36 @@ export default function FolderTagPrint({
         style={{
           padding: '14px 6px',
           display: 'flex',
+          flexDirection: 'column',
           justifyContent: 'center',
           alignItems: 'center',
           minHeight: '2.5cm',
+          gap: '4px',
         }}
       >
         <div
           style={{
             fontFamily: '"Times New Roman", Times, serif',
             fontWeight: 'bold',
-            fontSize: '19px',
+            fontSize: '16px',
             textAlign: 'center',
             wordBreak: 'break-all',
             letterSpacing: '0.5px',
           }}
         >
-          {qrData}
+          {locationRef}
+        </div>
+        <div
+          style={{
+            fontFamily: '"Times New Roman", Times, serif',
+            fontWeight: 'bold',
+            fontSize: '16px',
+            textAlign: 'center',
+            wordBreak: 'break-all',
+            letterSpacing: '0.5px',
+          }}
+        >
+          {code}
         </div>
       </div>
     </div>

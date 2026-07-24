@@ -40,6 +40,7 @@ interface FetchDocumentsParams {
 interface DocumentState {
   documents: Document[];
   expiredDocuments: Document[];
+  destroyedDocuments: Document[];
   total: number;
   totalPages: number;
   isLoading: boolean;
@@ -60,6 +61,7 @@ interface DocumentState {
   ) => Promise<void>;
   viewAttachment: (attachmentId: string) => Promise<void>;
   fetchExpiredDocuments: () => Promise<void>;
+  fetchDestroyedDocuments: () => Promise<void>;
   deleteExpiredDocuments: () => Promise<boolean>;
   exportDocuments: (params?: FetchDocumentsParams) => Promise<void>;
   approveDestruction: (documentIds: string[]) => Promise<boolean>;
@@ -68,6 +70,7 @@ interface DocumentState {
 export const useDocumentStore = create<DocumentState>((set, get) => ({
   documents: [],
   expiredDocuments: [],
+  destroyedDocuments: [],
   total: 0,
   totalPages: 1,
   isLoading: false,
@@ -180,68 +183,45 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   ) => {
     set({ isLoading: true, uploadProgress: 0 });
     try {
-      // If files are included, use multipart/form-data
+      const formData = new FormData();
+
+      const allowedKeys = [
+        "docNo",
+        "docDate",
+        "title",
+        "shortName",
+        "description",
+        "docExpire",
+        "qrCode",
+        "folderId",
+        "documentTypeId",
+        "isContractBound",
+        "departmentId",
+        "divisionId",
+      ];
+
+      Object.entries(payload).forEach(([key, value]) => {
+        if (allowedKeys.includes(key) && value !== undefined && value !== null) {
+          formData.append(
+            key,
+            typeof value === "boolean" ? String(value) : String(value),
+          );
+        }
+      });
+
       if (files && files.length > 0) {
-        const formData = new FormData();
-
-        const allowedKeys = [
-          "docNo",
-          "docDate",
-          "title",
-          "description",
-          "docExpire",
-          "qrCode",
-          "folderId",
-          "documentTypeId",
-          "isContractBound",
-          "departmentId",
-          "divisionId",
-        ];
-
-        Object.entries(payload).forEach(([key, value]) => {
-          if (allowedKeys.includes(key) && value !== undefined) {
-            formData.append(
-              key,
-              typeof value === "boolean" ? String(value) : String(value),
-            );
-          }
-        });
-
         files.forEach((file) => {
           formData.append("files", file);
         });
-
-        await api.put(`/documents/${id}`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-          onUploadProgress: (progressEvent) => {
-            const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
-            set({ uploadProgress: percentCompleted });
-          },
-        });
-      } else {
-        // JSON payload (no files)
-        const allowedKeys = [
-          "docNo",
-          "docDate",
-          "title",
-          "description",
-          "docExpire",
-          "qrCode",
-          "folderId",
-          "documentTypeId",
-          "isContractBound",
-          "departmentId",
-          "divisionId",
-        ];
-
-        const cleanPayload = Object.fromEntries(
-          Object.entries(payload).filter(
-            ([key, v]) => allowedKeys.includes(key) && v !== undefined,
-          ),
-        );
-
-        await api.put(`/documents/${id}`, cleanPayload);
       }
+
+      await api.put(`/documents/${id}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
+          set({ uploadProgress: percentCompleted });
+        },
+      });
 
       if (payload.subDocuments && payload.subDocuments.length > 0) {
         const validSubDocs = payload.subDocuments.filter(sub => sub.subDocNo && sub.subDocNo.trim() !== "");
@@ -383,6 +363,21 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     } catch (error) {
       set({ isLoading: false });
       console.error("Failed to fetch expired documents:", error);
+    }
+  },
+
+  fetchDestroyedDocuments: async () => {
+    set({ isLoading: true });
+    try {
+      const response = await api.get(`/documents/expired?isDestroyed=true`);
+      const data = response.data?.data || response.data || [];
+      set({
+        destroyedDocuments: Array.isArray(data) ? data : [],
+        isLoading: false,
+      });
+    } catch (error) {
+      set({ isLoading: false });
+      console.error("Failed to fetch destroyed documents:", error);
     }
   },
 

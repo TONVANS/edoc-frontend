@@ -1,5 +1,5 @@
 import api from "@/lib/api";
-import { Folder, CreateFolderPayload } from "@/types/prisma-mapped";
+import { Folder, CreateFolderPayload, DropdownOption } from "@/types/prisma-mapped";
 import { create } from "zustand";
 
 interface FolderResponse {
@@ -12,9 +12,11 @@ interface FolderState {
   total: number;
   isLoading: boolean;
   currentFolder: Folder | null;
+  folderDropdown: DropdownOption[];
 
   // ── Actions ──
   fetchFolders: (params?: { page?: number; limit?: number; departmentId?: number; divisionId?: number; warehouseId?: string; lockerId?: string; shelfId?: string; search?: string; status?: string }) => Promise<void>;
+  fetchFolderDropdown: (params?: { shelfId?: string; lockerId?: string; warehouseId?: string; departmentId?: number; divisionId?: number; search?: string }) => Promise<void>;
   fetchFolderById: (id: string) => Promise<void>;
   createFolder: (payload: CreateFolderPayload) => Promise<boolean>;
   updateFolder: (id: string | number, payload: Partial<CreateFolderPayload & { status: string }>) => Promise<boolean>;
@@ -23,9 +25,20 @@ interface FolderState {
 
 export const useFolderStore = create<FolderState>((set, get) => ({
   folders: [],
+  folderDropdown: [],
   total: 0,
   isLoading: false,
   currentFolder: null,
+
+  fetchFolderDropdown: async (params = {}) => {
+    try {
+      const response = await api.get(`/folders/dropdown`, { params });
+      const data = response.data?.data || response.data || [];
+      set({ folderDropdown: Array.isArray(data) ? data : [] });
+    } catch (error) {
+      console.error('Failed to fetch folder dropdown:', error);
+    }
+  },
 
   fetchFolders: async (params) => {
     set({ isLoading: true });

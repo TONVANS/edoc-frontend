@@ -4,6 +4,7 @@ import { Button, Input, Select, Tooltip, Dropdown, Pagination } from 'antd';
 import { Folder } from '@/types/prisma-mapped';
 import { useBorrowCartStore } from '@/store/useBorrowCartStore';
 import { useAddToCart } from '@/components/views/borrow/useAddToCart';
+import { useShelfStore } from '@/store/useShelfStore';
 
 interface FolderTableProps {
   data: Folder[];
@@ -69,10 +70,19 @@ export default function FolderTable({
   hideFilters = false,
 }: FolderTableProps) {
 
+  const { shelfDropdown, fetchShelfDropdown } = useShelfStore();
+
+  React.useEffect(() => {
+    fetchShelfDropdown({
+      lockerId: filterLocker && filterLocker !== 'all' ? filterLocker : undefined,
+      warehouseId: filterWarehouse && filterWarehouse !== 'all' ? filterWarehouse : undefined,
+    });
+  }, [fetchShelfDropdown, filterLocker, filterWarehouse]);
+
   const shelfOptions = useMemo(() => [
     { value: 'all', label: 'ທັງໝົດ (ຊັ້ນ)' },
-    ...shelves.map(s => ({ value: s.id, label: s.name || s.code }))
-  ], [shelves]);
+    ...shelfDropdown.map(s => ({ value: String(s.id), label: s.name || s.code || '' }))
+  ], [shelfDropdown]);
 
   const { isInCart } = useBorrowCartStore();
   const { handleAddToCart, contextHolder } = useAddToCart();
@@ -80,7 +90,7 @@ export default function FolderTable({
   return (
     <section className="w-full flex flex-col gap-6 font-lao" aria-label="ຕາຕະລາງຂໍ້ມູນແຟ້ມ">
       {contextHolder}
-      <header className="flex flex-wrap items-center justify-between gap-4 bg-white/40 backdrop-blur-xl p-5 rounded-[24px] shadow-glass border border-white/60">
+      <header className="flex flex-wrap items-center justify-between gap-4 bg-white/40 backdrop-blur-xl p-5 rounded-3xl shadow-glass border border-white/60">
         <div className="flex flex-wrap items-center gap-4 flex-1 min-w-0">
           <Input
             prefix={<Search size={18} className="text-slate-400 mr-1" />}
@@ -89,7 +99,7 @@ export default function FolderTable({
             onChange={(e) => onSearchChange(e.target.value)}
             size="large"
             allowClear
-            className="flex-1 min-w-[240px] max-w-[320px] rounded-[16px] bg-white/60 border-white/80 hover:bg-white focus-within:bg-white shadow-sm transition-all duration-300 focus-within:border-[#185C4D] h-[48px]"
+            className="flex-1 min-w-60 max-w-80 rounded-3xl bg-white/60 border-white/80 hover:bg-white focus-within:bg-white shadow-sm transition-all duration-300 focus-within:border-[#185C4D] h-12"
           />
 
           {!hideFilters && (
@@ -101,14 +111,14 @@ export default function FolderTable({
                 onChange={onFilterDepartmentChange}
                 options={[{ value: 'all', label: 'ທັງໝົດ (ຝ່າຍ)' }, ...departmentOptions]}
                 size="large"
-                className="min-w-[150px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
+                className="min-w-37.5 [&_.ant-select-selector]:rounded-3xl! shadow-sm [&_.ant-select-selector]:h-12! [&_.ant-select-selection-item]:leading-11!"
               />
               <Select
                 value={filterDivision || 'all'}
                 onChange={onFilterDivisionChange}
                 options={[{ value: 'all', label: 'ທັງໝົດ (ພະແນກ)' }, ...divisionOptions]}
                 size="large"
-                className="min-w-[150px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
+                className="min-w-37.5 [&_.ant-select-selector]:rounded-3xl! shadow-sm [&_.ant-select-selector]:h-12! [&_.ant-select-selection-item]:leading-11!"
                 disabled={divisionOptions.length === 0 && !!filterDepartment && filterDepartment !== 'all'}
               />
 
@@ -117,7 +127,7 @@ export default function FolderTable({
                 onChange={onFilterWarehouseChange}
                 options={[{ value: 'all', label: 'ທັງໝົດ (ສາງ)' }, ...warehouseOptions]}
                 size="large"
-                className="min-w-[150px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
+                className="min-w-37.5 [&_.ant-select-selector]:rounded-3xl! shadow-sm [&_.ant-select-selector]:h-12! [&_.ant-select-selection-item]:leading-11!"
                 disabled={warehouseOptions.length === 0 && !!filterDivision && filterDivision !== 'all'}
               />
 
@@ -126,7 +136,7 @@ export default function FolderTable({
                 onChange={onFilterLockerChange}
                 options={[{ value: 'all', label: 'ທັງໝົດ (ຕູ້)' }, ...lockerOptions]}
                 size="large"
-                className="min-w-[150px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
+                className="min-w-37.5 [&_.ant-select-selector]:rounded-3xl! shadow-sm [&_.ant-select-selector]:h-12! [&_.ant-select-selection-item]:leading-11!"
                 disabled={lockerOptions.length === 0 && !!filterWarehouse && filterWarehouse !== 'all'}
               />
 
@@ -135,20 +145,28 @@ export default function FolderTable({
                 onChange={onFilterShelfChange}
                 options={shelfOptions}
                 size="large"
-                className="min-w-[150px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
-                disabled={shelves.length === 0 && !!filterLocker && filterLocker !== 'all'}
+                className="min-w-37.5 [&_.ant-select-selector]:rounded-3xl! shadow-sm [&_.ant-select-selector]:h-12! [&_.ant-select-selection-item]:leading-11!"
+                showSearch
+                filterOption={(input, option) => (option?.label as string ?? '').toLowerCase().includes(input.toLowerCase())}
+                onSearch={(val) => {
+                  fetchShelfDropdown({
+                    lockerId: filterLocker && filterLocker !== 'all' ? filterLocker : undefined,
+                    warehouseId: filterWarehouse && filterWarehouse !== 'all' ? filterWarehouse : undefined,
+                    search: val || undefined
+                  });
+                }}
               />
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-2 text-[15px] font-bold bg-[#185C4D]/5 px-5 py-3 rounded-[16px] border border-[#185C4D]/10 text-[#185C4D] shrink-0">
+        <div className="flex items-center gap-2 text-[15px] font-bold bg-[#185C4D]/5 px-5 py-3 rounded-3xl border border-[#185C4D]/10 text-[#185C4D] shrink-0">
           ທັງໝົດ <span className="text-lg font-black mx-0.5">{total}</span> ລາຍການ
         </div>
       </header>
 
-      <div className="w-full bg-white/30 backdrop-blur-2xl border border-white/50 p-6 rounded-[32px] shadow-glass overflow-x-auto">
-        <div className="min-w-[1000px]">
+      <div className="w-full bg-white/30 backdrop-blur-2xl border border-white/50 p-6 rounded-3xl shadow-glass overflow-x-auto">
+        <div className="min-w-250">
           <div className="bg-table-header text-white grid grid-cols-12 gap-4 py-5 px-8 rounded-2xl shadow-md mb-5 text-[14px] font-bold tracking-wider uppercase">
             <div className="col-span-2">ລະຫັດແຟ້ມ</div>
             <div className="col-span-3">ຊື່ແຟ້ມເກັບເອກະສານ</div>

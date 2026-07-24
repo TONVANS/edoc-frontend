@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Button, Dropdown, Pagination, Modal, message, Tabs } from 'antd';
-import { Eye, Trash2, FileText, FolderOpen, Calendar, Tag, MoreVertical, AlertTriangle } from 'lucide-react';
+import { Button, Dropdown, Pagination, Modal, message, Tabs, Upload } from 'antd';
+import { Eye, Trash2, FileText, FolderOpen, Calendar, Tag, MoreVertical, AlertTriangle, UploadCloud } from 'lucide-react';
 import { useDocumentStore } from '@/store/useDocumentStore';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
@@ -12,43 +12,65 @@ import api from '@/lib/api';
 
 export default function DocumentExpiredTable() {
   const router = useRouter();
-  const { documents, expiredDocuments, total, isLoading, fetchDocuments, fetchExpiredDocuments } = useDocumentStore();
+  const { documents, expiredDocuments, destroyedDocuments, total, isLoading, fetchDocuments, fetchExpiredDocuments, fetchDestroyedDocuments } = useDocumentStore();
   const [modal, contextHolder] = Modal.useModal();
+  const [messageApi, messageContextHolder] = message.useMessage();
   const [currentPage, setCurrentPage] = useState(1);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [detailDoc, setDetailDoc] = useState<Document | null>(null);
   const [activeTab, setActiveTab] = useState('EXPIRED');
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<string | null>(null);
+  const [deleteFile, setDeleteFile] = useState<File | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (activeTab === 'EXPIRED') {
       fetchExpiredDocuments();
-    } else if (activeTab !== 'HISTORY') {
+    } else if (activeTab === 'HISTORY') {
+      fetchDestroyedDocuments();
+    } else {
       fetchDocuments({ page: currentPage, limit: 10, retentionStatus: activeTab });
     }
-  }, [fetchDocuments, fetchExpiredDocuments, currentPage, activeTab]);
+  }, [fetchDocuments, fetchExpiredDocuments, fetchDestroyedDocuments, currentPage, activeTab]);
 
-  const handleDelete = (id: string) => {
-    modal.confirm({
-      title: 'ຢືນຢັນການລຶບ',
-      content: 'ທ່ານແນ່ໃຈບໍ່ວ່າຕ້ອງການລຶບເອກະສານນີ້?',
-      okText: 'ລຶບ',
-      okType: 'danger',
-      cancelText: 'ຍົກເລີກ',
-      centered: true,
-      onOk: async () => {
-        try {
-          await api.delete(`/documents/${id}`);
-          message.success('ລຶບເອກະສານສຳເລັດ');
-          if (activeTab === 'EXPIRED') {
-            fetchExpiredDocuments();
-          } else if (activeTab !== 'HISTORY') {
-            fetchDocuments({ page: currentPage, limit: 10, retentionStatus: activeTab });
-          }
-        } catch (error) {
-          message.error('ບໍ່ສາມາດລຶບເອກະສານໄດ້');
-        }
-      },
-    });
+  const showDeleteModal = (id: string) => {
+    setDocumentToDelete(id);
+    setDeleteFile(null);
+    setDeleteModalVisible(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!documentToDelete) return;
+    if (!deleteFile) {
+      messageApi.error('ກະລຸນາແນບເອກະສານອ້າງອີງການທຳລາຍ (PDF)');
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', deleteFile);
+      
+      await api.delete(`/documents/${documentToDelete}`, {
+        data: formData,
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      messageApi.success('ລຶບເອກະສານສຳເລັດ');
+      setDeleteModalVisible(false);
+      setDocumentToDelete(null);
+      setDeleteFile(null);
+      
+      if (activeTab === 'EXPIRED') {
+        fetchExpiredDocuments();
+      } else if (activeTab !== 'HISTORY') {
+        fetchDocuments({ page: currentPage, limit: 10, retentionStatus: activeTab });
+      }
+    } catch (error) {
+      messageApi.error('ບໍ່ສາມາດລຶບເອກະສານໄດ້');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const tabItems = [
@@ -63,12 +85,21 @@ export default function DocumentExpiredTable() {
     setCurrentPage(1);
   };
 
-  const dataSource = activeTab === 'EXPIRED' ? expiredDocuments.slice((currentPage - 1) * 10, currentPage * 10) : documents;
-  const currentTotal = activeTab === 'EXPIRED' ? expiredDocuments.length : total;
+  const dataSource = activeTab === 'EXPIRED' 
+    ? expiredDocuments.slice((currentPage - 1) * 10, currentPage * 10) 
+    : activeTab === 'HISTORY'
+    ? destroyedDocuments.slice((currentPage - 1) * 10, currentPage * 10)
+    : documents;
+  const currentTotal = activeTab === 'EXPIRED' 
+    ? expiredDocuments.length 
+    : activeTab === 'HISTORY'
+    ? destroyedDocuments.length
+    : total;
 
   return (
     <section className="flex flex-col gap-6">
       {contextHolder}
+      {messageContextHolder}
       <DocumentDetailModal 
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
@@ -104,8 +135,8 @@ export default function DocumentExpiredTable() {
       </div>
 
       {/* ── Table Container ── */}
-      <div className="w-full bg-white/30 backdrop-blur-2xl border border-white/50 p-6 rounded-[32px] shadow-[0_8px_32px_rgba(31,38,135,0.04)] overflow-x-auto">
-        <div className="min-w-[1000px]">
+      <div className="w-full bg-white/30 backdrop-blur-2xl border border-white/50 p-6 rounded-4xl shadow-[0_8px_32px_rgba(31,38,135,0.04)] overflow-x-auto">
+        <div className="min-w-250">
           {/* Custom Header Grid */}
           <div className={`bg-linear-to-r ${activeTab === 'DESTROYABLE_HOLD' || activeTab === 'ACTIVE' ? 'from-emerald-600 to-emerald-400' : 'from-rose-600 to-rose-400'} text-white grid grid-cols-12 gap-4 py-4.5 px-6 rounded-2xl shadow-md mb-5 text-[13px] font-bold tracking-wider uppercase items-center`}>
             <div className="col-span-2 flex items-center gap-1.5"><Tag size={14} /> ເລກທີເອກະສານ</div>
@@ -116,19 +147,12 @@ export default function DocumentExpiredTable() {
           </div>
           
           {/* Table Rows or Loader */}
-          {isLoading && activeTab !== 'HISTORY' ? (
+          {isLoading ? (
             <div className="flex justify-center items-center py-24 bg-white/20 rounded-2xl border border-white/30">
               <div className="flex flex-col items-center gap-3">
                 <div className={`w-10 h-10 border-4 rounded-full animate-spin ${activeTab === 'DESTROYABLE_HOLD' || activeTab === 'ACTIVE' ? 'border-emerald-500/20 border-t-emerald-500' : 'border-rose-500/20 border-t-rose-500'}`} />
                 <span className="text-slate-500 font-bold">ກຳລັງໂຫຼດຂໍ້ມູນ...</span>
               </div>
-            </div>
-          ) : activeTab === 'HISTORY' ? (
-            <div className="flex flex-col items-center justify-center py-28 gap-4 bg-white/20 rounded-2xl border border-dashed border-white/40">
-              <div className="w-16 h-16 rounded-2xl bg-white/40 flex items-center justify-center shadow-sm">
-                <AlertTriangle className="w-8 h-8 text-slate-300" strokeWidth={1.5} />
-              </div>
-              <p className="text-slate-400 font-bold text-lg">ຍັງບໍ່ມີຂໍ້ມູນປະຫວັດການທຳລາຍ (ກຳລັງພັດທະນາ)</p>
             </div>
           ) : dataSource.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-28 gap-4 bg-white/20 rounded-2xl border border-dashed border-white/40">
@@ -193,15 +217,37 @@ export default function DocumentExpiredTable() {
                                 setIsDetailModalOpen(true);
                               },
                             },
-                            {
-                              type: 'divider',
-                            },
-                            {
-                              key: 'delete',
-                              icon: <Trash2 size={16} className="text-rose-500" />,
-                              label: <span className="text-rose-500 font-semibold text-[13px]">ລຶບເອກະສານ</span>,
-                              onClick: () => handleDelete(item.id),
-                            }
+                            ...(activeTab === 'HISTORY' ? [
+                              { type: 'divider' },
+                              {
+                                key: 'view-approval',
+                                icon: <FileText size={16} className="text-blue-500" />,
+                                label: <span className="text-blue-500 font-medium text-[13px]">ເບິ່ງເອກະສານອ້າງອີງ</span>,
+                                onClick: async () => {
+                                  try {
+                                    const response = await api.get(`/documents/${item.id}/destruction-approval`, {
+                                      responseType: 'blob'
+                                    });
+                                    const file = new Blob([response.data], {
+                                      type: response.headers['content-type'] as string || 'application/pdf',
+                                    });
+                                    const url = window.URL.createObjectURL(file);
+                                    window.open(url, '_blank');
+                                    setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+                                  } catch (error) {
+                                    messageApi.error('ບໍ່ສາມາດເປີດເອກະສານອ້າງອີງໄດ້');
+                                  }
+                                }
+                              }
+                            ] : [
+                              { type: 'divider' },
+                              {
+                                key: 'delete',
+                                icon: <Trash2 size={16} className="text-rose-500" />,
+                                label: <span className="text-rose-500 font-semibold text-[13px]">ລຶບເອກະສານ</span>,
+                                onClick: () => showDeleteModal(item.id),
+                              }
+                            ]) as any
                           ],
                           className: "min-w-[150px] p-2 rounded-2xl border border-white/60 shadow-lg bg-white/80 backdrop-blur-xl"
                         }} 
@@ -222,7 +268,7 @@ export default function DocumentExpiredTable() {
           )}
 
           {/* Pagination Area */}
-          {!isLoading && activeTab !== 'HISTORY' && dataSource.length > 0 && (
+          {!isLoading && dataSource.length > 0 && (
             <div className="flex justify-between items-center mt-6">
               <span className="text-slate-500 text-sm font-medium">
                 ສະແດງ {dataSource.length} ຈາກທັງໝົດ {currentTotal} ລາຍການ
@@ -238,6 +284,45 @@ export default function DocumentExpiredTable() {
           )}
         </div>
       </div>
+
+      <Modal
+        title={
+          <div className="flex items-center gap-2">
+            <Trash2 className="text-rose-500" size={20} />
+            <span className="text-rose-500">ຢືນຢັນການລຶບເອກະສານ</span>
+          </div>
+        }
+        open={deleteModalVisible}
+        onCancel={() => setDeleteModalVisible(false)}
+        onOk={handleDeleteConfirm}
+        confirmLoading={isDeleting}
+        okText="ຢືນຢັນລຶບ"
+        cancelText="ຍົກເລີກ"
+        okButtonProps={{ danger: true }}
+        centered
+      >
+        <div className="py-4 flex flex-col gap-3">
+          <p className="text-slate-600 font-medium text-sm">
+            ກະລຸນາແນບເອກະສານອ້າງອີງການອະນຸມັດທຳລາຍເອກະສານ (PDF) ເພື່ອຢືນຢັນການລຶບ.
+          </p>
+          <Upload
+            maxCount={1}
+            beforeUpload={(file) => {
+              const isPdf = file.type === 'application/pdf';
+              if (!isPdf) {
+                messageApi.error('ອະນຸຍາດສະເພາະໄຟລ໌ PDF ເທົ່ານັ້ນ!');
+                return Upload.LIST_IGNORE;
+              }
+              setDeleteFile(file);
+              return false;
+            }}
+            onRemove={() => setDeleteFile(null)}
+            accept=".pdf"
+          >
+            <Button icon={<UploadCloud size={16} />}>ອັບໂຫຼດເອກະສານອ້າງອີງ</Button>
+          </Upload>
+        </div>
+      </Modal>
     </section>
   );
 }

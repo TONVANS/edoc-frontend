@@ -110,13 +110,13 @@ export default function DocumentTable({
   onBorrow,
   hideLocationFilters = false,
 }: DocumentTableProps) {
-  const { folders, fetchFolders } = useFolderStore();
+  const { folders, fetchFolders, folderDropdown, fetchFolderDropdown } = useFolderStore();
   const { documentTypes, fetchDocumentTypes } = useDocumentTypeStore();
   const { departmentDropdown, fetchDropdown: fetchDepartmentDropdown } = useDepartmentStore();
   const { divisionDropdown, fetchDropdown: fetchDivisionDropdown } = useDivisionStore();
   const { warehouses, fetchWarehouses } = useWarehouseStore();
   const { lockers, fetchLockers } = useLockerStore();
-  const { shelves, fetchShelves } = useShelfStore();
+  const { shelves, fetchShelves, shelfDropdown, fetchShelfDropdown } = useShelfStore();
   
   const { isInCart } = useBorrowCartStore();
   const { handleAddToCart, contextHolder } = useAddToCart();
@@ -135,6 +135,23 @@ export default function DocumentTable({
     fetchDivisionDropdown(departmentFilter ? { departmentId: departmentFilter } : undefined);
   }, [departmentFilter, fetchDivisionDropdown]);
 
+  useEffect(() => {
+    fetchShelfDropdown({
+      lockerId: lockerFilter || undefined,
+      warehouseId: warehouseFilter || undefined,
+    });
+  }, [fetchShelfDropdown, lockerFilter, warehouseFilter]);
+
+  useEffect(() => {
+    fetchFolderDropdown({
+      shelfId: shelfFilter || undefined,
+      lockerId: lockerFilter || undefined,
+      warehouseId: warehouseFilter || undefined,
+      departmentId: departmentFilter,
+      divisionId: divisionFilter,
+    });
+  }, [fetchFolderDropdown, shelfFilter, lockerFilter, warehouseFilter, departmentFilter, divisionFilter]);
+
   // Derived options for cascading filters
   const warehouseOptions = React.useMemo(() => {
     let filtered = warehouses;
@@ -148,17 +165,7 @@ export default function DocumentTable({
     return lockers;
   }, [lockers, warehouseFilter]);
 
-  const shelfOptions = React.useMemo(() => {
-    if (lockerFilter) return shelves.filter(s => String(s.lockerId) === lockerFilter);
-    if (warehouseFilter) return shelves.filter(s => lockerOptions.some(l => String(l.id) === String(s.lockerId)));
-    return shelves;
-  }, [shelves, lockerFilter, warehouseFilter, lockerOptions]);
 
-  const folderOptions = React.useMemo(() => {
-    if (shelfFilter) return folders.filter(f => String(f.shelfId) === shelfFilter);
-    if (lockerFilter || warehouseFilter) return folders.filter(f => shelfOptions.some(s => String(s.id) === String(f.shelfId)));
-    return folders;
-  }, [folders, shelfFilter, lockerFilter, warehouseFilter, shelfOptions]);
 
   // Handlers for cascading selects
   const handleWarehouseChange = (val: string) => {
@@ -262,7 +269,7 @@ export default function DocumentTable({
     <section className="w-full flex flex-col gap-6" aria-label="ຕາຕະລາງຂໍ້ມູນເອກະສານ">
       {contextHolder}
       {/* ── Filter / Search Bar ── */}
-      <header className="flex flex-wrap items-center justify-between gap-4 bg-white/40 backdrop-blur-xl p-5 rounded-[24px] shadow-glass border border-white/60">
+      <header className="flex flex-wrap items-center justify-between gap-4 bg-white/40 backdrop-blur-xl p-5 rounded-3xl shadow-glass border border-white/60">
         <div className="flex flex-wrap items-center gap-4 flex-1 min-w-0">
           {/* Search */}
           <Input
@@ -272,7 +279,7 @@ export default function DocumentTable({
             onChange={(e) => onSearchChange(e.target.value)}
             size="large"
             allowClear
-            className="w-full sm:w-[280px] rounded-[16px] bg-white/60 border-white/80 hover:bg-white focus-within:bg-white shadow-sm transition-all duration-300 focus-within:border-[#185C4D] h-[44px]"
+            className="w-full sm:w-70 rounded-[16px] bg-white/60 border-white/80 hover:bg-white focus-within:bg-white shadow-sm transition-all duration-300 focus-within:border-[#185C4D] h-11"
           />
 
           {/* Document Type Filter */}
@@ -281,7 +288,7 @@ export default function DocumentTable({
             value={docTypeFilter || undefined}
             onChange={(val) => onDocTypeFilterChange(val || '')}
             allowClear
-            className="w-full sm:w-[180px] h-[44px]"
+            className="w-full sm:w-45 h-11"
             classNames={{ popup: { root: "rounded-xl border border-white/60 shadow-glass" } }}
           >
             {documentTypes.map(t => (
@@ -295,7 +302,7 @@ export default function DocumentTable({
             value={contractFilter || undefined}
             onChange={(val) => onContractFilterChange(val || '')}
             allowClear
-            className="w-full sm:w-[180px] h-[44px]"
+            className="w-full sm:w-45 h-11"
             classNames={{ popup: { root: "rounded-xl border border-white/60 shadow-glass" } }}
           >
             <Select.Option value="ACTIVE">10ປີ ສາມາດທຳລາຍໄດ້</Select.Option>
@@ -305,7 +312,7 @@ export default function DocumentTable({
           {/* Advanced Filters Popover */}
           <Popover
             content={
-              <div className="flex flex-col gap-5 w-[340px] sm:w-[420px] p-3">
+              <div className="flex flex-col gap-5 w-85 sm:w-105 p-3">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                   <span className="font-bold text-slate-700 text-base">ຕົວກອງເພີ່ມເຕີມ</span>
                   {hasAdvancedFilters && (
@@ -333,18 +340,33 @@ export default function DocumentTable({
                   <div className="flex flex-col gap-2">
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">ສະຖານທີ່ເກັບຮັກສາ</span>
                     <div className="grid grid-cols-2 gap-3">
-                      <Select placeholder="ສາງ" value={warehouseFilter || undefined} onChange={handleWarehouseChange} allowClear className="w-full h-[40px]" classNames={{ popup: { root: "rounded-xl shadow-glass" } }}>
+                      <Select placeholder="ສາງ" value={warehouseFilter || undefined} onChange={handleWarehouseChange} allowClear className="w-full h-11" classNames={{ popup: { root: "rounded-xl shadow-glass" } }}>
                         {warehouseOptions.map(w => <Select.Option key={w.id} value={String(w.id)}>{w.name}</Select.Option>)}
                       </Select>
-                      <Select placeholder="ຕູ້" value={lockerFilter || undefined} onChange={handleLockerChange} allowClear className="w-full h-[40px]" classNames={{ popup: { root: "rounded-xl shadow-glass" } }}>
+                      <Select placeholder="ຕູ້" value={lockerFilter || undefined} onChange={handleLockerChange} allowClear className="w-full h-11" classNames={{ popup: { root: "rounded-xl shadow-glass" } }}>
                         {lockerOptions.map(l => <Select.Option key={l.id} value={String(l.id)}>{l.name || l.code}</Select.Option>)}
                       </Select>
-                      <Select placeholder="ຊັ້ນວາງ" value={shelfFilter || undefined} onChange={handleShelfChange} allowClear className="w-full h-[40px]" classNames={{ popup: { root: "rounded-xl shadow-glass" } }}>
-                        {shelfOptions.map(s => <Select.Option key={s.id} value={String(s.id)}>{s.name}</Select.Option>)}
+                      <Select placeholder="ຊັ້ນວາງ" value={shelfFilter || undefined} onChange={handleShelfChange} allowClear className="w-full h-11" classNames={{ popup: { root: "rounded-xl shadow-glass" } }} showSearch filterOption={(input, option) => (option?.children as unknown as string).toLowerCase().includes(input.toLowerCase())} onSearch={(val) => {
+                        fetchShelfDropdown({
+                          lockerId: lockerFilter || undefined,
+                          warehouseId: warehouseFilter || undefined,
+                          search: val || undefined
+                        });
+                      }}>
+                        {shelfDropdown.map(s => <Select.Option key={s.id} value={String(s.id)}>{s.name || s.code}</Select.Option>)}
                       </Select>
                     </div>
-                    <Select placeholder="ແຟ້ມເອກະສານ" value={folderFilter || undefined} onChange={handleFolderChange} allowClear className="w-full h-[40px] mt-1" classNames={{ popup: { root: "rounded-xl shadow-glass" } }}>
-                      {folderOptions.map(f => <Select.Option key={f.id} value={String(f.id)}>{f.name || f.code}</Select.Option>)}
+                    <Select placeholder="ແຟ້ມເອກະສານ" value={folderFilter || undefined} onChange={handleFolderChange} allowClear className="w-full h-11 mt-1" classNames={{ popup: { root: "rounded-xl shadow-glass" } }} showSearch filterOption={(input, option) => (option?.children as unknown as string).toLowerCase().includes(input.toLowerCase())} onSearch={(val) => {
+                      fetchFolderDropdown({
+                        shelfId: shelfFilter || undefined,
+                        lockerId: lockerFilter || undefined,
+                        warehouseId: warehouseFilter || undefined,
+                        departmentId: departmentFilter,
+                        divisionId: divisionFilter,
+                        search: val || undefined
+                      });
+                    }}>
+                      {folderDropdown.map(f => <Select.Option key={f.id} value={String(f.id)}>{f.name || f.code}</Select.Option>)}
                     </Select>
                   </div>
                 )}
@@ -352,10 +374,10 @@ export default function DocumentTable({
                 <div className="flex flex-col gap-2">
                   <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">ມາຈາກພາກສ່ວນ</span>
                   <div className="grid grid-cols-2 gap-3">
-                    <Select placeholder="ເລືອກຝ່າຍ" value={departmentFilter} onChange={(val) => { onDepartmentFilterChange?.(val); onDivisionFilterChange?.(undefined); }} allowClear className="w-full h-[40px]" classNames={{ popup: { root: "rounded-xl shadow-glass" } }}>
+                    <Select placeholder="ເລືອກຝ່າຍ" value={departmentFilter} onChange={(val) => { onDepartmentFilterChange?.(val); onDivisionFilterChange?.(undefined); }} allowClear className="w-full h-11" classNames={{ popup: { root: "rounded-xl shadow-glass" } }}>
                       {departmentDropdown.map(d => <Select.Option key={d.id} value={d.id}>{d.name}</Select.Option>)}
                     </Select>
-                    <Select placeholder="ພະແນກ" value={divisionFilter} onChange={(val) => onDivisionFilterChange?.(val)} allowClear disabled={!departmentFilter} className="w-full h-[40px]" classNames={{ popup: { root: "rounded-xl shadow-glass" } }}>
+                    <Select placeholder="ພະແນກ" value={divisionFilter} onChange={(val) => onDivisionFilterChange?.(val)} allowClear disabled={!departmentFilter} className="w-full h-11" classNames={{ popup: { root: "rounded-xl shadow-glass" } }}>
                       {divisionDropdown.map(d => <Select.Option key={d.id} value={d.id}>{d.name}</Select.Option>)}
                     </Select>
                   </div>
@@ -364,7 +386,7 @@ export default function DocumentTable({
                 <div className="flex flex-col gap-2">
                   <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">ວັນທີເອກະສານ</span>
                   <RangePicker
-                    className="w-full h-[40px] rounded-[12px]"
+                    className="w-full h-11 rounded-2xl"
                     placeholder={['ເລີ່ມຕົ້ນ', 'ສິ້ນສຸດ']}
                     value={startDateFilter && endDateFilter ? [dayjs(startDateFilter), dayjs(endDateFilter)] : null}
                     onChange={(dates) => {
@@ -387,7 +409,7 @@ export default function DocumentTable({
             <Button
               type="default"
               icon={<Filter size={18} className={hasAdvancedFilters ? "text-[#185C4D]" : "text-slate-500"} />}
-              className={`relative h-[44px] px-5 rounded-[16px] bg-white/60 border hover:bg-white shadow-sm transition-all duration-300 flex items-center gap-2 font-semibold ${hasAdvancedFilters
+              className={`relative h-11 px-5 rounded-3xl bg-white/60 border hover:bg-white shadow-sm transition-all duration-300 flex items-center gap-2 font-semibold ${hasAdvancedFilters
                   ? 'border-[#185C4D]/30 text-[#185C4D]'
                   : 'border-white/80 text-slate-600 focus-within:bg-white focus-within:border-[#185C4D]'
                 }`}
@@ -410,8 +432,8 @@ export default function DocumentTable({
       </header>
 
       {/* ── Table Container ── */}
-      <div className="w-full bg-white/30 backdrop-blur-2xl border border-white/50 p-6 rounded-[32px] shadow-glass overflow-x-auto">
-        <div className="min-w-[1100px]">
+      <div className="w-full bg-white/30 backdrop-blur-2xl border border-white/50 p-6 rounded-4xl shadow-glass overflow-x-auto">
+        <div className="min-w-275">
           {/* Custom Header Grid */}
           <div className="bg-[#185C4D] text-white grid grid-cols-12 gap-4 py-4.5 px-6 rounded-2xl shadow-md mb-5 text-[13px] font-bold tracking-wider uppercase items-center">
             <div className="col-span-2 flex items-center gap-1.5"><Tag size={14} /> ເລກທີເອກະສານ</div>

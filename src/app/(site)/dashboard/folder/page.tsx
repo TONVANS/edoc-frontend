@@ -399,6 +399,8 @@ function FolderPageContent() {
               departmentName={(selectedFolderForPrint as any).shelf?.locker?.warehouse?.department?.name || 'ຝ່າຍບັນຊີ'}
               folderName={selectedFolderForPrint.name}
               qrData={selectedFolderForPrint.qrCode || ''}
+              code={selectedFolderForPrint.code || ''}
+              locationRef={selectedFolderForPrint.locationRef || ''}
             />
           )}
         </div>

@@ -358,6 +358,9 @@ export interface Department {
   status: string;
 }
 
+export type CreateDepartmentPayload = Omit<Department, "id">;
+export type UpdateDepartmentPayload = Partial<CreateDepartmentPayload>;
+
 // ── HRM: Division ────────────────────────────────────────────
 
 export interface Division {
@@ -369,6 +372,9 @@ export interface Division {
   departmentId: number;
   branchId?: number;
 }
+
+export type CreateDivisionPayload = Omit<Division, "id" | "branchId">;
+export type UpdateDivisionPayload = Partial<CreateDivisionPayload>;
 
 // ── HRM: Office ──────────────────────────────────────────────
 

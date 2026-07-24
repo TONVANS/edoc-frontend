@@ -33,7 +33,7 @@ const routePermissions = [
   { path: '/dashboard/units', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN'] },
 ];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Check if the user is trying to access a protected route (e.g., /dashboard)
@@ -69,7 +69,7 @@ export function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-// Apply middleware to specific paths
+// Apply proxy to specific paths
 export const config = {
   matcher: [
     '/dashboard/:path*',

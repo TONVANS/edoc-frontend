@@ -86,7 +86,7 @@ export default function BorrowCartDrawer({ isOpen, onClose }: BorrowCartDrawerPr
       closable={false}
       maskClosable={!isLoading}
       styles={{ body: { padding: 0 } }}
-      destroyOnClose={false}
+      destroyOnHidden
     >
       <div className="flex flex-col h-full bg-white relative">
         

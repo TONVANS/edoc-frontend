@@ -5,14 +5,17 @@ import React from 'react';
 import { Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { Division } from '@/types/prisma-mapped';
-import { GitBranch } from 'lucide-react';
+import { GitBranch, Edit2, Trash2 } from 'lucide-react';
+import { Button, Modal } from 'antd';
 
 interface DivisionListViewProps {
   data: Division[];
   isLoading: boolean;
+  onEdit?: (division: Division) => void;
+  onDelete?: (division: Division) => void;
 }
 
-export default function DivisionListView({ data, isLoading }: DivisionListViewProps) {
+export default function DivisionListView({ data, isLoading, onEdit, onDelete }: DivisionListViewProps) {
   const columns: ColumnsType<Division> = [
     {
       title: 'ລະຫັດ',
@@ -61,10 +64,45 @@ export default function DivisionListView({ data, isLoading }: DivisionListViewPr
         );
       },
     },
+    {
+      title: 'ຈັດການ',
+      key: 'actions',
+      width: '15%',
+      render: (_, record) => (
+        <div className="flex items-center gap-2">
+          {onEdit && (
+            <Button
+              type="text"
+              icon={<Edit2 size={16} />}
+              onClick={() => onEdit(record)}
+              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+            />
+          )}
+          {onDelete && (
+            <Button
+              type="text"
+              danger
+              icon={<Trash2 size={16} />}
+              onClick={() => {
+                Modal.confirm({
+                  title: 'ຢືນຢັນການລຶບ',
+                  content: `ທ່ານຕ້ອງການລຶບພະແນກ "${record.name}" ແທ້ຫຼືບໍ່?`,
+                  okText: 'ລຶບ',
+                  okType: 'danger',
+                  cancelText: 'ຍົກເລີກ',
+                  onOk: () => onDelete(record),
+                });
+              }}
+              className="hover:bg-red-50"
+            />
+          )}
+        </div>
+      ),
+    },
   ];
 
   return (
-    <div className="bg-white/60 backdrop-blur-xl border border-white/80 shadow-[0_8px_30px_rgba(0,0,0,0.04)] rounded-[24px] overflow-hidden">
+    <div className="bg-white/60 backdrop-blur-xl border border-white/80 shadow-[0_8px_30px_rgba(0,0,0,0.04)] rounded-3xl overflow-hidden">
       <Table
         columns={columns}
         dataSource={data}

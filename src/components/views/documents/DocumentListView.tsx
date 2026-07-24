@@ -273,15 +273,7 @@ export default function DocumentListView() {
     
     if (editingDoc) {
       // Edit mode
-      success = await updateDocument(editingDoc.id, values);
-      
-      // If text fields update successfully and new files were attached, upload them
-      if (success && newFiles.length > 0) {
-        const uploadSuccess = await uploadAttachments(editingDoc.id, newFiles);
-        if (!uploadSuccess) {
-          messageApi.warning('ບັນທຶກຂໍ້ມູນສຳເລັດ ແຕ່ມີຂໍ້ຜິດພາດໃນການອັບໂຫຼດໄຟລ໌ໃໝ່');
-        }
-      }
+      success = await updateDocument(editingDoc.id, values, newFiles);
     } else {
       // Create mode
       const payload = {
@@ -438,12 +430,12 @@ export default function DocumentListView() {
         </div>
       </div>
 
-      <div className="bg-white/40 backdrop-blur-3xl rounded-[24px] p-6 lg:p-8 border border-white/60 shadow-glass relative overflow-hidden">
+      <div className="bg-white/40 backdrop-blur-3xl rounded-3xl p-6 lg:p-8 border border-white/60 shadow-glass relative overflow-hidden">
         <Tabs 
           activeKey={activeTab} 
           onChange={setActiveTab} 
           items={items}
-          className="[&_.ant-tabs-nav]:mb-8 [&_.ant-tabs-nav]:before:border-b-slate-200/50 [&_.ant-tabs-tab]:text-slate-400 [&_.ant-tabs-tab]:font-bold [&_.ant-tabs-tab]:text-base [&_.ant-tabs-tab]:px-6 [&_.ant-tabs-tab]:py-4 [&_.ant-tabs-tab]:transition-all [&_.ant-tabs-tab]:duration-300 [&_.ant-tabs-tab:hover]:text-slate-600 [&_.ant-tabs-tab-active]:text-[#185C4D]! [&_.ant-tabs-ink-bar]:bg-[#185C4D] [&_.ant-tabs-ink-bar]:h-[3px] [&_.ant-tabs-ink-bar]:rounded-t-full"
+          className="[&_.ant-tabs-nav]:mb-8 [&_.ant-tabs-nav]:before:border-b-slate-200/50 [&_.ant-tabs-tab]:text-slate-400 [&_.ant-tabs-tab]:font-bold [&_.ant-tabs-tab]:text-base [&_.ant-tabs-tab]:px-6 [&_.ant-tabs-tab]:py-4 [&_.ant-tabs-tab]:transition-all [&_.ant-tabs-tab]:duration-300 [&_.ant-tabs-tab:hover]:text-slate-600 [&_.ant-tabs-tab-active]:text-[#185C4D]! [&_.ant-tabs-ink-bar]:bg-[#185C4D] [&_.ant-tabs-ink-bar]:h-0.75 [&_.ant-tabs-ink-bar]:rounded-t-full"
         />
       </div>
 
@@ -496,7 +488,7 @@ export default function DocumentListView() {
         wrapClassName="backdrop-blur-md"
         className="[&_.ant-modal-content]:p-0 [&_.ant-modal-content]:bg-transparent [&_.ant-modal-content]:shadow-none"
       >
-        <div className="bg-white/80 backdrop-blur-3xl rounded-[32px] p-8 border border-white/60 shadow-glass flex flex-col items-center justify-center text-center">
+        <div className="bg-white/80 backdrop-blur-3xl rounded-4xl p-8 border border-white/60 shadow-glass flex flex-col items-center justify-center text-center">
           <div className="flex justify-between items-center w-full mb-4">
             <span className="text-slate-700 font-bold text-base flex items-center gap-1.5">
               <QrCode size={18} className="text-[#185C4D]" /> QR Code

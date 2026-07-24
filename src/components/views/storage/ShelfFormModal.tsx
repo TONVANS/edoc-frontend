@@ -153,11 +153,11 @@ export default function ShelfFormModal({
       onSubmit(payload);
     } else {
       const payload: any = {
+        lockerId: values.lockerId,
         shelves: (values.shelves || []).map(s => ({
           name: s.name?.trim(),
           description: s.description?.trim(),
-          maxQty: Number(s.maxQty),
-          lockerId: values.lockerId
+          maxQty: Number(s.maxQty)
         }))
       };
       onSubmit(payload);
@@ -186,11 +186,11 @@ export default function ShelfFormModal({
         '[&_.ant-modal-content]:p-0',
         '[&_.ant-modal-content]:bg-transparent',
         '[&_.ant-modal-content]:shadow-none',
-        '[&_.ant-modal-content]:rounded-[32px]'
+        '[&_.ant-modal-content]:rounded-4xl'
       )}
       wrapClassName="backdrop-blur-md"
     >
-      <div className="bg-white/70 backdrop-blur-3xl rounded-[32px] overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.12)] border border-white/60 relative flex flex-col">
+      <div className="bg-white/70 backdrop-blur-3xl rounded-4xl overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.12)] border border-white/60 relative flex flex-col">
         
         {/* ══ HEADER ══════════════════════════════════════════ */}
         <header className="relative px-10 pt-10 pb-14 overflow-hidden bg-linear-to-br from-[#185C4D] via-[#1c6958] to-[#257c66]">
@@ -213,7 +213,7 @@ export default function ShelfFormModal({
               <h2 className="text-white font-black text-2xl tracking-tight leading-tight">
                 {initialData && 'id' in initialData ? 'ແກ້ໄຂຂໍ້ມູນຊັ້ນວາງ' : 'ເພີ່ມຂໍ້ມູນຊັ້ນວາງໃໝ່'}
               </h2>
-              <p className="text-emerald-50/80 text-[14px] mt-1.5 font-medium max-w-[340px]">
+              <p className="text-emerald-50/80 text-[14px] mt-1.5 font-medium max-w-85">
                 ລະບຸຊື່ຊັ້ນວາງ ແລະ ກຳນົດຈຳນວນຄວາມຈຸແຟ້ມສູງສຸດ
               </p>
             </div>
@@ -221,7 +221,7 @@ export default function ShelfFormModal({
         </header>
 
         {/* ══ BODY ════════════════════════════════════════════ */}
-        <main className="px-10 py-8 -mt-8 bg-white/80 backdrop-blur-2xl rounded-t-[32px] border-t border-white shadow-[0_-12px_40px_rgba(0,0,0,0.03)] relative z-10">
+        <main className="px-10 py-8 -mt-8 bg-white/80 backdrop-blur-2xl rounded-t-4xl border-t border-white shadow-[0_-12px_40px_rgba(0,0,0,0.03)] relative z-10">
           <Form
             form={form}
             layout="vertical"
@@ -241,8 +241,8 @@ export default function ShelfFormModal({
                 </div>
               </div>
               
-              <div className="p-6 bg-[#f8faf9] rounded-[24px] border border-slate-200/60 shadow-inner relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full blur-[40px] opacity-60 translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+              <div className="p-6 bg-[#f8faf9] rounded-3xl border border-slate-200/60 shadow-inner relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full blur-2xl opacity-60 translate-x-1/2 -translate-y-1/2 pointer-events-none" />
                 
                 <div className="space-y-5 relative z-10">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -325,7 +325,7 @@ export default function ShelfFormModal({
                       {fields.map((field, index) => {
                         const { key, ...restField } = field;
                         return (
-                        <div key={key} className="p-6 bg-white/60 backdrop-blur-xl rounded-[24px] border border-white/80 shadow-[0_8px_30px_rgba(0,0,0,0.04)] relative group transition-all duration-300 hover:shadow-[0_8px_30px_rgba(24,92,77,0.06)] hover:border-white">
+                        <div key={key} className="p-6 bg-white/60 backdrop-blur-xl rounded-3xl border border-white/80 shadow-[0_8px_30px_rgba(0,0,0,0.04)] relative group transition-all duration-300 hover:shadow-[0_8px_30px_rgba(24,92,77,0.06)] hover:border-white">
                           <div className="flex items-center justify-between mb-5 pb-4 border-b border-slate-100/80">
                             <h4 className="text-[14px] font-black text-[#185C4D] flex items-center gap-2.5 bg-[#185C4D]/5 px-3 py-1.5 rounded-lg">
                               <ShelfIcon size={16} />
@@ -396,7 +396,7 @@ export default function ShelfFormModal({
                           onClick={() => add({ maxQty: 30 })}
                           block
                           icon={<Plus size={18} strokeWidth={2.5} />}
-                          className="h-14 rounded-[24px] border-2 border-dashed border-[#185C4D]/30 text-[#185C4D] hover:text-[#185C4D] hover:border-[#185C4D] hover:bg-[#185C4D]/5 transition-all duration-300 font-bold flex items-center justify-center gap-2 mt-4 shadow-sm"
+                          className="h-14 rounded-3xl border-2 border-dashed border-[#185C4D]/30 text-[#185C4D] hover:text-[#185C4D] hover:border-[#185C4D] hover:bg-[#185C4D]/5 transition-all duration-300 font-bold flex items-center justify-center gap-2 mt-4 shadow-sm"
                         >
                           ເພີ່ມຊັ້ນວາງໃໝ່
                         </Button>
@@ -410,7 +410,7 @@ export default function ShelfFormModal({
             {initialData && 'id' in initialData && (
               <div className="pt-2">
                 <Form.Item
-                  className="mb-0 p-5 bg-white/60 backdrop-blur-xl rounded-[24px] border border-white/80 shadow-[0_8px_30px_rgba(0,0,0,0.04)]"
+                  className="mb-0 p-5 bg-white/60 backdrop-blur-xl rounded-3xl border border-white/80 shadow-[0_8px_30px_rgba(0,0,0,0.04)]"
                   name="isActive"
                   valuePropName="checked"
                   label={<span className="flex items-center gap-1.5 text-[14px] font-black text-slate-700 ml-1"><Sparkles size={16} className="text-[#185C4D]" /> ສະຖານະການນຳໃຊ້ (Status)</span>}

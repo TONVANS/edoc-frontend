@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from 'react';
-import { Modal, Form, Input, Button, DatePicker, Select, Switch, Upload, Radio, Progress, message } from 'antd';
+import { Modal, Form, Input, Button, DatePicker, Select, Switch, Upload, Radio, Progress, message, App } from 'antd';
 import { Document } from '@/types/prisma-mapped';
 import { useFolderStore } from '@/store/useFolderStore';
 import { useDocumentTypeStore } from '@/store/useDocumentTypeStore';
@@ -61,6 +61,7 @@ export default function DocumentFormModal({
   const { folders, fetchFolders } = useFolderStore();
   const { documentTypes, fetchDocumentTypes } = useDocumentTypeStore();
   const { uploadProgress } = useDocumentStore();
+  const { message: messageApi } = App.useApp();
 
   const [hasInitializedForm, setHasInitializedForm] = useState(false);
 
@@ -186,7 +187,7 @@ export default function DocumentFormModal({
     beforeUpload: (file: any) => {
       const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
       if (!isPDF) {
-        message.error(`${file.name} ບໍ່ແມ່ນໄຟລ໌ PDF. ກະລຸນາອັບໂຫຼດສະເພາະໄຟລ໌ PDF ເທົ່ານັ້ນ!`);
+        messageApi.error(`${file.name} ບໍ່ແມ່ນໄຟລ໌ PDF. ກະລຸນາອັບໂຫຼດສະເພາະໄຟລ໌ PDF ເທົ່ານັ້ນ!`);
         return Upload.LIST_IGNORE;
       }
       setFileList(prev => [...prev, file]);
@@ -199,6 +200,22 @@ export default function DocumentFormModal({
   const getAttachmentDownloadUrl = (attachmentId: string) => {
     const baseUrl = api.defaults.baseURL || 'http://localhost:3000/api';
     return `${baseUrl}/documents/attachments/${attachmentId}`;
+  };
+
+  const handleRemoveSubDoc = async (name: number, remove: (name: number | number[]) => void) => {
+    const subDoc = form.getFieldValue(['subDocuments', name]);
+    if (subDoc && subDoc.id && initialData?.id) {
+      try {
+        await api.delete(`/documents/${initialData.id}/sub-documents/${subDoc.id}`);
+        messageApi.success('ລຶບເອກະສານຍ່ອຍສຳເລັດແລ້ວ');
+        remove(name);
+      } catch (error) {
+        console.error('Failed to delete sub-document:', error);
+        messageApi.error('ບໍ່ສາມາດລຶບເອກະສານຍ່ອຍໄດ້');
+      }
+    } else {
+      remove(name);
+    }
   };
 
   const inputCls =
@@ -219,11 +236,11 @@ export default function DocumentFormModal({
         '[&_.ant-modal-content]:p-0',
         '[&_.ant-modal-content]:bg-transparent',
         '[&_.ant-modal-content]:shadow-none',
-        '[&_.ant-modal-content]:rounded-[32px]'
+        '[&_.ant-modal-content]:rounded-4xl'
       )}
       wrapClassName="backdrop-blur-md"
     >
-      <div className="bg-white/70 backdrop-blur-3xl rounded-[32px] overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.12)] border border-white/60 relative flex flex-col max-h-[90vh]">
+      <div className="bg-white/70 backdrop-blur-3xl rounded-4xl overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.12)] border border-white/60 relative flex flex-col max-h-[90vh]">
 
         {/* ══ HEADER ══════════════════════════════════════════ */}
         <header className="relative px-10 pt-10 pb-14 overflow-hidden bg-linear-to-br from-[#185C4D] via-[#1c6958] to-[#257c66] shrink-0">
@@ -247,7 +264,7 @@ export default function DocumentFormModal({
               <h2 className="text-white font-black text-2xl tracking-tight leading-tight">
                 {initialData ? 'ແກ້ໄຂຂໍ້ມູນເອກະສານ' : 'ເພີ່ມເອກະສານໃໝ່'}
               </h2>
-              <p className="text-emerald-50/80 text-[14px] mt-1.5 font-medium max-w-[500px]">
+              <p className="text-emerald-50/80 text-[14px] mt-1.5 font-medium max-w-125">
                 {initialData ? 'ອັບເດດລາຍລະອຽດ, ສະຖານະການຈັດເກັບ ແລະ ໄຟລ໌ຄັດຕິດຂອງເອກະສານ' : 'ລະບຸຂໍ້ມູນເອກະສານ ແລະ ແນບໄຟລ໌ເພື່ອບັນທຶກເຂົ້າໃນລະບົບ'}
               </p>
             </div>
@@ -255,7 +272,7 @@ export default function DocumentFormModal({
         </header>
 
         {/* ══ BODY ════════════════════════════════════════════ */}
-        <main className="px-10 py-8 -mt-8 bg-white/85 backdrop-blur-2xl rounded-t-[32px] border-t border-white shadow-[0_-12px_40px_rgba(0,0,0,0.03)] relative z-10 overflow-y-auto flex-1">
+        <main className="px-10 py-8 -mt-8 bg-white/85 backdrop-blur-2xl rounded-t-4xl border-t border-white shadow-[0_-12px_40px_rgba(0,0,0,0.03)] relative z-10 overflow-y-auto flex-1">
           <Form
             form={form}
             layout="vertical"
@@ -349,15 +366,13 @@ export default function DocumentFormModal({
                                 <DatePicker className={inputCls} placeholder="ເລືອກວັນທີຍ່ອຍ" format="YYYY-MM-DD" />
                               </Form.Item>
                             </div>
-                            {fields.length > 1 && (
                               <Button
                                 type="text"
                                 danger
                                 icon={<Trash2 size={18} />}
-                                onClick={() => remove(name)}
+                                onClick={() => handleRemoveSubDoc(name, remove)}
                                 className="mt-7 shrink-0 w-12 h-12 flex items-center justify-center rounded-2xl hover:bg-rose-50 hover:text-rose-600 transition-all cursor-pointer"
                               />
-                            )}
                           </div>
                         ))}
                         <Button
@@ -445,10 +460,10 @@ export default function DocumentFormModal({
                   name="isContractBound"
                 >
                   <Radio.Group className="w-full flex bg-white/40 p-1 rounded-2xl shadow-xs border border-white/60" optionType="button">
-                    <Radio.Button value={true} className="flex-1 text-center h-10 leading-[38px] rounded-xl border-none before:hidden [&.ant-radio-button-wrapper-checked]:bg-[#185C4D] [&.ant-radio-button-wrapper-checked]:text-white transition-all font-bold text-[13px] text-slate-500 shadow-none">
+                    <Radio.Button value={true} className="flex-1 text-center h-10 leading-9.5 rounded-xl border-none before:hidden [&.ant-radio-button-wrapper-checked]:bg-[#185C4D] [&.ant-radio-button-wrapper-checked]:text-white transition-all font-bold text-[13px] text-slate-500 shadow-none">
                       ບໍ່ສາມາດທຳລາຍໄດ້
                     </Radio.Button>
-                    <Radio.Button value={false} className="flex-1 text-center h-10 leading-[38px] rounded-xl border-none before:hidden [&.ant-radio-button-wrapper-checked]:bg-[#185C4D] [&.ant-radio-button-wrapper-checked]:text-white transition-all font-bold text-[13px] text-slate-500 shadow-none">
+                    <Radio.Button value={false} className="flex-1 text-center h-10 leading-9.5 rounded-xl border-none before:hidden [&.ant-radio-button-wrapper-checked]:bg-[#185C4D] [&.ant-radio-button-wrapper-checked]:text-white transition-all font-bold text-[13px] text-slate-500 shadow-none">
                       ສາມາດທຳລາຍໄດ້
                     </Radio.Button>
                   </Radio.Group>
@@ -507,7 +522,7 @@ export default function DocumentFormModal({
 
               {/* Upload new attachments */}
               <Form.Item>
-                <Upload.Dragger {...uploadProps} className="bg-white/30 hover:bg-white/40 border-2 border-dashed border-slate-300 rounded-[24px] p-6 text-center cursor-pointer transition-all duration-300">
+                <Upload.Dragger {...uploadProps} className="bg-white/30 hover:bg-white/40 border-2 border-dashed border-slate-300 rounded-3xl p-6 text-center cursor-pointer transition-all duration-300">
                   <p className="text-center text-3xl text-slate-400">
                     <UploadCloud className="mx-auto text-slate-400 w-10 h-10 mb-2" strokeWidth={1.5} />
                   </p>
