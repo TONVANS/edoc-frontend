@@ -90,8 +90,8 @@ export default function FolderTable({
   return (
     <section className="w-full flex flex-col gap-6 font-lao" aria-label="ຕາຕະລາງຂໍ້ມູນແຟ້ມ">
       {contextHolder}
-      <header className="flex flex-wrap items-center justify-between gap-4 bg-white/40 backdrop-blur-xl p-5 rounded-3xl shadow-glass border border-white/60">
-        <div className="flex flex-wrap items-center gap-4 flex-1 min-w-0">
+      <header className="flex flex-col gap-5 bg-white/40 backdrop-blur-xl p-5 rounded-3xl shadow-glass border border-white/60">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <Input
             prefix={<Search size={18} className="text-slate-400 mr-1" />}
             placeholder="ຄົ້ນຫາຊື່ ຫຼື ລະຫັດແຟ້ມ..."
@@ -99,53 +99,70 @@ export default function FolderTable({
             onChange={(e) => onSearchChange(e.target.value)}
             size="large"
             allowClear
-            className="flex-1 min-w-60 max-w-80 rounded-3xl bg-white/60 border-white/80 hover:bg-white focus-within:bg-white shadow-sm transition-all duration-300 focus-within:border-[#185C4D] h-12"
+            className="flex-1 min-w-70 max-w-125 rounded-3xl bg-white/70 border-white hover:bg-white focus-within:bg-white shadow-sm transition-all duration-300 focus-within:border-[#185C4D]/30 focus-within:shadow-md h-12"
           />
 
-          {!hideFilters && (
-            <div className="flex items-center gap-3 shrink-0 flex-wrap">
-              <SlidersHorizontal size={16} className="text-slate-400 mr-1" />
+          <div className="flex items-center gap-3 text-[14px] font-medium bg-white/70 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-white shadow-sm shrink-0 hover:bg-white transition-colors duration-300">
+            <div className="flex items-center gap-2 text-slate-500">
+              <FolderIcon size={16} className="text-[#185C4D]" />
+              <span>ລາຍການແຟ້ມທັງໝົດ</span>
+            </div>
+            <div className="h-5 w-px bg-slate-200"></div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-lg font-black text-[#185C4D] leading-none">{total}</span>
+              <span className="text-slate-500 text-[13px]">ແຟ້ມ</span>
+            </div>
+          </div>
+        </div>
 
+        {!hideFilters && (
+          <div className="flex flex-col gap-3.5">
+            <div className="flex items-center gap-2.5 px-1">
+              <div className="w-7 h-7 rounded-full bg-linear-to-br from-[#185C4D]/10 to-[#185C4D]/5 flex items-center justify-center shrink-0 border border-[#185C4D]/10">
+                <SlidersHorizontal size={14} className="text-[#185C4D]" />
+              </div>
+              <span className="text-[14px] font-bold text-slate-700">ຕົວກອງຂໍ້ມູນ</span>
+              <div className="h-px flex-1 bg-linear-to-r from-slate-200/80 via-slate-200/40 to-transparent ml-2"></div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
               <Select
                 value={filterDepartment || 'all'}
                 onChange={onFilterDepartmentChange}
                 options={[{ value: 'all', label: 'ທັງໝົດ (ຝ່າຍ)' }, ...departmentOptions]}
                 size="large"
-                className="min-w-37.5 [&_.ant-select-selector]:rounded-3xl! shadow-sm [&_.ant-select-selector]:h-12! [&_.ant-select-selection-item]:leading-11!"
+                className="w-full [&_.ant-select-selector]:rounded-2xl! shadow-xs [&_.ant-select-selector]:h-11! [&_.ant-select-selection-item]:leading-10.5! [&_.ant-select-selector]:bg-white/70! [&_.ant-select-selector]:border-white! hover:[&_.ant-select-selector]:border-[#185C4D]/30!"
               />
               <Select
                 value={filterDivision || 'all'}
                 onChange={onFilterDivisionChange}
                 options={[{ value: 'all', label: 'ທັງໝົດ (ພະແນກ)' }, ...divisionOptions]}
                 size="large"
-                className="min-w-37.5 [&_.ant-select-selector]:rounded-3xl! shadow-sm [&_.ant-select-selector]:h-12! [&_.ant-select-selection-item]:leading-11!"
+                className="w-full [&_.ant-select-selector]:rounded-2xl! shadow-xs [&_.ant-select-selector]:h-11! [&_.ant-select-selection-item]:leading-10.5! [&_.ant-select-selector]:bg-white/70! [&_.ant-select-selector]:border-white! hover:[&_.ant-select-selector]:border-[#185C4D]/30!"
                 disabled={divisionOptions.length === 0 && !!filterDepartment && filterDepartment !== 'all'}
               />
-
               <Select
                 value={filterWarehouse || 'all'}
                 onChange={onFilterWarehouseChange}
                 options={[{ value: 'all', label: 'ທັງໝົດ (ສາງ)' }, ...warehouseOptions]}
                 size="large"
-                className="min-w-37.5 [&_.ant-select-selector]:rounded-3xl! shadow-sm [&_.ant-select-selector]:h-12! [&_.ant-select-selection-item]:leading-11!"
+                className="w-full [&_.ant-select-selector]:rounded-2xl! shadow-xs [&_.ant-select-selector]:h-11! [&_.ant-select-selection-item]:leading-10.5! [&_.ant-select-selector]:bg-white/70! [&_.ant-select-selector]:border-white! hover:[&_.ant-select-selector]:border-[#185C4D]/30!"
                 disabled={warehouseOptions.length === 0 && !!filterDivision && filterDivision !== 'all'}
               />
-
               <Select
                 value={filterLocker || 'all'}
                 onChange={onFilterLockerChange}
                 options={[{ value: 'all', label: 'ທັງໝົດ (ຕູ້)' }, ...lockerOptions]}
                 size="large"
-                className="min-w-37.5 [&_.ant-select-selector]:rounded-3xl! shadow-sm [&_.ant-select-selector]:h-12! [&_.ant-select-selection-item]:leading-11!"
+                className="w-full [&_.ant-select-selector]:rounded-2xl! shadow-xs [&_.ant-select-selector]:h-11! [&_.ant-select-selection-item]:leading-10.5! [&_.ant-select-selector]:bg-white/70! [&_.ant-select-selector]:border-white! hover:[&_.ant-select-selector]:border-[#185C4D]/30!"
                 disabled={lockerOptions.length === 0 && !!filterWarehouse && filterWarehouse !== 'all'}
               />
-
               <Select
                 value={filterShelf || 'all'}
                 onChange={onFilterShelfChange}
                 options={shelfOptions}
                 size="large"
-                className="min-w-37.5 [&_.ant-select-selector]:rounded-3xl! shadow-sm [&_.ant-select-selector]:h-12! [&_.ant-select-selection-item]:leading-11!"
+                className="w-full [&_.ant-select-selector]:rounded-2xl! shadow-xs [&_.ant-select-selector]:h-11! [&_.ant-select-selection-item]:leading-10.5! [&_.ant-select-selector]:bg-white/70! [&_.ant-select-selector]:border-white! hover:[&_.ant-select-selector]:border-[#185C4D]/30!"
                 showSearch
                 filterOption={(input, option) => (option?.label as string ?? '').toLowerCase().includes(input.toLowerCase())}
                 onSearch={(val) => {
@@ -157,12 +174,8 @@ export default function FolderTable({
                 }}
               />
             </div>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 text-[15px] font-bold bg-[#185C4D]/5 px-5 py-3 rounded-3xl border border-[#185C4D]/10 text-[#185C4D] shrink-0">
-          ທັງໝົດ <span className="text-lg font-black mx-0.5">{total}</span> ລາຍການ
-        </div>
+          </div>
+        )}
       </header>
 
       <div className="w-full bg-white/30 backdrop-blur-2xl border border-white/50 p-6 rounded-3xl shadow-glass overflow-x-auto">

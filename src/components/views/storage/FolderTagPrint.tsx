@@ -37,7 +37,7 @@ export default function FolderTagPrint({
         boxSizing: 'border-box',
         display: 'flex',
         flexDirection: 'column',
-        margin: '0',
+        margin: '0 0 0 auto', // Align to right
         overflow: 'hidden',
       }}
     >
@@ -57,7 +57,7 @@ export default function FolderTagPrint({
           .folder-tag-print-container {
             page-break-after: always;
             box-shadow: none !important;
-            margin: 0 !important;
+            margin: 0 0 0 auto !important; /* Align to right */
           }
         }
       `}</style>
