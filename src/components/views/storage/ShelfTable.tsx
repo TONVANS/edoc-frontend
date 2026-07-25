@@ -7,6 +7,7 @@ interface ShelfTableProps {
   data: Shelf[];
   total: number;
   currentPage: number;
+  pageSize?: number;
   onPageChange: (page: number) => void;
   searchName: string;
   onSearchChange: (search: string) => void;
@@ -33,6 +34,7 @@ export default function ShelfTable({
   data = [],
   total = 0,
   currentPage = 1,
+  pageSize = 8,
   onPageChange,
   searchName = '',
   onSearchChange,
@@ -256,13 +258,27 @@ export default function ShelfTable({
             })}
           </div>
 
-          <div className="flex justify-end mt-4">
+          <div className="flex flex-col sm:flex-row justify-between items-center mt-6 p-4 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-3xl shadow-[0_8px_32px_rgba(31,38,135,0.04)] gap-4 transition-all duration-300 hover:shadow-glass">
+            <div className="flex items-center gap-2 text-[14px] font-medium text-slate-500 bg-white/50 px-4 py-2 rounded-2xl border border-white/80">
+              ສະແດງ
+              <span className="font-bold text-slate-700">
+                {total === 0 ? 0 : (currentPage - 1) * pageSize + 1}
+              </span>
+              ຫາ
+              <span className="font-bold text-slate-700">
+                {Math.min(currentPage * pageSize, total)}
+              </span>
+              ຈາກທັງໝົດ
+              <span className="font-black text-[#185C4D] text-base">{total}</span>
+              ລາຍການ
+            </div>
             <Pagination
               current={currentPage}
-              pageSize={5}
+              pageSize={pageSize}
               total={total}
               onChange={onPageChange}
               showSizeChanger={false}
+              className="[&_.ant-pagination-item]:rounded-xl [&_.ant-pagination-item-active]:bg-[#185C4D] [&_.ant-pagination-item-active]:border-[#185C4D] [&_.ant-pagination-item-active]:shadow-md [&_.ant-pagination-item-active_a]:text-white [&_.ant-pagination-item]:border-white/60 [&_.ant-pagination-item]:bg-white/60 [&_.ant-pagination-item]:backdrop-blur-md [&_.ant-pagination-item]:shadow-xs hover:[&_.ant-pagination-item:not(.ant-pagination-item-active)]:bg-white hover:[&_.ant-pagination-item:not(.ant-pagination-item-active)]:border-white [&_.ant-pagination-prev_.ant-pagination-item-link]:rounded-xl [&_.ant-pagination-next_.ant-pagination-item-link]:rounded-xl [&_.ant-pagination-prev_.ant-pagination-item-link]:bg-white/60 [&_.ant-pagination-next_.ant-pagination-item-link]:bg-white/60 [&_.ant-pagination-prev_.ant-pagination-item-link]:border-white/60 [&_.ant-pagination-next_.ant-pagination-item-link]:border-white/60 [&_.ant-pagination-prev_.ant-pagination-item-link]:shadow-xs [&_.ant-pagination-next_.ant-pagination-item-link]:shadow-xs hover:[&_.ant-pagination-prev_.ant-pagination-item-link]:bg-white hover:[&_.ant-pagination-next_.ant-pagination-item-link]:bg-white [&_.ant-pagination-disabled_.ant-pagination-item-link]:opacity-50 [&_.ant-pagination-disabled_.ant-pagination-item-link]:shadow-none"
             />
           </div>
         </div>
