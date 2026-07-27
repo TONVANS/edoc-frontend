@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
-
 @import "tailwindcss";
 @config "../../tailwind.config.ts";
 
@@ -8,6 +6,8 @@
 }
 
 @theme inline {
+  --font-sans: var(--font-plus-jakarta-sans), var(--font-noto-sans-lao), "Phetsarath OT", sans-serif;
+  --font-lao: var(--font-noto-sans-lao), "Phetsarath OT", sans-serif;
   --background-image-app-gradient: linear-gradient(135deg, #FAF8F2 0%, #F1EAE0 50%, #E2D3B8 100%);
   --background-image-table-header: linear-gradient(90deg, #185C4D 0%, #30836B 100%);
 }
@@ -15,7 +15,7 @@
 body {
   background: linear-gradient(135deg, #FAF8F2 0%, #F1EAE0 50%, #E2D3B8 100%);
   color: var(--foreground);
-  font-family: "Plus Jakarta Sans", "Noto Sans Lao", sans-serif;
+  font-family: var(--font-plus-jakarta-sans), var(--font-noto-sans-lao), "Phetsarath OT", sans-serif;
   min-height: 100vh;
 }
 

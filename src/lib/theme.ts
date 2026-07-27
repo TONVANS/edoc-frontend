@@ -11,7 +11,7 @@ export const antdThemeConfig: ThemeConfig = {
     colorTextBase: '#1C1C1E',  
     colorBgBase: '#FFFFFF',  
     colorBgLayout: 'transparent', // Let Tailwind app-gradient show through  
-    fontFamily: '"Plus Jakarta Sans", "Noto Sans Lao", sans-serif',  
+    fontFamily: 'var(--font-plus-jakarta-sans), var(--font-noto-sans-lao), "Phetsarath OT", sans-serif',  
     borderRadius: 12,  
     wireframe: false,  
   },  

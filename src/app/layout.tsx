@@ -1,5 +1,5 @@
-// src/app/layout.tsx
 import type { Metadata } from "next";
+import { Noto_Sans_Lao, Plus_Jakarta_Sans } from "next/font/google";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
 import { App } from "antd";
 import { Toaster } from "sonner";
@@ -7,7 +7,21 @@ import ThemeProvider from "@/components/ThemeProvider";
 import { SIDEBAR_MENU_STYLES } from "@/components/layout/sidebarStyles";
 import "./globals.css";
 
+const notoSanLao = Noto_Sans_Lao({
+  subsets: ["lao", "latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
+  variable: "--font-noto-sans-lao",
+  fallback: ["Phetsarath OT", "sans-serif"],
+});
 
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
+  variable: "--font-plus-jakarta-sans",
+  fallback: ["sans-serif"],
+});
 
 export const metadata: Metadata = {
   title: "E-Document Management System",
@@ -20,7 +34,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${notoSanLao.variable} ${plusJakartaSans.variable}`}>
       <head>
         <style dangerouslySetInnerHTML={{ __html: SIDEBAR_MENU_STYLES }} />
       </head>
@@ -50,7 +64,7 @@ export default function RootLayout({
               border: "1px solid rgba(255, 255, 255, 0.6)",
               boxShadow: "0 8px 32px rgba(31, 38, 135, 0.08)",
               borderRadius: "16px",
-              fontFamily: '"Plus Jakarta Sans", "Noto Sans Lao", sans-serif',
+              fontFamily: 'var(--font-plus-jakarta-sans), var(--font-noto-sans-lao), "Phetsarath OT", sans-serif',
             },
             classNames: {
               toast: "group", // อนุญาตให้ใช้ Hover states กับ element ลูกได้

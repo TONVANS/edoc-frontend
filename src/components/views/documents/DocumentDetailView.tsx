@@ -39,16 +39,17 @@ interface DocumentDetailViewProps {
 }
 
 export default function DocumentDetailView({
-  document: doc,
+  document: propDoc,
   onBack,
 }: DocumentDetailViewProps) {
   const router = useRouter();
   const { folders } = useFolderStore();
   const { documentTypes } = useDocumentTypeStore();
-  const { downloadAttachment, viewAttachment } = useDocumentStore();
+  const { downloadAttachment, viewAttachment, fetchDocumentById } = useDocumentStore();
   const { subDocuments, isLoading: isSubDocsLoading, fetchSubDocuments, createSubDocument, deleteSubDocument } = useSubDocumentStore();
   const [messageApi, contextHolder] = message.useMessage();
 
+  const [currentDoc, setCurrentDoc] = useState<Document | null>(propDoc);
   const [loadingViewId, setLoadingViewId] = useState<string | null>(null);
   const [loadingDownloadId, setLoadingDownloadId] = useState<string | null>(null);
   
@@ -58,16 +59,24 @@ export default function DocumentDetailView({
   const [qrUrl, setQrUrl] = useState<string>('');
 
   React.useEffect(() => {
-    if (doc?.id) {
-      fetchSubDocuments(doc.id);
+    setCurrentDoc(propDoc);
+    if (propDoc?.id) {
+      fetchSubDocuments(propDoc.id);
       setShowAddSubDoc(false);
+      fetchDocumentById(propDoc.id).then((fullDoc) => {
+        if (fullDoc) {
+          setCurrentDoc(fullDoc);
+        }
+      });
     }
     
     // Safely set the QR URL only on the client side to prevent hydration errors
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_BASE_URL || '';
-    const code = doc?.qrCode || `EDOC-DOC-${doc?.id}`;
+    const code = propDoc?.qrCode || `EDOC-DOC-${propDoc?.id}`;
     setQrUrl(`${baseUrl}/dashboard/scan?code=${encodeURIComponent(code)}`);
-  }, [doc?.id, doc?.qrCode, fetchSubDocuments]);
+  }, [propDoc, fetchSubDocuments, fetchDocumentById]);
+
+  const doc = currentDoc || propDoc;
 
   const handleView = async (id: string) => {
     setLoadingViewId(id);

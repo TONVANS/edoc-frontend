@@ -188,7 +188,7 @@ export default function FolderTagPrint({
                 >
                   <div
                     style={{
-                      fontFamily: '"Noto Sans Lao", sans-serif',
+                      fontFamily: 'var(--font-noto-sans-lao), "Phetsarath OT", sans-serif',
                       textAlign: 'center',
                       fontSize: '15px',
                       fontWeight: 'bold',
@@ -211,7 +211,7 @@ export default function FolderTagPrint({
                 >
                   <div
                     style={{
-                      fontFamily: '"Noto Sans Lao", sans-serif',
+                      fontFamily: 'var(--font-noto-sans-lao), "Phetsarath OT", sans-serif',
                       fontWeight: 'bold',
                       fontSize:
                         item.folderName.length > 60

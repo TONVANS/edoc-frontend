@@ -7,13 +7,13 @@ import { useDocumentTypeStore } from '@/store/useDocumentTypeStore';
 import { useDocumentStore } from '@/store/useDocumentStore';
 import { useSubDocumentStore } from '@/store/useSubDocumentStore';
 import { QRCodeSVG } from 'qrcode.react';
-import { 
-  FileText, 
-  X, 
-  Calendar, 
-  Paperclip, 
-  FolderOpen, 
-  Scale, 
+import {
+  FileText,
+  X,
+  Calendar,
+  Paperclip,
+  FolderOpen,
+  Scale,
   Download,
   Info,
   QrCode,
@@ -51,7 +51,7 @@ export default function DocumentDetailModal({
 
   const [loadingViewId, setLoadingViewId] = useState<string | null>(null);
   const [loadingDownloadId, setLoadingDownloadId] = useState<string | null>(null);
-  
+
   const [showAddSubDoc, setShowAddSubDoc] = useState(false);
   const [subDocForm] = Form.useForm();
 
@@ -101,11 +101,11 @@ export default function DocumentDetailModal({
 
   const docTypeName = doc.documentType?.name || documentTypes.find(t => t.id === doc.documentTypeId)?.name || 'ບໍ່ລະບຸ';
   const folderName = doc.folder?.name || folders.find(f => f.id === doc.folderId)?.name || folders.find(f => f.id === doc.folderId)?.code || 'ບໍ່ລະບຸ';
-  
+
   const creatorName = doc.user ? `${doc.user.firstNameLa} ${doc.user.lastNameLa}` : 'ບໍ່ລະບຸ';
   const departmentName = doc.department?.name || 'ບໍ່ລະບຸ';
   const divisionName = doc.division?.name || 'ບໍ່ລະບຸ';
-  
+
   const storageLocation = [
     doc.department?.name,
     doc.division?.name,
@@ -150,11 +150,11 @@ export default function DocumentDetailModal({
     >
       {contextHolder}
       <div className="bg-white/75 backdrop-blur-3xl rounded-[32px] overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.12)] border border-white/60 relative flex flex-col max-h-[90vh]">
-        
+
         {/* ══ HEADER ══════════════════════════════════════════ */}
         <header className="relative px-10 pt-10 pb-14 overflow-hidden bg-linear-to-br from-[#185C4D] via-[#1c6958] to-[#257c66] shrink-0">
           <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] bg-size-[20px_20px]" />
-          
+
           <button
             onClick={onClose}
             className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/20 transition-all duration-300 z-20 active:scale-90 cursor-pointer"
@@ -179,9 +179,9 @@ export default function DocumentDetailModal({
 
         {/* ══ BODY ════════════════════════════════════════════ */}
         <main className="px-10 py-8 -mt-8 bg-white/85 backdrop-blur-2xl rounded-t-[32px] border-t border-white shadow-[0_-12px_40px_rgba(0,0,0,0.03)] relative z-10 overflow-y-auto flex-1">
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            
+
             {/* Left Column: Metadata details (2 cols) */}
             <div className="md:col-span-2 space-y-6">
               <div>
@@ -281,12 +281,12 @@ export default function DocumentDetailModal({
                 <h4 className="text-[12px] font-bold text-slate-400 flex items-center gap-1 mb-3 uppercase">
                   <QrCode size={13} /> QR Code
                 </h4>
-                
+
                 {/* Dynamically Generate QR Code containing the Document code or ID */}
                 <div className="bg-white p-3.5 rounded-2xl shadow-soft border border-slate-100">
-                  <QRCodeSVG 
+                  <QRCodeSVG
                     value={typeof window !== 'undefined' ? `${window.location.origin}/dashboard/scan?code=${encodeURIComponent(doc.qrCode || `EDOC-DOC-${doc.id}`)}` : `${process.env.NEXT_PUBLIC_BASE_URL || ''}/dashboard/scan?code=${encodeURIComponent(doc.qrCode || `EDOC-DOC-${doc.id}`)}`}
-                    size={110} 
+                    size={110}
                     bgColor="#ffffff"
                     fgColor="#185C4D"
                     level="Q"
@@ -303,7 +303,7 @@ export default function DocumentDetailModal({
                   <h4 className="text-[13px] font-bold text-[#185C4D] flex items-center gap-1.5">
                     <Layers size={14} /> ເອກະສານຍ່ອຍ ({subDocuments?.length || 0})
                   </h4>
-                  <button 
+                  <button
                     onClick={() => {
                       if (showAddSubDoc) subDocForm.resetFields();
                       setShowAddSubDoc(!showAddSubDoc);
@@ -369,11 +369,11 @@ export default function DocumentDetailModal({
                 <h4 className="text-[13px] font-bold text-[#185C4D] flex items-center gap-1.5 mb-2.5">
                   <Paperclip size={14} /> ເອກະສານຄັດຕິດ ({doc.attachments?.length || 0})
                 </h4>
-                
+
                 {doc.attachments && doc.attachments.length > 0 ? (
                   <div className="flex flex-col gap-2 max-h-[180px] overflow-y-auto pr-1">
                     {doc.attachments.map(att => (
-                      <div 
+                      <div
                         key={att.id}
                         className="flex items-center justify-between bg-white/70 hover:bg-white border border-slate-100 hover:border-[#185C4D]/30 p-2.5 rounded-xl shadow-xs transition-all text-slate-600 group"
                       >
@@ -384,7 +384,7 @@ export default function DocumentDetailModal({
                           </span>
                         </div>
                         <div className="flex items-center gap-1 shrink-0 ml-2">
-                          <button 
+                          <button
                             onClick={() => handleView(att.id)}
                             disabled={loadingViewId === att.id}
                             className="p-1.5 rounded-lg text-slate-400 hover:text-blue-500 hover:bg-blue-50 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -392,7 +392,7 @@ export default function DocumentDetailModal({
                           >
                             {loadingViewId === att.id ? <Loader2 size={15} className="animate-spin" /> : <Eye size={15} />}
                           </button>
-                          <button 
+                          <button
                             onClick={() => handleDownload(att.id, att.fileName)}
                             disabled={loadingDownloadId === att.id}
                             className="p-1.5 rounded-lg text-slate-400 hover:text-[#185C4D] hover:bg-[#185C4D]/10 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -417,9 +417,9 @@ export default function DocumentDetailModal({
 
           {/* Action controls */}
           <footer className="flex items-center justify-end gap-3 pt-2">
-            <Button 
-              type="primary" 
-              onClick={onClose} 
+            <Button
+              type="primary"
+              onClick={onClose}
               className="h-11 px-8 rounded-2xl bg-linear-to-r from-[#185C4D] to-[#206E5B] border-none font-bold text-white shadow-md hover:shadow-lg transition-all cursor-pointer"
             >
               ປິດໜ້າຕ່າງ

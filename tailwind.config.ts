@@ -24,8 +24,8 @@ const config: Config = {
         'table-header': 'linear-gradient(90deg, #185C4D 0%, #30836B 100%)',  
       },  
       fontFamily: {
-        sans: ['"Plus Jakarta Sans"', '"Noto Sans Lao"', 'sans-serif'],
-        lao: ['"Noto Sans Lao"', 'sans-serif'],
+        sans: ['var(--font-plus-jakarta-sans)', 'var(--font-noto-sans-lao)', 'Phetsarath OT', 'sans-serif'],
+        lao: ['var(--font-noto-sans-lao)', 'Phetsarath OT', 'sans-serif'],
       },
       boxShadow: {  
         'soft': '0 4px 20px rgba(0, 0, 0, 0.04)',  
