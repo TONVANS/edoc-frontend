@@ -1,10 +1,28 @@
-import React, { useMemo } from 'react';
-import { Folder as FolderIcon, Edit2, Trash2, Search, SlidersHorizontal, QrCode, FileUp, MoreVertical, ChevronRight, ArrowRightLeft, ShoppingCart } from 'lucide-react';
-import { Button, Input, Select, Tooltip, Dropdown, Pagination } from 'antd';
+import React, { useMemo, useState } from 'react';
+import {
+  Folder as FolderIcon,
+  Edit2,
+  Trash2,
+  Search,
+  SlidersHorizontal,
+  QrCode,
+  FileUp,
+  MoreVertical,
+  ChevronRight,
+  ArrowRightLeft,
+  ShoppingCart,
+  Printer,
+  CheckSquare,
+  Square,
+  Sparkles,
+} from 'lucide-react';
+import { Button, Input, Select, Tooltip, Dropdown, Pagination, Checkbox, message } from 'antd';
 import { Folder } from '@/types/prisma-mapped';
 import { useBorrowCartStore } from '@/store/useBorrowCartStore';
 import { useAddToCart } from '@/components/views/borrow/useAddToCart';
 import { useShelfStore } from '@/store/useShelfStore';
+import { useFolderPrintCartStore } from '@/store/useFolderPrintCartStore';
+import FolderPrintCartDrawer from '@/components/views/storage/FolderPrintCartDrawer';
 
 interface FolderTableProps {
   data: Folder[];
@@ -69,8 +87,23 @@ export default function FolderTable({
   onManage,
   hideFilters = false,
 }: FolderTableProps) {
-
   const { shelfDropdown, fetchShelfDropdown } = useShelfStore();
+  const { isInCart: isInBorrowCart } = useBorrowCartStore();
+  const { handleAddToCart, contextHolder } = useAddToCart();
+
+  // Folder Print Cart Store
+  const {
+    items: printCartItems,
+    addItem: addToPrintCart,
+    addItems: addMultipleToPrintCart,
+    toggleItem: togglePrintCart,
+    isInCart: isInPrintCart,
+  } = useFolderPrintCartStore();
+
+  // Multi-select state
+  const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
+  const [isPrintCartDrawerOpen, setIsPrintCartDrawerOpen] = useState(false);
+  const [messageApi, messageContextHolder] = message.useMessage();
 
   React.useEffect(() => {
     fetchShelfDropdown({
@@ -79,17 +112,77 @@ export default function FolderTable({
     });
   }, [fetchShelfDropdown, filterLocker, filterWarehouse]);
 
-  const shelfOptions = useMemo(() => [
-    { value: 'all', label: 'ທັງໝົດ (ຊັ້ນ)' },
-    ...shelfDropdown.map(s => ({ value: String(s.id), label: s.name || s.code || '' }))
-  ], [shelfDropdown]);
+  const shelfOptions = useMemo(
+    () => [
+      { value: 'all', label: 'ທັງໝົດ (ຊັ້ນ)' },
+      ...shelfDropdown.map((s) => ({ value: String(s.id), label: s.name || s.code || '' })),
+    ],
+    [shelfDropdown]
+  );
 
-  const { isInCart } = useBorrowCartStore();
-  const { handleAddToCart, contextHolder } = useAddToCart();
+  // Helper to construct FolderPrintItem payload from a Folder item
+  const buildFolderPrintItem = (item: Folder) => {
+    const itemAny = item as any;
+    const shelfInfo = itemAny.shelf
+      ? [
+          itemAny.shelf?.locker?.warehouse?.name,
+          itemAny.shelf?.locker?.name ? `ຕູ້ ${itemAny.shelf.locker.name}` : null,
+          itemAny.shelf?.name ? `ຊັ້ນ ${itemAny.shelf.name}` : null,
+        ]
+          .filter(Boolean)
+          .join(' > ')
+      : item.locationRef || '';
+
+    return {
+      id: item.id,
+      name: item.name,
+      code: item.code,
+      qrCode: item.qrCode || item.code,
+      locationRef: item.locationRef || shelfInfo || '-',
+      departmentName: itemAny.shelf?.locker?.warehouse?.department?.name || 'ຝ່າຍບັນຊີ',
+      shelfInfo,
+    };
+  };
+
+  // Selection handlers
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(data.map((item) => item.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleToggleSelect = (id: string | number) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const isAllSelected = data.length > 0 && selectedIds.length === data.length;
+  const isSomeSelected = selectedIds.length > 0 && selectedIds.length < data.length;
+
+  const handleBatchAddToPrintCart = () => {
+    const selectedFolders = data.filter((item) => selectedIds.includes(item.id));
+    const itemsToAdd = selectedFolders.map(buildFolderPrintItem);
+    addMultipleToPrintCart(itemsToAdd);
+    messageApi.success(`ເພີ່ມ ${itemsToAdd.length} ແຟ້ມໃສ່ກະຕ່າພິມ Tag ແລ້ວ!`);
+    setSelectedIds([]);
+  };
+
+  const handleBatchPrintNow = () => {
+    const selectedFolders = data.filter((item) => selectedIds.includes(item.id));
+    const itemsToAdd = selectedFolders.map(buildFolderPrintItem);
+    addMultipleToPrintCart(itemsToAdd);
+    setSelectedIds([]);
+    setIsPrintCartDrawerOpen(true);
+  };
 
   return (
     <section className="w-full flex flex-col gap-6 font-lao" aria-label="ຕາຕະລາງຂໍ້ມູນແຟ້ມ">
       {contextHolder}
+      {messageContextHolder}
+
       <header className="flex flex-col gap-5 bg-white/40 backdrop-blur-xl p-5 rounded-3xl shadow-glass border border-white/60">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <Input
@@ -102,15 +195,35 @@ export default function FolderTable({
             className="flex-1 min-w-70 max-w-125 rounded-3xl bg-white/70 border-white hover:bg-white focus-within:bg-white shadow-sm transition-all duration-300 focus-within:border-[#185C4D]/30 focus-within:shadow-md h-12"
           />
 
-          <div className="flex items-center gap-3 text-[14px] font-medium bg-white/70 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-white shadow-sm shrink-0 hover:bg-white transition-colors duration-300">
-            <div className="flex items-center gap-2 text-slate-500">
-              <FolderIcon size={16} className="text-[#185C4D]" />
-              <span>ລາຍການແຟ້ມທັງໝົດ</span>
-            </div>
-            <div className="h-5 w-px bg-slate-200"></div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-lg font-black text-[#185C4D] leading-none">{total}</span>
-              <span className="text-slate-500 text-[13px]">ແຟ້ມ</span>
+          <div className="flex items-center gap-3">
+            {/* Tag Print Cart Header Trigger */}
+            <Button
+              onClick={() => setIsPrintCartDrawerOpen(true)}
+              className={`h-12 px-5 rounded-2xl border font-bold flex items-center gap-2.5 transition-all duration-300 shadow-sm ${
+                printCartItems.length > 0
+                  ? 'bg-[#185C4D] text-white border-[#185C4D] hover:bg-[#0f3d31]! hover:text-white!'
+                  : 'bg-white/70 border-white text-slate-700 hover:bg-white hover:border-[#185C4D]/30'
+              }`}
+            >
+              <Printer size={18} className={printCartItems.length > 0 ? 'text-teal-200' : 'text-[#185C4D]'} />
+              <span>ກະຕ່າພິມ Tag</span>
+              {printCartItems.length > 0 && (
+                <span className="ml-1 px-2 py-0.5 bg-white text-[#185C4D] text-xs font-black rounded-full shadow-xs">
+                  {printCartItems.length}
+                </span>
+              )}
+            </Button>
+
+            <div className="flex items-center gap-3 text-[14px] font-medium bg-white/70 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-white shadow-sm shrink-0 hover:bg-white transition-colors duration-300">
+              <div className="flex items-center gap-2 text-slate-500">
+                <FolderIcon size={16} className="text-[#185C4D]" />
+                <span>ລາຍການແຟ້ມທັງໝົດ</span>
+              </div>
+              <div className="h-5 w-px bg-slate-200"></div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-lg font-black text-[#185C4D] leading-none">{total}</span>
+                <span className="text-slate-500 text-[13px]">ແຟ້ມ</span>
+              </div>
             </div>
           </div>
         </div>
@@ -164,12 +277,14 @@ export default function FolderTable({
                 size="large"
                 className="w-full [&_.ant-select-selector]:rounded-2xl! shadow-xs [&_.ant-select-selector]:h-11! [&_.ant-select-selection-item]:leading-10.5! [&_.ant-select-selector]:bg-white/70! [&_.ant-select-selector]:border-white! hover:[&_.ant-select-selector]:border-[#185C4D]/30!"
                 showSearch
-                filterOption={(input, option) => (option?.label as string ?? '').toLowerCase().includes(input.toLowerCase())}
+                filterOption={(input, option) =>
+                  (option?.label as string ?? '').toLowerCase().includes(input.toLowerCase())
+                }
                 onSearch={(val) => {
                   fetchShelfDropdown({
                     lockerId: filterLocker && filterLocker !== 'all' ? filterLocker : undefined,
                     warehouseId: filterWarehouse && filterWarehouse !== 'all' ? filterWarehouse : undefined,
-                    search: val || undefined
+                    search: val || undefined,
                   });
                 }}
               />
@@ -178,13 +293,60 @@ export default function FolderTable({
         )}
       </header>
 
+      {/* Floating Batch Action Bar */}
+      {selectedIds.length > 0 && (
+        <div className="sticky top-4 z-30 bg-slate-900/90 backdrop-blur-xl text-white p-4 rounded-2xl shadow-2xl border border-slate-700/60 flex flex-wrap items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="flex items-center gap-3">
+            <span className="w-8 h-8 rounded-xl bg-teal-500/20 text-teal-300 font-bold flex items-center justify-center text-sm border border-teal-500/30">
+              {selectedIds.length}
+            </span>
+            <span className="font-bold text-sm">ແຟ້ມທີ່ເລືອກ</span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={handleBatchAddToPrintCart}
+              icon={<Printer size={16} />}
+              className="rounded-xl h-10 bg-teal-600 hover:bg-teal-500 text-white border-none font-bold text-xs shadow-md"
+            >
+              ເພີ່ມໃສ່ກະຕ່າພິມ Tag ({selectedIds.length})
+            </Button>
+            <Button
+              type="primary"
+              onClick={handleBatchPrintNow}
+              icon={<Sparkles size={16} />}
+              className="rounded-xl h-10 bg-linear-to-r from-[#185C4D] to-[#25705a] hover:from-[#0f3d31] hover:to-[#185C4D] border-none font-bold text-xs shadow-md"
+            >
+              ພິມ Tag ທີ່ເລືອກທັນທີ
+            </Button>
+            <Button
+              type="text"
+              onClick={() => setSelectedIds([])}
+              className="rounded-xl h-10 text-slate-400 hover:text-white hover:bg-white/10 font-medium text-xs"
+            >
+              ຍົກເລີກ
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="w-full bg-white/30 backdrop-blur-2xl border border-white/50 p-6 rounded-3xl shadow-glass overflow-x-auto">
-        <div className="min-w-250">
-          <div className="bg-table-header text-white grid grid-cols-12 gap-4 py-5 px-8 rounded-2xl shadow-md mb-5 text-[14px] font-bold tracking-wider uppercase">
+        <div className="min-w-260">
+          {/* Table Header */}
+          <div className="bg-table-header text-white grid grid-cols-12 gap-4 py-5 px-8 rounded-2xl shadow-md mb-5 text-[14px] font-bold tracking-wider uppercase items-center">
+            <div className="col-span-1 flex items-center gap-3">
+              <Checkbox
+                checked={isAllSelected}
+                indeterminate={isSomeSelected}
+                onChange={(e) => handleSelectAll(e.target.checked)}
+                className="[&_.ant-checkbox-inner]:border-white/60 [&_.ant-checkbox-checked_.ant-checkbox-inner]:bg-teal-500 [&_.ant-checkbox-checked_.ant-checkbox-inner]:border-teal-500"
+              />
+              <span>ເລືອກ</span>
+            </div>
             <div className="col-span-2">ລະຫັດແຟ້ມ</div>
             <div className="col-span-3">ຊື່ແຟ້ມເກັບເອກະສານ</div>
             <div className="col-span-2 text-center">QR Code</div>
-            <div className="col-span-4">ບ່ອນອ້າງອີງ / ສະຖານທີ່</div>
+            <div className="col-span-3">ບ່ອນອ້າງອີງ / ສະຖານທີ່</div>
             <div className="col-span-1 text-center">ຈັດການ</div>
           </div>
 
@@ -204,13 +366,28 @@ export default function FolderTable({
             </div>
           ) : (
             <div className="flex flex-col gap-4">
-              {data.map(item => {
+              {data.map((item) => {
+                const isSelected = selectedIds.includes(item.id);
+                const inPrintCart = isInPrintCart(item.id);
+
                 return (
                   <div
                     key={item.id}
-                    className="group bg-white/50 backdrop-blur-lg border border-white/80 grid grid-cols-12 gap-4 items-center py-5 px-8 rounded-[22px] shadow-sm transition-all duration-300 hover:bg-white/90 hover:-translate-y-1 hover:shadow-glass cursor-pointer"
+                    className={`group bg-white/50 backdrop-blur-lg border grid grid-cols-12 gap-4 items-center py-5 px-8 rounded-[22px] shadow-sm transition-all duration-300 hover:bg-white/90 hover:-translate-y-1 hover:shadow-glass cursor-pointer ${
+                      isSelected
+                        ? 'border-[#185C4D] bg-teal-50/40'
+                        : 'border-white/80'
+                    }`}
                     onClick={() => onManage?.(item)}
                   >
+                    <div className="col-span-1 flex items-center" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={isSelected}
+                        onChange={() => handleToggleSelect(item.id)}
+                        className="[&_.ant-checkbox-inner]:border-slate-300 [&_.ant-checkbox-checked_.ant-checkbox-inner]:bg-[#185C4D] [&_.ant-checkbox-checked_.ant-checkbox-inner]:border-[#185C4D]"
+                      />
+                    </div>
+
                     <div className="col-span-2">
                       <span className="inline-flex items-center font-mono font-bold text-[13px] text-slate-600 bg-white/60 border border-slate-200/50 px-3 py-1.5 rounded-xl shadow-sm">
                         {item.code}
@@ -231,23 +408,57 @@ export default function FolderTable({
                       </div>
                     </div>
 
-                    <div className="col-span-4 pr-4">
+                    <div className="col-span-3 pr-4">
                       <div className="flex flex-col gap-1">
                         <span className="text-slate-500 text-[14px] font-medium line-clamp-1 leading-relaxed italic">
                           {item.locationRef || '—'}
                         </span>
                         {(item as any).shelf && (
                           <div className="flex items-center flex-wrap text-xs text-slate-400 gap-1 mt-0.5">
-
-                            {(item as any).shelf?.locker?.warehouse?.name && <span>{(item as any).shelf.locker.warehouse.name} <ChevronRight size={10} className="inline" /></span>}
-                            {(item as any).shelf?.locker?.name && <span>ຕູ້ {(item as any).shelf.locker.name} <ChevronRight size={10} className="inline" /></span>}
-                            {(item as any).shelf?.name && <span className="text-slate-600 font-semibold">ຊັ້ນ {(item as any).shelf.name}</span>}
+                            {(item as any).shelf?.locker?.warehouse?.name && (
+                              <span>
+                                {(item as any).shelf.locker.warehouse.name}{' '}
+                                <ChevronRight size={10} className="inline" />
+                              </span>
+                            )}
+                            {(item as any).shelf?.locker?.name && (
+                              <span>
+                                ຕູ້ {(item as any).shelf.locker.name}{' '}
+                                <ChevronRight size={10} className="inline" />
+                              </span>
+                            )}
+                            {(item as any).shelf?.name && (
+                              <span className="text-slate-600 font-semibold">
+                                ຊັ້ນ {(item as any).shelf.name}
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
                     </div>
 
-                    <div className="col-span-1 flex justify-center" onClick={(e) => e.stopPropagation()}>
+                    <div className="col-span-1 flex justify-center items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                      {/* Print Cart Quick Action Icon */}
+                      <Tooltip title={inPrintCart ? 'ຢູ່ໃນກະຕ່າພິມ Tag ແລ້ວ (ກົດເພື່ອລຶບออก)' : 'ເພີ່ມໃສ່ກະຕ່າພິມ Tag'}>
+                        <Button
+                          type="text"
+                          onClick={() => {
+                            const added = togglePrintCart(buildFolderPrintItem(item));
+                            if (added) {
+                              messageApi.success('ເພີ່ມໃສ່ກະຕ່າພິມ Tag ແລ້ວ!');
+                            } else {
+                              messageApi.info('ລຶບອອກຈາກກະຕ່າພິມ Tag ແລ້ວ');
+                            }
+                          }}
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
+                            inPrintCart
+                              ? 'bg-teal-500 text-white shadow-xs hover:bg-teal-600!'
+                              : 'bg-white/80 text-slate-400 border border-slate-200/40 hover:text-teal-600 hover:bg-teal-50'
+                          }`}
+                          icon={<Printer size={17} />}
+                        />
+                      </Tooltip>
+
                       <Dropdown
                         menu={{
                           items: [
@@ -272,21 +483,40 @@ export default function FolderTable({
                             {
                               key: 'borrow',
                               icon: <ShoppingCart size={18} className="text-purple-500" />,
-                              label: isInCart(item.id)
-                                ? <span className="text-emerald-600 font-bold text-[15px]">ຢູ່ໃນກະຕ່າແລ້ວ ✓</span>
-                                : <span className="text-purple-600 font-bold text-[15px]">ເພີ່ມໃສ່ກະຕ່າຢືມ</span>,
-                              onClick: () => handleAddToCart({
-                                id: item.id,
-                                type: 'folder',
-                                name: item.name,
-                                code: item.code,
-                              }),
+                              label: isInBorrowCart(item.id) ? (
+                                <span className="text-emerald-600 font-bold text-[15px]">ຢູ່ໃນກະຕ່າແລ້ວ ✓</span>
+                              ) : (
+                                <span className="text-purple-600 font-bold text-[15px]">ເພີ່ມໃສ່ກະຕ່າຢືມ</span>
+                              ),
+                              onClick: () =>
+                                handleAddToCart({
+                                  id: item.id,
+                                  type: 'folder',
+                                  name: item.name,
+                                  code: item.code,
+                                }),
                             },
                             {
-                              key: 'print',
-                              icon: <QrCode size={18} className="text-teal-600" />,
-                              label: <span className="text-teal-600 font-bold text-[15px]">ພິມ Tag (QR Code)</span>,
-                              onClick: () => onPrint?.(item),
+                              key: 'printCart',
+                              icon: <Printer size={18} className="text-teal-600" />,
+                              label: inPrintCart ? (
+                                <span className="text-teal-700 font-bold text-[15px]">ຢູ່ໃນກະຕ່າພິມ Tag ແລ້ວ ✓</span>
+                              ) : (
+                                <span className="text-teal-600 font-bold text-[15px]">ເພີ່ມໃສ່ກະຕ່າພິມ Tag</span>
+                              ),
+                              onClick: () => {
+                                addToPrintCart(buildFolderPrintItem(item));
+                                messageApi.success('ເພີ່ມໃສ່ກະຕ່າພິມ Tag ແລ້ວ!');
+                              },
+                            },
+                            {
+                              key: 'printSingle',
+                              icon: <QrCode size={18} className="text-[#185C4D]" />,
+                              label: <span className="text-[#185C4D] font-bold text-[15px]">ພິມ Tag ທັນທີ</span>,
+                              onClick: () => {
+                                addToPrintCart(buildFolderPrintItem(item));
+                                setIsPrintCartDrawerOpen(true);
+                              },
                             },
                             {
                               type: 'divider',
@@ -303,17 +533,23 @@ export default function FolderTable({
                               icon: <Trash2 size={18} className="text-rose-500" />,
                               label: <span className="text-rose-500 font-medium text-[14px]">ລຶບຂໍ້ມູນ</span>,
                               onClick: () => onDelete?.(item.id),
-                            }
+                            },
                           ],
-                          className: "min-w-[180px] p-2 rounded-2xl border border-white/60 shadow-glass bg-white/80 backdrop-blur-xl"
+                          className:
+                            'min-w-[200px] p-2 rounded-2xl border border-white/60 shadow-glass bg-white/80 backdrop-blur-xl',
                         }}
                         trigger={['click']}
                         placement="bottomRight"
                       >
                         <Button
                           type="text"
-                          className="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-[#185C4D]/5 transition-all duration-300 shadow-sm border border-slate-200/30 bg-white/80 hover:border-[#185C4D]/30 group/btn"
-                          icon={<MoreVertical size={20} className="text-slate-400 group-hover/btn:text-[#185C4D] transition-colors" />}
+                          className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-[#185C4D]/5 transition-all duration-300 shadow-sm border border-slate-200/30 bg-white/80 hover:border-[#185C4D]/30 group/btn"
+                          icon={
+                            <MoreVertical
+                              size={18}
+                              className="text-slate-400 group-hover/btn:text-[#185C4D] transition-colors"
+                            />
+                          }
                         />
                       </Dropdown>
                     </div>
@@ -337,7 +573,12 @@ export default function FolderTable({
           )}
         </div>
       </div>
+
+      {/* Tag Print Cart Drawer Component */}
+      <FolderPrintCartDrawer
+        isOpen={isPrintCartDrawerOpen}
+        onClose={() => setIsPrintCartDrawerOpen(false)}
+      />
     </section>
   );
 }
-

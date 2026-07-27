@@ -6,6 +6,7 @@ import { useFolderStore } from '@/store/useFolderStore';
 import { useDocumentTypeStore } from '@/store/useDocumentTypeStore';
 import { useDocumentStore } from '@/store/useDocumentStore';
 import { useDepartmentStore } from '@/store/useDepartmentStore';
+import { useAuthStore } from '@/store/useAuthStore';
 import dayjs from 'dayjs';
 import {
   FileText,
@@ -58,6 +59,8 @@ export default function DocumentFormModal({
 }: DocumentFormModalProps) {
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState<any[]>([]);
+  const { user } = useAuthStore();
+  const isUserRole = user?.role?.toUpperCase() === 'USER';
   const { folders, fetchFolders } = useFolderStore();
   const { documentTypes, fetchDocumentTypes } = useDocumentTypeStore();
   const { uploadProgress } = useDocumentStore();
@@ -157,6 +160,11 @@ export default function DocumentFormModal({
   const handleFinish = (values: any) => {
     // Remove temporary location fields used only for dropdown filtering
     const { warehouseId, lockerId, shelfId, expireYears, ...restValues } = values;
+
+    if (isUserRole) {
+      delete restValues.departmentId;
+      delete restValues.divisionId;
+    }
 
     let docExpire = undefined;
     if (expireYears && restValues.docDate) {
@@ -399,28 +407,30 @@ export default function DocumentFormModal({
             </div>
 
             {/* ── Section 2: Source Department ── */}
-            <div>
-              <h3 className="flex items-center gap-2 text-[#185C4D] font-bold text-[15px] mb-4 border-b border-slate-100 pb-2">
-                <Building2 size={16} /> ມາຈາກພາກສ່ວນ
-              </h3>
+            {!isUserRole && (
+              <div>
+                <h3 className="flex items-center gap-2 text-[#185C4D] font-bold text-[15px] mb-4 border-b border-slate-100 pb-2">
+                  <Building2 size={16} /> ມາຈາກພາກສ່ວນ
+                </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <Form.Item
-                  label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1.5"><Building2 size={14} className="text-slate-400" /> ຝ່າຍ <span className="text-rose-500">*</span></span>}
-                  name="departmentId"
-                  rules={[{ required: true, message: 'ກະລຸນາເລືອກຝ່າຍ!' }]}
-                >
-                  <DocumentDepartmentSelect />
-                </Form.Item>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <Form.Item
+                    label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1.5"><Building2 size={14} className="text-slate-400" /> ຝ່າຍ <span className="text-rose-500">*</span></span>}
+                    name="departmentId"
+                    rules={[{ required: true, message: 'ກະລຸນາເລືອກຝ່າຍ!' }]}
+                  >
+                    <DocumentDepartmentSelect />
+                  </Form.Item>
 
-                <Form.Item
-                  label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1.5"><GitBranch size={14} className="text-slate-400" /> ພະແນກ/ສາຂາ</span>}
-                  name="divisionId"
-                >
-                  <DocumentDivisionSelect form={form} />
-                </Form.Item>
+                  <Form.Item
+                    label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1.5"><GitBranch size={14} className="text-slate-400" /> ພະແນກ/ສາຂາ</span>}
+                    name="divisionId"
+                  >
+                    <DocumentDivisionSelect form={form} />
+                  </Form.Item>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* ── Section 3: Document Classification ── */}
             <div>

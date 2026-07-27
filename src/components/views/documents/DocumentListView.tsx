@@ -16,9 +16,13 @@ import MoveFormModal from '@/components/views/storage/MoveFormModal';
 // Stores & Types
 import { useDocumentTypeStore } from '@/store/useDocumentTypeStore';
 import { useDocumentStore } from '@/store/useDocumentStore';
+import { useAuthStore } from '@/store/useAuthStore';
 import { DocumentType, CreateDocumentTypePayload, Document } from '@/types/prisma-mapped';
 
 export default function DocumentListView() {
+  const { user } = useAuthStore();
+  const isAllowedDocType = user?.role?.toUpperCase() === 'SUPER_ADMIN' || user?.role?.toUpperCase() === 'HQ_ADMIN';
+
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialFolderId = searchParams.get('folderId') || '';
@@ -26,6 +30,12 @@ export default function DocumentListView() {
   const [activeTab, setActiveTab] = useState('documents');
   const [messageApi, contextHolder] = message.useMessage();
   const [modal, modalContextHolder] = Modal.useModal();
+
+  useEffect(() => {
+    if (!isAllowedDocType && activeTab === 'doc-types') {
+      setActiveTab('documents');
+    }
+  }, [isAllowedDocType, activeTab]);
 
   // ── DocumentType States & Actions ──
   const { 
@@ -54,14 +64,14 @@ export default function DocumentListView() {
   }, [docTypeSearch]);
 
   useEffect(() => {
-    if (activeTab === 'doc-types') {
+    if (activeTab === 'doc-types' && isAllowedDocType) {
       fetchDocumentTypes({
         page: docTypePage,
         limit: 10,
         search: debouncedDocTypeSearch || undefined,
       });
     }
-  }, [activeTab, fetchDocumentTypes, docTypePage, debouncedDocTypeSearch]);
+  }, [activeTab, fetchDocumentTypes, docTypePage, debouncedDocTypeSearch, isAllowedDocType]);
 
   // ── Document States & Actions ──
   const { 
@@ -366,28 +376,30 @@ export default function DocumentListView() {
         />
       ),
     },
-    {
-      key: 'doc-types',
-      label: (
-        <span className="flex items-center gap-2">
-          <Settings size={16} />
-          ການຈັດການປະເພດເອກະສານ
-        </span>
-      ),
-      children: (
-        <DocumentTypeTable 
-          data={documentTypes}
-          total={docTypeTotal}
-          currentPage={docTypePage}
-          onPageChange={setDocTypePage}
-          searchName={docTypeSearch}
-          onSearchChange={setDocTypeSearch}
-          isLoading={isDocTypeLoading}
-          onEdit={handleEditDocType}
-          onDelete={handleDeleteDocType}
-        />
-      ),
-    },
+    ...(isAllowedDocType ? [
+      {
+        key: 'doc-types',
+        label: (
+          <span className="flex items-center gap-2">
+            <Settings size={16} />
+            ການຈັດການປະເພດເອກະສານ
+          </span>
+        ),
+        children: (
+          <DocumentTypeTable 
+            data={documentTypes}
+            total={docTypeTotal}
+            currentPage={docTypePage}
+            onPageChange={setDocTypePage}
+            searchName={docTypeSearch}
+            onSearchChange={setDocTypeSearch}
+            isLoading={isDocTypeLoading}
+            onEdit={handleEditDocType}
+            onDelete={handleDeleteDocType}
+          />
+        ),
+      }
+    ] : []),
   ];
 
   return (

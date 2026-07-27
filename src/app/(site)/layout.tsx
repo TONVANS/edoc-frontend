@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import DashboardShell from '@/components/layout/DashboardShell';
 import RoleGuard from '@/components/auth/RoleGuard';
 import BorrowCartFAB from '@/components/views/borrow/BorrowCartFAB';
+import FolderPrintCartFAB from '@/components/views/storage/FolderPrintCartFAB';
 
 function DashboardLayoutFallback() {
   return (
@@ -20,6 +21,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <Suspense fallback={<DashboardLayoutFallback />}>
       <RoleGuard>
         <DashboardShell>{children}</DashboardShell>
+        <FolderPrintCartFAB />
         <BorrowCartFAB />
       </RoleGuard>
     </Suspense>
