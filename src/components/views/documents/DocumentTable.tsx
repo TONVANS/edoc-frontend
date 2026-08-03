@@ -110,30 +110,40 @@ export default function DocumentTable({
   onBorrow,
   hideLocationFilters = false,
 }: DocumentTableProps) {
-  const { folders, fetchFolders, folderDropdown, fetchFolderDropdown } = useFolderStore();
+  const { folderDropdown, fetchFolderDropdown } = useFolderStore();
   const { documentTypes, fetchDocumentTypes } = useDocumentTypeStore();
   const { departmentDropdown, fetchDropdown: fetchDepartmentDropdown } = useDepartmentStore();
   const { divisionDropdown, fetchDropdown: fetchDivisionDropdown } = useDivisionStore();
-  const { warehouses, fetchWarehouses } = useWarehouseStore();
-  const { lockers, fetchLockers } = useLockerStore();
-  const { shelves, fetchShelves, shelfDropdown, fetchShelfDropdown } = useShelfStore();
+  const { warehouseDropdown, fetchWarehouseDropdown } = useWarehouseStore();
+  const { lockerDropdown, fetchLockerDropdown } = useLockerStore();
+  const { shelfDropdown, fetchShelfDropdown } = useShelfStore();
   
   const { isInCart } = useBorrowCartStore();
   const { handleAddToCart, contextHolder } = useAddToCart();
 
   // Load folders and document types for display/filter mappings
   useEffect(() => {
-    fetchFolders({ limit: 1000 });
-    fetchDocumentTypes({ limit: 1000 });
+    fetchDocumentTypes();
     fetchDepartmentDropdown();
-    fetchWarehouses({ limit: 1000 });
-    fetchLockers({ limit: 1000 });
-    fetchShelves({ limit: 1000 });
-  }, [fetchFolders, fetchDocumentTypes, fetchDepartmentDropdown, fetchWarehouses, fetchLockers, fetchShelves]);
+    // Dropdowns for other entities are fetched by the specific useEffects below
+  }, [fetchDocumentTypes, fetchDepartmentDropdown]);
 
   useEffect(() => {
     fetchDivisionDropdown(departmentFilter ? { departmentId: departmentFilter } : undefined);
   }, [departmentFilter, fetchDivisionDropdown]);
+
+  useEffect(() => {
+    fetchWarehouseDropdown({
+      departmentId: departmentFilter || undefined,
+      divisionId: divisionFilter || undefined,
+    });
+  }, [fetchWarehouseDropdown, departmentFilter, divisionFilter]);
+
+  useEffect(() => {
+    fetchLockerDropdown({
+      warehouseId: warehouseFilter || undefined,
+    });
+  }, [fetchLockerDropdown, warehouseFilter]);
 
   useEffect(() => {
     fetchShelfDropdown({
@@ -152,19 +162,6 @@ export default function DocumentTable({
     });
   }, [fetchFolderDropdown, shelfFilter, lockerFilter, warehouseFilter, departmentFilter, divisionFilter]);
 
-  // Derived options for cascading filters
-  const warehouseOptions = React.useMemo(() => {
-    let filtered = warehouses;
-    if (departmentFilter) filtered = filtered.filter(w => w.departmentId === departmentFilter);
-    if (divisionFilter) filtered = filtered.filter(w => w.divisionId === divisionFilter);
-    return filtered;
-  }, [warehouses, departmentFilter, divisionFilter]);
-
-  const lockerOptions = React.useMemo(() => {
-    if (warehouseFilter) return lockers.filter(l => String(l.warehouseId) === warehouseFilter);
-    return lockers;
-  }, [lockers, warehouseFilter]);
-
 
 
   // Handlers for cascading selects
@@ -180,7 +177,7 @@ export default function DocumentTable({
     onShelfFilterChange('');
     onFolderFilterChange('');
     if (val) {
-      const locker = lockers.find(l => String(l.id) === val);
+      const locker = lockerDropdown.find(l => String(l.id) === val) as any;
       if (locker && locker.warehouseId && !warehouseFilter) {
         onWarehouseFilterChange(String(locker.warehouseId));
       }
@@ -191,10 +188,10 @@ export default function DocumentTable({
     onShelfFilterChange(val || '');
     onFolderFilterChange('');
     if (val) {
-      const shelf = shelves.find(s => String(s.id) === val);
+      const shelf = shelfDropdown.find(s => String(s.id) === val) as any;
       if (shelf && shelf.lockerId && !lockerFilter) {
         onLockerFilterChange(String(shelf.lockerId));
-        const locker = lockers.find(l => String(l.id) === String(shelf.lockerId));
+        const locker = lockerDropdown.find(l => String(l.id) === String(shelf.lockerId)) as any;
         if (locker && locker.warehouseId && !warehouseFilter) {
           onWarehouseFilterChange(String(locker.warehouseId));
         }
@@ -205,7 +202,7 @@ export default function DocumentTable({
   const handleFolderChange = (val: string) => {
     onFolderFilterChange(val || '');
     if (val) {
-      const folder = folders.find(f => String(f.id) === val);
+      const folder = folderDropdown.find(f => String(f.id) === val) as any;
       if (folder && folder.shelfId && !shelfFilter) {
         handleShelfChange(String(folder.shelfId));
       }
@@ -214,21 +211,21 @@ export default function DocumentTable({
 
   // Auto-populate parent filters if folderFilter is provided externally (e.g. in Folder Detail Page)
   useEffect(() => {
-    if (folderFilter && !shelfFilter && folders.length > 0 && shelves.length > 0 && lockers.length > 0 && warehouses.length > 0) {
-      const folder = folders.find(f => String(f.id) === String(folderFilter));
+    if (folderFilter && !shelfFilter && folderDropdown.length > 0 && shelfDropdown.length > 0 && lockerDropdown.length > 0 && warehouseDropdown.length > 0) {
+      const folder = folderDropdown.find(f => String(f.id) === String(folderFilter)) as any;
       if (folder && folder.shelfId) {
         onShelfFilterChange(String(folder.shelfId));
-        const shelf = shelves.find(s => String(s.id) === String(folder.shelfId));
+        const shelf = shelfDropdown.find(s => String(s.id) === String(folder.shelfId)) as any;
         if (shelf && shelf.lockerId) {
           onLockerFilterChange(String(shelf.lockerId));
-          const locker = lockers.find(l => String(l.id) === String(shelf.lockerId));
+          const locker = lockerDropdown.find(l => String(l.id) === String(shelf.lockerId)) as any;
           if (locker && locker.warehouseId) {
             onWarehouseFilterChange(String(locker.warehouseId));
           }
         }
       }
     }
-  }, [folderFilter, folders, shelves, lockers, warehouses, shelfFilter]);
+  }, [folderFilter, folderDropdown, shelfDropdown, lockerDropdown, warehouseDropdown, shelfFilter]);
 
   const hasAdvancedFilters = Boolean(
     (!hideLocationFilters && (warehouseFilter || lockerFilter || shelfFilter || folderFilter)) ||
@@ -341,10 +338,10 @@ export default function DocumentTable({
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">ສະຖານທີ່ເກັບຮັກສາ</span>
                     <div className="grid grid-cols-2 gap-3">
                       <Select placeholder="ສາງ" value={warehouseFilter || undefined} onChange={handleWarehouseChange} allowClear className="w-full h-11" classNames={{ popup: { root: "rounded-xl shadow-glass" } }}>
-                        {warehouseOptions.map(w => <Select.Option key={w.id} value={String(w.id)}>{w.name}</Select.Option>)}
+                        {warehouseDropdown.map(w => <Select.Option key={w.id} value={String(w.id)}>{w.name}</Select.Option>)}
                       </Select>
                       <Select placeholder="ຕູ້" value={lockerFilter || undefined} onChange={handleLockerChange} allowClear className="w-full h-11" classNames={{ popup: { root: "rounded-xl shadow-glass" } }}>
-                        {lockerOptions.map(l => <Select.Option key={l.id} value={String(l.id)}>{l.name || l.code}</Select.Option>)}
+                        {lockerDropdown.map(l => <Select.Option key={l.id} value={String(l.id)}>{l.name || l.code}</Select.Option>)}
                       </Select>
                       <Select placeholder="ຊັ້ນວາງ" value={shelfFilter || undefined} onChange={handleShelfChange} allowClear className="w-full h-11" classNames={{ popup: { root: "rounded-xl shadow-glass" } }} showSearch filterOption={(input, option) => (option?.children as unknown as string).toLowerCase().includes(input.toLowerCase())} onSearch={(val) => {
                         fetchShelfDropdown({
@@ -463,7 +460,7 @@ export default function DocumentTable({
             <div className="flex flex-col gap-4">
               {data.map(item => {
                 const docTypeName = item.documentType?.name || documentTypes.find(t => t.id === item.documentTypeId)?.name || 'ບໍ່ລະບຸ';
-                const folderName = item.folder?.name || folders.find(f => f.id === item.folderId)?.name || folders.find(f => f.id === item.folderId)?.code || 'ບໍ່ລະບຸ';
+                const folderName = item.folder?.name || folderDropdown.find(f => f.id === item.folderId)?.name || folderDropdown.find(f => f.id === item.folderId)?.code || 'ບໍ່ລະບຸ';
 
                 return (
                   <div

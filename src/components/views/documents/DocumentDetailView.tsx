@@ -150,7 +150,7 @@ export default function DocumentDetailView({
   return (
     <div className="w-full max-w-5xl mx-auto">
       {contextHolder}
-      <div className="bg-white/75 backdrop-blur-3xl rounded-[32px] overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.12)] border border-white/60 relative flex flex-col min-h-[50vh]">
+      <div className="bg-white/75 backdrop-blur-3xl rounded-4xl overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.12)] border border-white/60 relative flex flex-col min-h-[50vh]">
         
         {/* ══ HEADER ══════════════════════════════════════════ */}
         <header className="relative px-10 pt-10 pb-14 overflow-hidden bg-linear-to-br from-[#185C4D] via-[#1c6958] to-[#257c66] shrink-0">
@@ -333,7 +333,7 @@ export default function DocumentDetailView({
                 {isSubDocsLoading ? (
                   <div className="flex justify-center p-4"><Loader2 className="animate-spin text-slate-400" /></div>
                 ) : subDocuments && subDocuments.length > 0 ? (
-                  <div className="flex flex-col gap-2 max-h-[120px] overflow-y-auto pr-1 mb-4">
+                  <div className="flex flex-col gap-2 max-h-30 overflow-y-auto pr-1 mb-4">
                     {subDocuments.map(sub => (
                       <div key={sub.id} className="flex items-center justify-between bg-white/70 border border-slate-100 p-2.5 rounded-xl text-slate-600">
                         <div>
@@ -367,7 +367,7 @@ export default function DocumentDetailView({
                 </h4>
                 
                 {doc.attachments && doc.attachments.length > 0 ? (
-                  <div className="flex flex-col gap-2 max-h-[180px] overflow-y-auto pr-1">
+                  <div className="flex flex-col gap-2 max-h-45 overflow-y-auto pr-1">
                     {doc.attachments.map(att => (
                       <div 
                         key={att.id}

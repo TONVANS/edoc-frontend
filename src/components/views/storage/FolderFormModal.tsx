@@ -52,7 +52,7 @@ export default function FolderFormModal({
   const { divisionDropdown, fetchDropdown: fetchDivDropdown } = useDivisionStore();
   const { warehouseDropdown, fetchWarehouseDropdown } = useWarehouseStore();
   const { lockerDropdown, fetchLockerDropdown } = useLockerStore();
-  const { shelves, fetchShelves } = useShelfStore();
+  const { shelfDropdown, fetchShelfDropdown } = useShelfStore();
 
   const [filterDeptId, setFilterDeptId] = React.useState<number | undefined>();
   const [filterDivId, setFilterDivId] = React.useState<number | undefined>();
@@ -82,8 +82,8 @@ export default function FolderFormModal({
         if (warehouseId) fetchLockerDropdown({ warehouseId });
         else fetchLockerDropdown();
 
-        if (lockerId) fetchShelves({ lockerId, limit: 1000 });
-        else fetchShelves({ limit: 1000 });
+        if (lockerId) fetchShelfDropdown({ lockerId });
+        else fetchShelfDropdown();
 
         setTimeout(() => {
           if (!isEditing) form.resetFields();
@@ -100,7 +100,7 @@ export default function FolderFormModal({
         setFilterLockerId(undefined);
         fetchWarehouseDropdown();
         fetchLockerDropdown();
-        fetchShelves({ limit: 1000 });
+        fetchShelfDropdown();
         setTimeout(() => {
           form.resetFields();
           form.setFieldsValue({ 
@@ -109,7 +109,7 @@ export default function FolderFormModal({
         }, 0);
       }
     }
-  }, [isOpen, initialData, form, fetchDeptDropdown, fetchDivDropdown, fetchWarehouseDropdown, fetchLockerDropdown, fetchShelves]);
+  }, [isOpen, initialData, form, fetchDeptDropdown, fetchDivDropdown, fetchWarehouseDropdown, fetchLockerDropdown, fetchShelfDropdown]);
 
   const handleDeptChange = (val: number) => {
     setFilterDeptId(val);
@@ -120,7 +120,7 @@ export default function FolderFormModal({
     fetchDivDropdown({ departmentId: val });
     fetchWarehouseDropdown({ departmentId: val });
     fetchLockerDropdown();
-    fetchShelves({ limit: 1000 });
+    fetchShelfDropdown();
   };
 
   const handleDivChange = (val: number) => {
@@ -130,7 +130,7 @@ export default function FolderFormModal({
     form.setFieldsValue({ shelfId: undefined });
     fetchWarehouseDropdown({ departmentId: filterDeptId, divisionId: val });
     fetchLockerDropdown();
-    fetchShelves({ limit: 1000 });
+    fetchShelfDropdown();
   };
 
   const handleWarehouseChange = (val: string) => {
@@ -138,13 +138,13 @@ export default function FolderFormModal({
     setFilterLockerId(undefined);
     form.setFieldsValue({ shelfId: undefined });
     fetchLockerDropdown({ warehouseId: val });
-    fetchShelves({ limit: 1000 });
+    fetchShelfDropdown();
   };
 
   const handleLockerChange = (val: string) => {
     setFilterLockerId(val);
     form.setFieldsValue({ shelfId: undefined });
-    fetchShelves({ lockerId: val, limit: 1000 });
+    fetchShelfDropdown({ lockerId: val });
   };
 
   const handleFinish = (values: FormValues) => {
@@ -283,9 +283,9 @@ export default function FolderFormModal({
               <Select
                 placeholder="ເລືອກຊັ້ນວາງທີ່ແຟ້ມເກັບມ້ຽນຢູ່"
                 className={selectCls}
-                loading={shelves.length === 0}
-                options={shelves.map(s => ({ value: s.id, label: s.name || s.code }))}
-                disabled={shelves.length === 0 && !!filterLockerId}
+                loading={shelfDropdown.length === 0}
+                options={shelfDropdown.map(s => ({ value: s.id, label: s.name || s.code }))}
+                disabled={shelfDropdown.length === 0 && !!filterLockerId}
               />
             </Form.Item>
 

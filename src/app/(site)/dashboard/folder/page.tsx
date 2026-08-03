@@ -21,7 +21,7 @@ import { useWarehouseStore } from '@/store/useWarehouseStore';
 
 function FolderPageContent() {
   const { folders, total, isLoading: isFolderLoading, fetchFolders, createFolder, updateFolder, deleteFolder } = useFolderStore();
-  const { shelves, fetchShelves } = useShelfStore();
+  const { shelfDropdown, fetchShelfDropdown } = useShelfStore();
   const { lockerDropdown, fetchLockerDropdown } = useLockerStore();
   const { warehouseDropdown, fetchWarehouseDropdown } = useWarehouseStore();
   const { departmentDropdown, fetchDropdown: fetchDeptDropdown } = useDepartmentStore();
@@ -105,8 +105,8 @@ function FolderPageContent() {
   }, [filterWarehouseId, fetchLockerDropdown]);
 
   useEffect(() => {
-    fetchShelves({ lockerId: filterLockerId !== 'all' ? filterLockerId : undefined, limit: 1000 });
-  }, [filterLockerId, fetchShelves]);
+    fetchShelfDropdown({ lockerId: filterLockerId !== 'all' ? filterLockerId : undefined });
+  }, [filterLockerId, fetchShelfDropdown]);
 
   useEffect(() => {
     fetchFolders({
@@ -248,7 +248,7 @@ function FolderPageContent() {
   };
 
   return (
-    <div className="p-4 sm:p-8 lg:p-12 max-w-[1600px] mx-auto min-h-full animate-in fade-in slide-in-from-bottom-8 duration-700 ease-out font-lao">
+    <div className="p-4 sm:p-8 lg:p-12 max-w-400 mx-auto min-h-full animate-in fade-in slide-in-from-bottom-8 duration-700 ease-out font-lao">
       {contextHolder}
       {modalContextHolder}
       
@@ -278,7 +278,7 @@ function FolderPageContent() {
             size="large" 
             icon={<Plus size={20} strokeWidth={3} className="transition-transform group-hover:rotate-90 duration-300" />}
             onClick={handleOpenCreateModal}
-            className="group rounded-[18px] bg-linear-to-r from-[#185C4D] to-[#25705a] hover:from-[#0f3d31] hover:to-[#185C4D] border-none shadow-[0_8px_20px_rgba(24,92,77,0.25)] hover:shadow-[0_12px_28px_rgba(24,92,77,0.35)] hover:-translate-y-1 transition-all duration-300 px-8 h-[56px] font-bold text-base flex items-center gap-2 overflow-hidden relative"
+            className="group rounded-[18px] bg-linear-to-r from-[#185C4D] to-[#25705a] hover:from-[#0f3d31] hover:to-[#185C4D] border-none shadow-[0_8px_20px_rgba(24,92,77,0.25)] hover:shadow-[0_12px_28px_rgba(24,92,77,0.35)] hover:-translate-y-1 transition-all duration-300 px-8 h-14 font-bold text-base flex items-center gap-2 overflow-hidden relative"
           >
             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
             <span className="relative z-10">
@@ -289,7 +289,7 @@ function FolderPageContent() {
       </div>
 
       {/* Main Content Area */}
-      <div className="bg-white/40 backdrop-blur-3xl rounded-[24px] p-6 lg:p-8 border border-white/60 shadow-[0_8px_40px_rgba(0,0,0,0.03)] relative overflow-hidden">
+      <div className="bg-white/40 backdrop-blur-3xl rounded-3xl p-6 lg:p-8 border border-white/60 shadow-[0_8px_40px_rgba(0,0,0,0.03)] relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-[#185C4D]/5 rounded-full blur-[80px] -z-10 pointer-events-none translate-x-1/3 -translate-y-1/3"></div>
 
         <FolderTable 
@@ -348,7 +348,7 @@ function FolderPageContent() {
             const warehouseParam = filterWarehouseId !== 'all' ? `warehouseId=${filterWarehouseId}&` : '';
             router.replace(`/dashboard/folder?${warehouseParam}lockerId=${id}`);
           }}
-          shelves={shelves}
+          shelves={shelfDropdown as any}
           filterShelf={filterShelfId}
           onFilterShelfChange={(id) => {
             setFilterShelfId(id);
