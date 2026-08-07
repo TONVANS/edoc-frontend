@@ -256,6 +256,21 @@ export interface UpdateDocumentPayload {
 
 // ── Document Borrow ──────────────────────────────────────────
 
+export interface DocumentBorrowItem {
+  id: string;
+  borrowId: string;
+  documentId: string | null;
+  folderId: string | null;
+  dueDate: string | null;
+  returnedAt: string | null;
+  status: string | null;
+  note: string | null;
+  createdAt: string;
+  updatedAt: string;
+  document?: Document | null;
+  folder?: Folder | null;
+}
+
 export interface DocumentBorrow {
   id: string;
   documentId: string | null;
@@ -274,6 +289,7 @@ export interface DocumentBorrow {
   returnedAt: string | null;
   createdById?: string;
   status?: string | null;
+  items?: DocumentBorrowItem[];
 
   // Optional relations
   document?: Document;

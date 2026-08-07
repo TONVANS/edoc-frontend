@@ -46,6 +46,8 @@ async function proxyRequest(
       body,
       // Disable caching for proxy requests
       cache: "no-store",
+      // Increase timeout for slow backend requests
+      signal: AbortSignal.timeout(60000),
     });
 
     // Use arrayBuffer to safely forward any content type (JSON, images, PDFs, etc.)

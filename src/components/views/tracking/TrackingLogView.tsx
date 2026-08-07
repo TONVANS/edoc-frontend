@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Input, Select, Button, message, Pagination, Modal, DatePicker } from 'antd';
-import { Search, Clock, ArrowRightLeft, Eye, User, MapPin, Calendar, CheckCircle2, Phone, FileText, X, BookOpen } from 'lucide-react';
+import { Input, Select, Button, message, Pagination, Modal, DatePicker, Tooltip } from 'antd';
+import { Search, Clock, ArrowRightLeft, Eye, User, MapPin, Calendar, CheckCircle2, Phone, FileText, X, BookOpen, QrCode, ScanLine, Download } from 'lucide-react';
 import StatusBadge from '@/components/dashboard/StatusBadge';
 import { useDocumentBorrowStore } from '@/store/useDocumentBorrowStore';
 import { useDivisionStore } from '@/store/useDivisionStore';
@@ -10,14 +10,20 @@ import { format } from 'date-fns';
 import { DocumentBorrow } from '@/types/prisma-mapped';
 import { cn } from '@/lib/utils';
 import dayjs from 'dayjs';
+import { useDocumentStore } from '@/store/useDocumentStore';
+import { QRCodeCanvas } from 'qrcode.react';
+import { useRouter } from 'next/navigation';
 
 export default function TrackingLogView() {
   const { borrows, total, fetchBorrows, returnBorrow, isLoading } = useDocumentBorrowStore();
   const { divisionDropdown, fetchDropdown } = useDivisionStore();
+  const { viewAttachment } = useDocumentStore();
+  const router = useRouter();
   
   // Local UI filters
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [typeFilter, setTypeFilter] = useState('ALL');
   
   // API Query parameters
   const [page, setPage] = useState(1);
@@ -30,11 +36,33 @@ export default function TrackingLogView() {
   const [modal, modalContextHolder] = Modal.useModal();
   const [selectedLog, setSelectedLog] = useState<DocumentBorrow | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [loadingViewId, setLoadingViewId] = useState<string | null>(null);
+  const [qrLog, setQrLog] = useState<DocumentBorrow | null>(null);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+
+  const handleViewFile = async (id: string) => {
+    setLoadingViewId(id);
+    await viewAttachment(id);
+    setLoadingViewId(null);
+  };
+  
+  const downloadQRCode = () => {
+    const canvas = document.getElementById('qr-code-canvas') as HTMLCanvasElement;
+    if (canvas) {
+      const pngUrl = canvas.toDataURL('image/png').replace('image/png', 'image/octet-stream');
+      const downloadLink = document.createElement('a');
+      downloadLink.href = pngUrl;
+      downloadLink.download = `QR_Tracking_${qrLog?.id}.png`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+    }
+  };
 
   // Reset pagination page to 1 when filters change
   useEffect(() => {
     setPage(1);
-  }, [divisionId, statusFilter, borrowedRange, returnedRange]);
+  }, [divisionId, statusFilter, typeFilter, borrowedRange, returnedRange]);
 
   // Fetch borrows from API on filter changes
   useEffect(() => {
@@ -43,6 +71,10 @@ export default function TrackingLogView() {
       limit,
       divisionId,
     };
+
+    if (typeFilter && typeFilter !== 'ALL') {
+      params.type = typeFilter;
+    }
 
     if (borrowedRange && borrowedRange[0] && borrowedRange[1]) {
       params.borrowedAt = borrowedRange[0].format('YYYY-MM-DD');
@@ -53,7 +85,7 @@ export default function TrackingLogView() {
     }
 
     fetchBorrows(params);
-  }, [fetchBorrows, page, limit, divisionId, statusFilter, borrowedRange, returnedRange]);
+  }, [fetchBorrows, page, limit, divisionId, statusFilter, typeFilter, borrowedRange, returnedRange]);
 
   useEffect(() => {
     fetchDropdown();
@@ -71,6 +103,7 @@ export default function TrackingLogView() {
           limit,
           divisionId,
         };
+        if (typeFilter && typeFilter !== 'ALL') params.type = typeFilter;
         if (borrowedRange && borrowedRange[0] && borrowedRange[1]) params.borrowedAt = borrowedRange[0].format('YYYY-MM-DD');
         if (returnedRange && returnedRange[0] && returnedRange[1]) params.returnedAt = returnedRange[0].format('YYYY-MM-DD');
         fetchBorrows(params);
@@ -86,18 +119,28 @@ export default function TrackingLogView() {
     // Soft local fallback search
     const matchesSearch = !searchTerm || 
                           log.borrower?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          log.items?.some(i => i.document?.docNo?.toLowerCase().includes(searchTerm.toLowerCase()) || i.folder?.code?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                          log.items?.some(i => i.document?.title?.toLowerCase().includes(searchTerm.toLowerCase()) || i.folder?.name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
                           log.document?.docNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           log.document?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           log.purpose?.toLowerCase().includes(searchTerm.toLowerCase());
     
     // Status fallback checking
-    const isReturned = log.status === 'RETURNED' || !!log.returnedAt;
-    const isOverdue = !isReturned && !!log.dueDate && new Date(log.dueDate) < new Date();
+    const isReturned = log.status === 'RETURNED';
+    const firstItemDueDate = log.items?.[0]?.dueDate || log.dueDate;
+    const isOverdue = !isReturned && !!firstItemDueDate && new Date(firstItemDueDate) < new Date();
 
     let matchesStatus = true;
     if (statusFilter === 'BORROWED') matchesStatus = !isReturned;
     else if (statusFilter === 'RETURNED') matchesStatus = isReturned;
     else if (statusFilter === 'OVERDUE') matchesStatus = isOverdue;
+
+    const hasDocument = log.items?.some(i => i.documentId) || !!log.documentId;
+    const hasFolder = log.items?.some(i => i.folderId) || !!log.folderId;
+    
+    let matchesType = true;
+    if (typeFilter === 'document') matchesType = hasDocument;
+    else if (typeFilter === 'folder') matchesType = hasFolder;
 
     // Date range fallback filter
     const borrowedDateObj = log.borrowedAt || log.createdAt;
@@ -107,13 +150,14 @@ export default function TrackingLogView() {
       dayjs(borrowedDateObj).isBefore(borrowedRange[1].endOf('day'))
     );
 
+    const firstItemReturnedAt = log.items?.find(i => i.returnedAt)?.returnedAt || log.returnedAt;
     const matchesReturnedRange = !returnedRange || !returnedRange[0] || !returnedRange[1] || (
-      log.returnedAt &&
-      dayjs(log.returnedAt).isAfter(returnedRange[0].startOf('day')) &&
-      dayjs(log.returnedAt).isBefore(returnedRange[1].endOf('day'))
+      firstItemReturnedAt &&
+      dayjs(firstItemReturnedAt).isAfter(returnedRange[0].startOf('day')) &&
+      dayjs(firstItemReturnedAt).isBefore(returnedRange[1].endOf('day'))
     );
 
-    return matchesSearch && matchesStatus && matchesBorrowedRange && matchesReturnedRange;
+    return matchesSearch && matchesStatus && matchesType && matchesBorrowedRange && matchesReturnedRange;
   });
 
   return (
@@ -125,6 +169,14 @@ export default function TrackingLogView() {
           <h1 className="text-2xl font-bold text-[#1C1C1E] tracking-tight">ຕິດຕາມປະຫວັດການຢືມເອກະສານ</h1>
           <p className="text-[#737373] text-sm mt-1">ຕິດຕາມ, ຈັດການການເຄື່ອນໄຫວ, ການຢືມ, ແລະ ການສົ່ງຄືນເອກະສານ.</p>
         </div>
+        <Button 
+          type="primary" 
+          icon={<ScanLine size={16} />} 
+          onClick={() => router.push('/dashboard/scan')}
+          className="bg-[#185C4D] border-none shadow-soft hover:-translate-y-0.5 transition-transform cursor-pointer font-bold px-5 h-10 rounded-xl"
+        >
+          ສະແກນ QR ຕິດຕາມ
+        </Button>
       </div>
 
       {/* Filter / Search Bar */}
@@ -159,6 +211,17 @@ export default function TrackingLogView() {
               { value: 'BORROWED', label: 'ກຳລັງຢືມ' },
               { value: 'RETURNED', label: 'ສົ່ງຄືນແລ້ວ' },
               { value: 'OVERDUE', label: 'ກາຍກຳນົດສົ່ງ' },
+            ]}
+          />
+          <Select 
+            placeholder="ປະເພດ" 
+            value={typeFilter}
+            onChange={setTypeFilter}
+            className="w-full sm:w-40 [&_.ant-select-selector]:rounded-xl! [&_.ant-select-selector]:h-[42px]! [&_.ant-select-selection-item]:leading-[40px]!"
+            options={[
+              { value: 'ALL', label: 'ປະເພດທັງໝົດ' },
+              { value: 'folder', label: 'ແຟ້ມເອກະສານ' },
+              { value: 'document', label: 'ເອກະສານ' },
             ]}
           />
           <DatePicker.RangePicker
@@ -208,15 +271,25 @@ export default function TrackingLogView() {
           ) : (
             <div className="flex flex-col gap-3.5">
               {filteredLogs.map(log => {
-                const isReturned = log.status === 'RETURNED' || !!log.returnedAt;
-                const isOverdue = !isReturned && !!log.dueDate && new Date(log.dueDate) < new Date();
-                const docTitle = log.document?.title || log.folder?.name || 'ບໍ່ຮູ້';
-                const docNo = log.document?.docNo || log.folder?.code || '—';
+                const isReturned = log.status === 'RETURNED';
+                const firstItemDueDate = log.items?.[0]?.dueDate || log.dueDate;
+                const isOverdue = !isReturned && !!firstItemDueDate && new Date(firstItemDueDate) < new Date();
+                
+                const docTitles = log.items?.length 
+                  ? log.items.map(i => i.document?.title || i.folder?.name).filter(Boolean)
+                  : [log.document?.title || log.folder?.name].filter(Boolean);
+                const docNos = log.items?.length
+                  ? log.items.map(i => i.document?.docNo || i.folder?.code).filter(Boolean)
+                  : [log.document?.docNo || log.folder?.code].filter(Boolean);
+                
+                const docTitle = docTitles.length > 0 ? (docTitles.length > 1 ? `${docTitles[0]} (+${docTitles.length - 1} ລາຍການ)` : docTitles[0]) : 'ບໍ່ຮູ້';
+                const docNo = docNos.length > 0 ? (docNos.length > 1 ? `${docNos[0]} ແລະ ອື່ນໆ` : docNos[0]) : '—';
                 
                 const borrowedDateObj = log.borrowedAt || log.createdAt;
                 const dateBorrowed = borrowedDateObj ? format(new Date(borrowedDateObj), 'dd MMM yyyy') : '—';
-                const dateReturned = log.returnedAt ? format(new Date(log.returnedAt), 'dd MMM yyyy') : '—';
-                const dueDateFormatted = log.dueDate ? format(new Date(log.dueDate), 'dd MMM yyyy') : '—';
+                const firstItemReturnedAt = log.items?.find(i => i.returnedAt)?.returnedAt || log.returnedAt;
+                const dateReturned = firstItemReturnedAt ? format(new Date(firstItemReturnedAt), 'dd MMM yyyy') : '—';
+                const dueDateFormatted = firstItemDueDate ? format(new Date(firstItemDueDate), 'dd MMM yyyy') : '—';
                 
                 return (
                   <div 
@@ -293,19 +366,33 @@ export default function TrackingLogView() {
                     </div>
 
                     {/* Actions */}
-                    <div className="xl:col-span-2 flex items-center justify-start xl:justify-end gap-3 mt-2 xl:mt-0 pt-4 xl:pt-0 border-t border-gray-100 xl:border-t-0">
-                      <Button 
-                        size="small" 
-                        type="default"
-                        icon={<Eye size={14} />}
-                        onClick={() => {
-                          setSelectedLog(log as any);
-                          setIsModalVisible(true);
-                        }}
-                        className="text-[#1C1C1E] border-gray-300 hover:text-[#185C4D] hover:border-[#185C4D] hover:bg-[#185C4D]/5 text-xs font-semibold rounded-lg shadow-none flex items-center gap-1 px-3 py-1.5 h-auto transition-colors"
-                      >
-                        ລາຍລະອຽດ
-                      </Button>
+                    <div className="xl:col-span-2 flex items-center justify-start xl:justify-end gap-2 mt-2 xl:mt-0 pt-4 xl:pt-0 border-t border-gray-100 xl:border-t-0">
+                      <Tooltip title="ລາຍລະອຽດ" placement="top">
+                        <Button 
+                          size="small" 
+                          type="text"
+                          icon={<Eye size={16} />}
+                          onClick={() => {
+                            setSelectedLog(log as any);
+                            setIsModalVisible(true);
+                          }}
+                          className="text-slate-500 hover:text-[#185C4D] hover:bg-[#185C4D]/10 rounded-lg flex items-center justify-center w-8 h-8 transition-colors cursor-pointer"
+                        />
+                      </Tooltip>
+                      
+                      <Tooltip title="QR Code" placement="top">
+                        <Button 
+                          size="small" 
+                          type="text"
+                          icon={<QrCode size={16} />}
+                          onClick={() => {
+                            setQrLog(log as any);
+                            setIsQrModalOpen(true);
+                          }}
+                          className="text-amber-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg flex items-center justify-center w-8 h-8 transition-colors cursor-pointer"
+                        />
+                      </Tooltip>
+                      
                       {!isReturned ? (
                         <Button 
                           onClick={() => {
@@ -378,8 +465,9 @@ export default function TrackingLogView() {
         wrapClassName="backdrop-blur-md"
       >
         {selectedLog && (() => {
-          const isReturned = selectedLog.status === 'RETURNED' || !!selectedLog.returnedAt;
-          const isOverdue = !isReturned && !!selectedLog.dueDate && new Date(selectedLog.dueDate) < new Date();
+          const isReturned = selectedLog.status === 'RETURNED';
+          const firstItemDueDate = selectedLog.items?.[0]?.dueDate || selectedLog.dueDate;
+          const isOverdue = !isReturned && !!firstItemDueDate && new Date(firstItemDueDate) < new Date();
           
           const borrowedDateObj = selectedLog.borrowedAt || selectedLog.createdAt;
 
@@ -425,15 +513,58 @@ export default function TrackingLogView() {
                 
                 {/* Document Section */}
                 <div className="bg-white/60 border border-white/80 rounded-2xl p-4 shadow-xs">
-                  <h3 className="text-[10px] text-[#185C4D] font-black uppercase tracking-wider mb-2">ຂໍ້ມູນເອກະສານ</h3>
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-slate-100 rounded-lg text-slate-600 shrink-0">
-                      <FileText size={18} />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-bold text-slate-700 text-sm">{selectedLog.document?.title || selectedLog.folder?.name || '—'}</div>
-                      <div className="text-xs text-slate-500 mt-1 font-mono">ເລກທີ: {selectedLog.document?.docNo || selectedLog.folder?.code || '—'}</div>
-                    </div>
+                  <h3 className="text-[10px] text-[#185C4D] font-black uppercase tracking-wider mb-2">ຂໍ້ມູນເອກະສານ/ແຟ້ມ</h3>
+                  <div className="flex flex-col gap-3">
+                    {selectedLog.items && selectedLog.items.length > 0 ? (
+                      selectedLog.items.map((item, idx) => (
+                        <div key={item.id || idx} className="flex items-start gap-3 p-3 bg-white/50 rounded-xl border border-slate-100">
+                          <div className="p-2 bg-slate-100 rounded-lg text-slate-600 shrink-0">
+                            {item.documentId ? <FileText size={18} /> : <BookOpen size={18} />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="font-bold text-slate-700 text-sm">{item.document?.title || item.folder?.name || '—'}</div>
+                            <div className="text-xs text-slate-500 mt-1 font-mono flex items-center justify-between">
+                              <span>ເລກທີ: {item.document?.docNo || item.folder?.code || '—'}</span>
+                              {item.status && (
+                                <span className={cn("px-2 py-0.5 rounded text-[10px] font-bold ml-2", item.status === 'RETURNED' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700')}>
+                                  {item.status === 'RETURNED' ? 'ສົ່ງຄືນແລ້ວ' : 'ກຳລັງຢືມ'}
+                                </span>
+                              )}
+                            </div>
+                            
+                            {item.document?.attachments && item.document.attachments.length > 0 && (
+                              <div className="mt-2.5 flex flex-col gap-1.5 border-t border-slate-100 pt-2.5">
+                                {item.document.attachments.map((att: any) => (
+                                  <div key={att.id} className="flex items-center justify-between bg-white/60 p-2 rounded-lg text-xs text-slate-600 border border-slate-100 hover:border-[#185C4D]/30 transition-colors">
+                                    <span className="truncate flex-1 max-w-[200px] font-medium" title={att.fileName}>{att.fileName}</span>
+                                    <Button 
+                                      size="small" 
+                                      type="primary" 
+                                      ghost 
+                                      loading={loadingViewId === att.id}
+                                      onClick={() => handleViewFile(att.id)}
+                                      className="text-[10px] h-6 px-2.5 rounded-md border-[#185C4D]/50 text-[#185C4D] hover:bg-[#185C4D] hover:text-white cursor-pointer"
+                                    >
+                                      ເບິ່ງໄຟລ໌
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex items-start gap-3 p-3 bg-white/50 rounded-xl border border-slate-100">
+                        <div className="p-2 bg-slate-100 rounded-lg text-slate-600 shrink-0">
+                          <FileText size={18} />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-bold text-slate-700 text-sm">{selectedLog.document?.title || selectedLog.folder?.name || '—'}</div>
+                          <div className="text-xs text-slate-500 mt-1 font-mono">ເລກທີ: {selectedLog.document?.docNo || selectedLog.folder?.code || '—'}</div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -492,7 +623,7 @@ export default function TrackingLogView() {
                     </div>
 
                     {/* Step 2: Due Date */}
-                    {selectedLog.dueDate && (
+                    {firstItemDueDate && (
                       <div className="relative flex gap-3">
                         <div className={cn(
                           "absolute left-[-21px] mt-1.5 w-[12px] h-[12px] rounded-full border-2 border-white shadow-xs",
@@ -501,7 +632,7 @@ export default function TrackingLogView() {
                         <div>
                           <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">ກຳນົດສົ່ງຄືນ</div>
                           <div className={cn("text-xs font-bold mt-0.5", isOverdue && !isReturned ? "text-rose-600 animate-pulse" : "text-slate-700")}>
-                            {format(new Date(selectedLog.dueDate), 'dd MMM yyyy')}
+                            {format(new Date(firstItemDueDate), 'dd MMM yyyy')}
                             {isOverdue && !isReturned && <span className="ml-2 text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">ກາຍກຳນົດ</span>}
                           </div>
                         </div>
@@ -517,9 +648,12 @@ export default function TrackingLogView() {
                       <div>
                         <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">ວັນທີສົ່ງຄືນ</div>
                         <div className="text-xs font-bold text-slate-700 mt-0.5">
-                          {selectedLog.returnedAt ? (
+                          {isReturned ? (
                             <span className="text-emerald-600">
-                              {format(new Date(selectedLog.returnedAt), 'dd MMM yyyy HH:mm')}
+                              {(() => {
+                                const ret = selectedLog.items?.find(i => i.returnedAt)?.returnedAt || selectedLog.returnedAt;
+                                return ret ? format(new Date(ret), 'dd MMM yyyy HH:mm') : '—';
+                              })()}
                             </span>
                           ) : (
                             <span className="text-slate-400 italic">ຍັງບໍ່ທັນສົ່ງຄືນ</span>
@@ -565,6 +699,62 @@ export default function TrackingLogView() {
             </div>
           );
         })()}
+      </Modal>
+
+      {/* QR Code Viewer Modal */}
+      <Modal
+        open={isQrModalOpen}
+        onCancel={() => setIsQrModalOpen(false)}
+        footer={null}
+        width={350}
+        centered
+        title={null}
+        closable={false}
+        wrapClassName="backdrop-blur-md"
+        className="[&_.ant-modal-content]:p-0 [&_.ant-modal-content]:bg-transparent [&_.ant-modal-content]:shadow-none"
+      >
+        <div className="bg-white/80 backdrop-blur-3xl rounded-[32px] p-8 border border-white/60 shadow-glass flex flex-col items-center justify-center text-center">
+          <div className="flex justify-between items-center w-full mb-4">
+            <span className="text-slate-700 font-bold text-base flex items-center gap-1.5">
+              <QrCode size={18} className="text-[#185C4D]" /> QR Code ຕິດຕາມ
+            </span>
+            <button 
+              onClick={() => setIsQrModalOpen(false)} 
+              className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all cursor-pointer border-none bg-transparent"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          
+          <div className="bg-white p-4 rounded-2xl shadow-soft border border-slate-100 mb-4">
+            {qrLog && (
+              <QRCodeCanvas 
+                id="qr-code-canvas"
+                value={typeof window !== 'undefined' ? `${window.location.origin}/dashboard/tracking/${qrLog.id}` : `${process.env.NEXT_PUBLIC_BASE_URL || ''}/dashboard/tracking/${qrLog.id}`} 
+                size={180} 
+                bgColor="#ffffff"
+                fgColor="#185C4D"
+                level="Q"
+              />
+            )}
+          </div>
+          
+          <span className="text-sm font-mono font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200/50">
+            ID: {qrLog?.id.slice(0, 8).toUpperCase()}
+          </span>
+          <p className="text-slate-400 text-xs mt-3 font-semibold truncate max-w-full">
+            ຜູ້ຢືມ: {qrLog?.borrower}
+          </p>
+
+          <Button 
+            type="primary" 
+            icon={<Download size={16} />} 
+            onClick={downloadQRCode}
+            className="mt-5 bg-[#185C4D] border-none shadow-soft hover:-translate-y-0.5 transition-transform cursor-pointer w-full rounded-xl h-11 font-bold"
+          >
+            ດາວໂຫຼດ QR Code
+          </Button>
+        </div>
       </Modal>
     </div>
   );

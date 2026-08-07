@@ -24,6 +24,7 @@ interface FetchBorrowsParams {
   activeOnly?: boolean;
   borrowedAt?: string;
   returnedAt?: string;
+  type?: string;
 }
 
 interface DocumentBorrowState {

@@ -217,10 +217,10 @@ export default function FolderTagPrint({
                         item.folderName.length > 60
                           ? '13px'
                           : item.folderName.length > 40
-                          ? '15px'
-                          : item.folderName.length > 25
-                          ? '18px'
-                          : '21px',
+                            ? '15px'
+                            : item.folderName.length > 25
+                              ? '18px'
+                              : '21px',
                       textAlign: 'center',
                       lineHeight: 1.3,
                       wordBreak: 'break-word',
@@ -263,7 +263,14 @@ export default function FolderTagPrint({
                     style={{
                       fontFamily: '"Times New Roman", Times, serif',
                       fontWeight: 'bold',
-                      fontSize: '19px',
+                      fontSize:
+                        item.locationRef.length > 20
+                          ? '12px'
+                          : item.locationRef.length > 15
+                            ? '14px'
+                            : item.locationRef.length > 10
+                              ? '17px'
+                              : '19px',
                       textAlign: 'center',
                       wordBreak: 'break-all',
                       letterSpacing: '0.5px',
