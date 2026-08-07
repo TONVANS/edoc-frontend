@@ -26,8 +26,8 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       const { accessToken, user } = response.data.data;
 
-      // Save accessToken in Cookie with expiration of exactly 1 hour (1/24 days)
-      Cookies.set('accessToken', accessToken, { expires: 1 / 24 });
+      // Save accessToken in Cookie with expiration of exactly 8 hours (8/24 days)
+      Cookies.set('accessToken', accessToken, { expires: 8 / 24 });
 
       // Save the user object in localStorage
       localStorage.setItem('user', JSON.stringify(user));
