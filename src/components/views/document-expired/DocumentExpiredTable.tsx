@@ -341,7 +341,7 @@ export default function DocumentExpiredTable() {
 
       {/* Delete Cart FAB */}
       <div 
-        className={`fixed bottom-[130px] right-8 z-40 transition-all duration-300 ${
+        className={`fixed bottom-32.5 right-8 z-40 transition-all duration-300 ${
           deleteCart.length > 0 ? "scale-100 opacity-100 translate-y-0" : "scale-50 opacity-0 translate-y-10 pointer-events-none"
         }`}
       >
@@ -514,10 +514,10 @@ export default function DocumentExpiredTable() {
           </p>
 
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-bold text-slate-700">ວັນທີທຳລາຍເອກະສານ <span className="text-rose-500">*</span></span>
+            <span className="text-sm font-bold text-slate-700">ວັນທີອະນຸມັດການທຳລາຍເອກະສານ <span className="text-rose-500">*</span></span>
             <DatePicker 
               className="h-11 rounded-xl w-full" 
-              placeholder="ເລືອກວັນທີທຳລາຍເອກະສານ"
+              placeholder="ເລືອກວັນທີອະນຸມັດການທຳລາຍເອກະສານ"
               value={destroyedDate ? dayjs(destroyedDate) : null}
               onChange={(date) => {
                 setDestroyedDate(date ? date.format('YYYY-MM-DD') : null);
@@ -526,7 +526,7 @@ export default function DocumentExpiredTable() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-bold text-slate-700">ເອກະສານອ້າງອີງ (PDF) <span className="text-rose-500">*</span></span>
+            <span className="text-sm font-bold text-slate-700">ເອກະສານອ້າງອີງການອະນຸມັດການທຳລາຍເອກະສານ (PDF) <span className="text-rose-500">*</span></span>
             <Upload
               maxCount={1}
               beforeUpload={(file) => {

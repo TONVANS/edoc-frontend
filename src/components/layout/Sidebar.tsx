@@ -38,7 +38,7 @@ const BASE_MENU_ITEMS = [
     label: 'ການບໍລິຫານລະບົບ',
     children: [
       { key: '/dashboard/document-types', icon: <FileText size={18} />, label: 'ປະເພດເອກະສານ', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN'] },
-      { key: '/dashboard/users', icon: <Users size={18} />, label: 'ຈັດການຜູ້ໃຊ້ງານ', allowedRoles: ['SUPER_ADMIN'] },
+      { key: '/dashboard/users', icon: <Users size={18} />, label: 'ຈັດການຜູ້ໃຊ້ງານ', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN'] },
     ],
   },
   {
