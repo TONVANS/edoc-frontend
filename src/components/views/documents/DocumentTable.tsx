@@ -253,7 +253,7 @@ export default function DocumentTable({
   const getContractBadge = (isBound: boolean) => {
     return isBound ? (
       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">
-        <Scale size={10} /> ຜູກພັນສັນຍາ
+        <Scale size={10} />ການເກັບຮັກສາ
       </span>
     ) : (
       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-500/10 text-slate-500 border border-slate-500/10">
@@ -295,7 +295,7 @@ export default function DocumentTable({
 
           {/* Contract Bound Filter */}
           <Select
-            placeholder="ປະເພດສັນຍາ"
+            placeholder="ປະເພດການເກັບຮັກສາ"
             value={contractFilter || undefined}
             onChange={(val) => onContractFilterChange(val || '')}
             allowClear

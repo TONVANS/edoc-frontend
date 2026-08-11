@@ -301,14 +301,14 @@ export default function DocumentFormModal({
                   name="docNo"
                   rules={[{ required: true, message: 'ກະລຸນາປ້ອນເລກທີເອກະສານ!' }]}
                 >
-                  <Input placeholder="ເຊັ່ນ: EDL-2026-001" className={inputCls} />
+                  <Input placeholder="ເຊັ່ນ: 001" className={inputCls} />
                 </Form.Item>
 
                 <Form.Item
-                  label={<span className="text-[13px] font-bold text-slate-700 ml-1">ຊື່ຫຍໍ້ເອກະສານ</span>}
+                  label={<span className="text-[13px] font-bold text-slate-700 ml-1">ຊື່ຫຍໍ້ຝ່າຍ/ພະແນກ</span>}
                   name="shortName"
                 >
-                  <Input placeholder="ເຊັ່ນ: Contract-26" className={inputCls} disabled={!!initialData} />
+                  <Input placeholder="ເຊັ່ນ: ຟຟລ.ຫຟຟລ" className={inputCls} disabled={!!initialData} />
                 </Form.Item>
 
                 <Form.Item
@@ -456,7 +456,7 @@ export default function DocumentFormModal({
                 )}
 
                 <Form.Item
-                  label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1.5"><Scale size={14} className="text-slate-400" /> ຜູກພັນສັນຍາ (Contract Bound)</span>}
+                  label={<span className="text-[13px] font-bold text-slate-700 ml-1 flex items-center gap-1.5"><Scale size={14} className="text-slate-400" /> ປະເພດການເກັບຮັກສາ</span>}
                   name="isContractBound"
                 >
                   <Radio.Group className="w-full flex bg-white/40 p-1 rounded-2xl shadow-xs border border-white/60" optionType="button">
@@ -530,7 +530,7 @@ export default function DocumentFormModal({
                     ຄລິກ ຫຼື ລາກໄຟລ໌ມາວາງໃສ່ນີ້ ເພື່ອອັບໂຫຼດ
                   </p>
                   <p className="ant-upload-hint text-slate-400 text-xs mt-1 font-medium">
-                    ຮອງຮັບໄຟລ໌ PDF, PNG, JPG ແລະ ອື່ນໆ
+                    ຮອງຮັບໄຟລ໌ PDF ເທົ່ານັ້ນ
                   </p>
                 </Upload.Dragger>
               </Form.Item>

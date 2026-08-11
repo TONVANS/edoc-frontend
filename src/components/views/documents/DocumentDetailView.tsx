@@ -186,7 +186,7 @@ export default function DocumentDetailView({
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <span className="text-[11px] font-bold text-slate-400 block uppercase">ຊື່ຫຍໍ້ເອກະສານ</span>
+                    <span className="text-[11px] font-bold text-slate-400 block uppercase">ຊື່ຫຍໍ້ຝ່າຍ/ພະແນກ</span>
                     <span className="text-slate-700 font-bold text-[14px]">{doc.shortName || '-'}</span>
                   </div>
                   <div>
@@ -197,7 +197,7 @@ export default function DocumentDetailView({
                     </span>
                   </div>
                   <div>
-                    <span className="text-[11px] font-bold text-slate-400 block uppercase">ຜູກພັນສັນຍາ (Contract Bound)</span>
+                    <span className="text-[11px] font-bold text-slate-400 block uppercase">ປະເພດການເກັບຮັກສາ</span>
                     <span className={cn("text-[14px] font-bold flex items-center gap-1 mt-0.5", doc.isContractBound ? "text-emerald-600" : "text-slate-500")}>
                       <Scale size={14} className={doc.isContractBound ? "text-emerald-600" : "text-slate-400"} />
                       {doc.isContractBound ? 'ແມ່ນ' : 'ບໍ່'}
