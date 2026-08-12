@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Input, Select, Button, message, Pagination, Modal, DatePicker, Tooltip } from 'antd';
+import { Input, Select, Button, message, Pagination, Modal, DatePicker, Tooltip, Spin } from 'antd';
 import { Search, Clock, ArrowRightLeft, Eye, User, MapPin, Calendar, CheckCircle2, Phone, FileText, X, BookOpen, QrCode, ScanLine, Download } from 'lucide-react';
 import StatusBadge from '@/components/dashboard/StatusBadge';
 import { useDocumentBorrowStore } from '@/store/useDocumentBorrowStore';
 import { useDivisionStore } from '@/store/useDivisionStore';
+import { useDepartmentStore } from '@/store/useDepartmentStore';
 import { format } from 'date-fns';
 import { DocumentBorrow } from '@/types/prisma-mapped';
 import { cn } from '@/lib/utils';
@@ -13,10 +14,12 @@ import dayjs from 'dayjs';
 import { useDocumentStore } from '@/store/useDocumentStore';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useRouter } from 'next/navigation';
+import api from '@/lib/api';
 
 export default function TrackingLogView() {
   const { borrows, total, fetchBorrows, returnBorrow, isLoading } = useDocumentBorrowStore();
   const { divisionDropdown, fetchDropdown } = useDivisionStore();
+  const { departmentDropdown, fetchDropdown: fetchDepartmentDropdown } = useDepartmentStore();
   const { viewAttachment } = useDocumentStore();
   const router = useRouter();
   
@@ -39,6 +42,35 @@ export default function TrackingLogView() {
   const [loadingViewId, setLoadingViewId] = useState<string | null>(null);
   const [qrLog, setQrLog] = useState<DocumentBorrow | null>(null);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+
+  const [folderDocs, setFolderDocs] = useState<any[]>([]);
+  const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
+  const [loadingFolderDocs, setLoadingFolderDocs] = useState(false);
+  const [selectedFolderName, setSelectedFolderName] = useState('');
+
+  const handleViewFolderDocuments = async (folderId: string | number, folderName: string) => {
+    setSelectedFolderName(folderName);
+    setIsFolderModalOpen(true);
+    setLoadingFolderDocs(true);
+    try {
+      const res = await api.get(`/documents?folderId=${folderId}`);
+      let docs = [];
+      if (res.data?.data) {
+        if (Array.isArray(res.data.data)) {
+          docs = res.data.data;
+        } else if (Array.isArray(res.data.data.data)) {
+          docs = res.data.data.data;
+        }
+      } else if (Array.isArray(res.data)) {
+         docs = res.data;
+      }
+      setFolderDocs(docs);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingFolderDocs(false);
+    }
+  };
 
   const handleViewFile = async (id: string) => {
     setLoadingViewId(id);
@@ -89,7 +121,8 @@ export default function TrackingLogView() {
 
   useEffect(() => {
     fetchDropdown();
-  }, [fetchDropdown]);
+    fetchDepartmentDropdown();
+  }, [fetchDropdown, fetchDepartmentDropdown]);
 
   const handleReturn = async (id: string) => {
     try {
@@ -325,14 +358,23 @@ export default function TrackingLogView() {
                         </span>
                       )}
                       {log.createdBy && (
-                         <span className="text-[11px] text-gray-400 font-normal">ຜູ້ມອບ: {log.createdBy.firstNameLa || log.createdBy.empCode}</span>
+                         <span className="text-[11px] text-gray-400 font-normal">ຜູ້ມອບ: {
+                           log.createdBy.firstNameLa || log.createdBy.lastNameLa 
+                             ? `${log.createdBy.firstNameLa || ''} ${log.createdBy.lastNameLa || ''}`.trim()
+                             : log.createdBy.empCode || '—'
+                         }{log.createdBy.empCode && ` (${log.createdBy.empCode})`}</span>
                       )}
                     </div>
 
                     {/* Division/Purpose */}
                     <div className="xl:col-span-2 flex flex-col">
                       <div className="xl:hidden text-[10px] text-gray-400 uppercase tracking-wider font-bold mt-1 xl:mt-0 mb-1 flex items-center gap-1"><MapPin size={12}/> ພາກສ່ວນນຳໃຊ້</div>
-                      <span className="text-sm text-[#1C1C1E] font-medium xl:font-normal">{log.toDivision?.name || log.toLocation || '—'}</span>
+                      <span className="text-sm text-[#1C1C1E] font-medium xl:font-normal">
+                        {departmentDropdown.find(d => d.id === log.toDivision?.departmentId)?.name 
+                          ? `${departmentDropdown.find(d => d.id === log.toDivision?.departmentId)?.name} - ` 
+                          : ''}
+                        {log.toDivision?.name || log.toLocation || '—'}
+                      </span>
                       <span className="text-xs text-[#737373] truncate" title={log.purpose || ''}>{log.purpose || '—'}</span>
                     </div>
 
@@ -532,6 +574,20 @@ export default function TrackingLogView() {
                               )}
                             </div>
                             
+                            {item.folderId && (
+                                <div className="mt-3 border-t border-slate-100 pt-3">
+                                  <Button 
+                                    size="small" 
+                                    type="dashed" 
+                                    icon={<Eye size={14} />} 
+                                    onClick={() => handleViewFolderDocuments(item.folderId as string, item.folder?.name as string)}
+                                    className="text-xs text-[#185C4D] border-[#185C4D]/30 hover:border-[#185C4D] hover:text-[#185C4D]"
+                                  >
+                                    ເບິ່ງເອກະສານໃນແຟ້ມນີ້
+                                  </Button>
+                                </div>
+                            )}
+
                             {item.document?.attachments && item.document.attachments.length > 0 && (
                               <div className="mt-2.5 flex flex-col gap-1.5 border-t border-slate-100 pt-2.5">
                                 {item.document.attachments.map((att: any) => (
@@ -584,12 +640,22 @@ export default function TrackingLogView() {
                     )}
                     <div>
                       <span className="text-slate-400 block mb-0.5">ພາກສ່ວນ/ພະແນກ:</span>
-                      <span className="font-bold text-slate-700">{selectedLog.toDivision?.name || selectedLog.toLocation || '—'}</span>
+                      <span className="font-bold text-slate-700">
+                        {departmentDropdown.find(d => d.id === selectedLog.toDivision?.departmentId)?.name 
+                          ? `${departmentDropdown.find(d => d.id === selectedLog.toDivision?.departmentId)?.name} - ` 
+                          : ''}
+                        {selectedLog.toDivision?.name || selectedLog.toLocation || '—'}
+                      </span>
                     </div>
                     {selectedLog.createdBy && (
                       <div>
                         <span className="text-slate-400 block mb-0.5">ຜູ້ມອບ/ຜູ້ບັນທຶກ:</span>
-                        <span className="font-bold text-slate-700">{selectedLog.createdBy.firstNameLa || selectedLog.createdBy.empCode}</span>
+                        <span className="font-bold text-slate-700">
+                          {selectedLog.createdBy.firstNameLa || selectedLog.createdBy.lastNameLa 
+                            ? `${selectedLog.createdBy.firstNameLa || ''} ${selectedLog.createdBy.lastNameLa || ''}`.trim()
+                            : selectedLog.createdBy.empCode || '—'}
+                          {selectedLog.createdBy.empCode && ` (${selectedLog.createdBy.empCode})`}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -755,6 +821,75 @@ export default function TrackingLogView() {
             ດາວໂຫຼດ QR Code
           </Button>
         </div>
+      </Modal>
+
+      <Modal
+        title={
+          <div className="flex items-center gap-2">
+            <BookOpen className="text-[#185C4D]" size={20} />
+            <span className="text-[#185C4D] font-bold">ເອກະສານໃນແຟ້ມ: {selectedFolderName}</span>
+          </div>
+        }
+        open={isFolderModalOpen}
+        onCancel={() => setIsFolderModalOpen(false)}
+        footer={[
+          <Button key="close" onClick={() => setIsFolderModalOpen(false)} className="rounded-lg font-medium">
+            ປິດ
+          </Button>
+        ]}
+        width={700}
+        centered
+        className="[&_.ant-modal-content]:rounded-2xl [&_.ant-modal-header]:border-b [&_.ant-modal-header]:border-slate-100 [&_.ant-modal-header]:pb-3 [&_.ant-modal-header]:mb-0 [&_.ant-modal-body]:p-4"
+        zIndex={1050}
+      >
+        {loadingFolderDocs ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <Spin size="large" />
+            <span className="text-slate-500 font-medium">ກຳລັງໂຫຼດຂໍ້ມູນ...</span>
+          </div>
+        ) : folderDocs.length > 0 ? (
+          <div className="max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar flex flex-col gap-3">
+            {folderDocs.map((doc: any, index: number) => (
+              <div key={doc.id || index} className="flex items-start gap-3 border border-slate-100 bg-white hover:border-[#185C4D]/30 transition-colors rounded-xl p-3 shadow-sm">
+                <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center text-[#185C4D] shrink-0">
+                  <FileText size={20} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="font-bold text-slate-700 text-sm line-clamp-2 block">{doc.title}</span>
+                  <div className="flex flex-col gap-1.5 mt-1.5">
+                    <span className="text-xs text-slate-600 font-mono bg-slate-50 w-max px-2 py-0.5 rounded-md border border-slate-100">
+                      ເລກທີ: {doc.docNo || '—'}
+                    </span>
+                  </div>
+                  {doc.attachments && doc.attachments.length > 0 && (
+                    <div className="mt-2.5 flex flex-col gap-1.5 border-t border-slate-100 pt-2.5">
+                      {doc.attachments.map((att: any) => (
+                        <div key={att.id} className="flex items-center justify-between bg-slate-50 p-2 rounded-lg text-xs text-slate-600 border border-slate-100 hover:border-[#185C4D]/30 transition-colors">
+                          <span className="truncate flex-1 max-w-[200px] font-medium" title={att.fileName}>{att.fileName}</span>
+                          <Button 
+                            size="small" 
+                            type="primary" 
+                            ghost 
+                            loading={loadingViewId === att.id}
+                            onClick={() => handleViewFile(att.id)}
+                            className="text-[10px] h-6 px-2.5 rounded-md border-[#185C4D]/50 text-[#185C4D] hover:bg-[#185C4D] hover:text-white cursor-pointer"
+                          >
+                            ເບິ່ງໄຟລ໌
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+            <FileText size={48} className="text-slate-200 mb-3" />
+            <span className="font-medium text-slate-500">ບໍ່ພົບເອກະສານໃນແຟ້ມນີ້</span>
+          </div>
+        )}
       </Modal>
     </div>
   );

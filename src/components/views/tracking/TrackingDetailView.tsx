@@ -3,10 +3,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDocumentBorrowStore } from '@/store/useDocumentBorrowStore';
+import { useDepartmentStore } from '@/store/useDepartmentStore';
+import { useDocumentStore } from '@/store/useDocumentStore';
 import { DocumentBorrow } from '@/types/prisma-mapped';
-import { Button, Spin, Tag, Card, Divider } from 'antd';
-import { ArrowLeft, BookOpen, Calendar, CheckCircle2, FileText, MapPin, Phone, User, QrCode } from 'lucide-react';
+import { Button, Spin, Tag, Card, Divider, Modal } from 'antd';
+import { ArrowLeft, BookOpen, Calendar, CheckCircle2, FileText, MapPin, Phone, User, QrCode, Eye } from 'lucide-react';
 import { format } from 'date-fns';
+import api from '@/lib/api';
 import StatusBadge from '@/components/dashboard/StatusBadge';
 import { cn } from '@/lib/utils';
 import { QRCodeSVG } from 'qrcode.react';
@@ -15,15 +18,57 @@ export default function TrackingDetailView() {
   const params = useParams();
   const router = useRouter();
   const id = params?.id as string;
-  
+
   const { fetchBorrowById, isLoading, returnBorrow } = useDocumentBorrowStore();
+  const { departmentDropdown, fetchDropdown: fetchDepartmentDropdown } = useDepartmentStore();
+  const { viewAttachment } = useDocumentStore();
   const [log, setLog] = useState<DocumentBorrow | null>(null);
+
+  const [folderDocs, setFolderDocs] = useState<any[]>([]);
+  const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
+  const [loadingFolderDocs, setLoadingFolderDocs] = useState(false);
+  const [selectedFolderName, setSelectedFolderName] = useState('');
+  const [loadingViewId, setLoadingViewId] = useState<string | null>(null);
+
+  const handleViewFile = async (id: string) => {
+    setLoadingViewId(id);
+    await viewAttachment(id);
+    setLoadingViewId(null);
+  };
+
+  const handleViewFolderDocuments = async (folderId: string | number, folderName: string) => {
+    setSelectedFolderName(folderName);
+    setIsFolderModalOpen(true);
+    setLoadingFolderDocs(true);
+    try {
+      const res = await api.get(`/documents?folderId=${folderId}`);
+      let docs = [];
+      if (res.data?.data) {
+        if (Array.isArray(res.data.data)) {
+          docs = res.data.data;
+        } else if (Array.isArray(res.data.data.data)) {
+          docs = res.data.data.data;
+        }
+      } else if (Array.isArray(res.data)) {
+         docs = res.data;
+      }
+      setFolderDocs(docs);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingFolderDocs(false);
+    }
+  };
 
   useEffect(() => {
     if (id) {
       loadData();
     }
   }, [id]);
+
+  useEffect(() => {
+    fetchDepartmentDropdown();
+  }, [fetchDepartmentDropdown]);
 
   const loadData = async () => {
     const data = await fetchBorrowById(id);
@@ -57,9 +102,9 @@ export default function TrackingDetailView() {
   return (
     <div className="w-full flex flex-col gap-6">
       <div className="flex items-center gap-4">
-        <Button 
+        <Button
           onClick={() => router.back()}
-          icon={<ArrowLeft size={18} />} 
+          icon={<ArrowLeft size={18} />}
           className="border-none shadow-sm bg-white/70 hover:bg-white text-slate-600 font-semibold rounded-xl h-10 px-4 transition-all"
         >
           ກັບຄືນ
@@ -70,14 +115,14 @@ export default function TrackingDetailView() {
         {/* Header */}
         <header className={cn(
           "relative px-10 pt-10 pb-14 overflow-hidden text-white bg-linear-to-br",
-          isReturned 
-            ? "from-emerald-700 via-emerald-600 to-teal-700" 
-            : isOverdue 
+          isReturned
+            ? "from-emerald-700 via-emerald-600 to-teal-700"
+            : isOverdue
               ? "from-rose-700 via-rose-600 to-red-700 animate-pulse"
               : "from-[#185C4D] via-[#1c6958] to-[#257c66]"
         )}>
           <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] bg-size-[20px_20px]" />
-          
+
           <div className="flex items-center gap-6 relative z-10">
             <div className="w-16 h-16 bg-white/10 backdrop-blur-xl rounded-2xl flex items-center justify-center shrink-0 border border-white/20 shadow-xl shadow-black/5">
               <BookOpen className="w-8 h-8 text-white" strokeWidth={2.5} />
@@ -113,17 +158,27 @@ export default function TrackingDetailView() {
                   {log.phone && (
                     <div>
                       <span className="text-slate-400 block mb-0.5 text-xs">ເບີໂທລະສັບ:</span>
-                      <span className="font-bold text-slate-700 flex items-center gap-1"><Phone size={14}/> {log.phone}</span>
+                      <span className="font-bold text-slate-700 flex items-center gap-1"><Phone size={14} /> {log.phone}</span>
                     </div>
                   )}
                   <div>
                     <span className="text-slate-400 block mb-0.5 text-xs">ພາກສ່ວນ/ພະແນກ:</span>
-                    <span className="font-bold text-slate-700">{log.toDivision?.name || log.toLocation || '—'}</span>
+                    <span className="font-bold text-slate-700">
+                      {departmentDropdown.find(d => d.id === log.toDivision?.departmentId)?.name
+                        ? `${departmentDropdown.find(d => d.id === log.toDivision?.departmentId)?.name} - `
+                        : ''}
+                      {log.toDivision?.name || log.toLocation || '—'}
+                    </span>
                   </div>
                   {log.createdBy && (
                     <div>
                       <span className="text-slate-400 block mb-0.5 text-xs">ຜູ້ມອບ/ຜູ້ບັນທຶກ:</span>
-                      <span className="font-bold text-slate-700">{log.createdBy.firstNameLa || log.createdBy.empCode}</span>
+                      <span className="font-bold text-slate-700">
+                        {log.createdBy.firstNameLa || log.createdBy.lastNameLa
+                          ? `${log.createdBy.firstNameLa || ''} ${log.createdBy.lastNameLa || ''}`.trim()
+                          : log.createdBy.empCode || '—'}
+                        {log.createdBy.empCode && ` (${log.createdBy.empCode})`}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -164,6 +219,19 @@ export default function TrackingDetailView() {
                                 </span>
                               )}
                             </div>
+                            {item.folderId && (
+                                <div className="mt-3 border-t border-slate-100 pt-3">
+                                  <Button 
+                                    size="small" 
+                                    type="dashed" 
+                                    icon={<Eye size={14} />} 
+                                    onClick={() => handleViewFolderDocuments(item.folderId as string, item.folder?.name as string)}
+                                    className="text-xs text-[#185C4D] border-[#185C4D]/30 hover:border-[#185C4D] hover:text-[#185C4D]"
+                                  >
+                                    ເບິ່ງເອກະສານໃນແຟ້ມນີ້
+                                  </Button>
+                                </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -181,13 +249,13 @@ export default function TrackingDetailView() {
             <div className="space-y-6">
               {/* QR Code */}
               <div className="bg-white/60 border border-white/80 rounded-2xl p-5 shadow-sm flex flex-col items-center text-center">
-                 <h4 className="text-[11px] font-bold text-slate-400 flex items-center gap-1.5 mb-4 uppercase tracking-wider">
+                <h4 className="text-[11px] font-bold text-slate-400 flex items-center gap-1.5 mb-4 uppercase tracking-wider">
                   <QrCode size={14} /> QR Code ສຳລັບການແຈ້ງຕິດຕາມ
                 </h4>
                 <div className="bg-white p-3.5 rounded-2xl shadow-soft border border-slate-100">
-                  <QRCodeSVG 
-                    value={typeof window !== 'undefined' ? `${window.location.origin}/dashboard/tracking/${log.id}` : `${process.env.NEXT_PUBLIC_BASE_URL || ''}/dashboard/tracking/${log.id}`} 
-                    size={130} 
+                  <QRCodeSVG
+                    value={typeof window !== 'undefined' ? `${window.location.origin}/dashboard/tracking/${log.id}` : `${process.env.NEXT_PUBLIC_BASE_URL || ''}/dashboard/tracking/${log.id}`}
+                    size={130}
                     bgColor="#ffffff"
                     fgColor="#185C4D"
                     level="Q"
@@ -260,6 +328,74 @@ export default function TrackingDetailView() {
           </div>
         </main>
       </div>
+
+      <Modal
+        title={
+          <div className="flex items-center gap-2">
+            <BookOpen className="text-[#185C4D]" size={20} />
+            <span className="text-[#185C4D] font-bold">ເອກະສານໃນແຟ້ມ: {selectedFolderName}</span>
+          </div>
+        }
+        open={isFolderModalOpen}
+        onCancel={() => setIsFolderModalOpen(false)}
+        footer={[
+          <Button key="close" onClick={() => setIsFolderModalOpen(false)} className="rounded-lg font-medium">
+            ປິດ
+          </Button>
+        ]}
+        width={700}
+        centered
+        className="[&_.ant-modal-content]:rounded-2xl [&_.ant-modal-header]:border-b [&_.ant-modal-header]:border-slate-100 [&_.ant-modal-header]:pb-3 [&_.ant-modal-header]:mb-0 [&_.ant-modal-body]:p-4"
+      >
+        {loadingFolderDocs ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <Spin size="large" />
+            <span className="text-slate-500 font-medium">ກຳລັງໂຫຼດຂໍ້ມູນ...</span>
+          </div>
+        ) : folderDocs.length > 0 ? (
+          <div className="max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar flex flex-col gap-3">
+            {folderDocs.map((doc: any, index: number) => (
+              <div key={doc.id || index} className="flex items-start gap-3 border border-slate-100 bg-white hover:border-[#185C4D]/30 transition-colors rounded-xl p-3 shadow-sm">
+                <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center text-[#185C4D] shrink-0">
+                  <FileText size={20} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="font-bold text-slate-700 text-sm line-clamp-2 block">{doc.title}</span>
+                  <div className="flex flex-col gap-1.5 mt-1.5">
+                    <span className="text-xs text-slate-600 font-mono bg-slate-50 w-max px-2 py-0.5 rounded-md border border-slate-100">
+                      ເລກທີ: {doc.docNo || '—'}
+                    </span>
+                  </div>
+                  {doc.attachments && doc.attachments.length > 0 && (
+                    <div className="mt-2.5 flex flex-col gap-1.5 border-t border-slate-100 pt-2.5">
+                      {doc.attachments.map((att: any) => (
+                        <div key={att.id} className="flex items-center justify-between bg-slate-50 p-2 rounded-lg text-xs text-slate-600 border border-slate-100 hover:border-[#185C4D]/30 transition-colors">
+                          <span className="truncate flex-1 max-w-[200px] font-medium" title={att.fileName}>{att.fileName}</span>
+                          <Button 
+                            size="small" 
+                            type="primary" 
+                            ghost 
+                            loading={loadingViewId === att.id}
+                            onClick={() => handleViewFile(att.id)}
+                            className="text-[10px] h-6 px-2.5 rounded-md border-[#185C4D]/50 text-[#185C4D] hover:bg-[#185C4D] hover:text-white cursor-pointer"
+                          >
+                            ເບິ່ງໄຟລ໌
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+            <FileText size={48} className="text-slate-200 mb-3" />
+            <span className="font-medium text-slate-500">ບໍ່ພົບເອກະສານໃນແຟ້ມນີ້</span>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
