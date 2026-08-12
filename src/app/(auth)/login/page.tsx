@@ -1,12 +1,22 @@
 // src/app/(auth)/login/page.tsx
+'use client';
+
 import { Suspense } from 'react';
-import LoginForm from "@/components/auth/LoginForm"
-import BrandPanel from "@/components/auth/BrandPanel"
+import { motion } from 'framer-motion';
+import LoginForm from "@/components/auth/LoginForm";
+import BrandPanel from "@/components/auth/BrandPanel";
 
 export default function LoginPage() {
   return (
-    /* ── Level 1 Glass: Outer card (canvas + orbs handled by AuthLayout) ── */
-    <div className="relative z-10 w-full max-w-5xl bg-white/40 backdrop-blur-2xl border border-white/60 shadow-[0_8px_32px_rgba(31,38,135,0.04)] rounded-[24px] md:rounded-[32px] overflow-hidden flex flex-col md:grid md:grid-cols-[1fr_1.1fr]">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        duration: 0.52,
+        ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+      }}
+      className="relative z-10 w-full max-w-5xl bg-white/40 backdrop-blur-2xl border border-white/60 shadow-[0_8px_32px_rgba(31,38,135,0.04)] rounded-[24px] md:rounded-[32px] overflow-hidden flex flex-col md:grid md:grid-cols-[1fr_1.1fr]"
+    >
       <BrandPanel />
       <Suspense fallback={
         <div className="flex flex-col p-6 sm:p-8 md:p-12 h-full justify-center bg-white/10 items-center min-h-[400px]">
@@ -15,6 +25,6 @@ export default function LoginPage() {
       }>
         <LoginForm />
       </Suspense>
-    </div>
+    </motion.div>
   );
 }

@@ -2,23 +2,46 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Eye, EyeOff, Waves } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { useAuthStore } from '../../store/useAuthStore';
 import { toast } from 'sonner';
 import LoginInputField from './LoginInputField';
 
+const formContainerVariants = {
+  hidden: { opacity: 0, x: 10 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: {
+      duration: 0.5,
+      ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+      staggerChildren: 0.06,
+      delayChildren: 0.08,
+    },
+  },
+};
+
+const formFieldVariants = {
+  hidden: { opacity: 0, y: 8 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
+  },
+};
+
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   // Sanitize callbackUrl to prevent open redirects (must start with / and not //)
   const rawCallbackUrl = searchParams.get('callbackUrl');
   let callbackUrl = (rawCallbackUrl && rawCallbackUrl.startsWith('/') && !rawCallbackUrl.startsWith('//'))
     ? rawCallbackUrl
     : '/dashboard';
 
-  // Prevent redirecting back to login if the callbackUrl is /login
   if (callbackUrl.startsWith('/login')) {
     callbackUrl = '/dashboard';
   }
@@ -31,13 +54,10 @@ export default function LoginForm() {
   const [saveUser, setSaveUser] = useState(false);
   const [errors, setErrors] = useState({ empCode: '', password: '' });
 
-  /* STREAMING_CHUNK:Handling side effects for auth state... */
-  // Initialize auth state on mount
   useEffect(() => {
     initialize();
   }, [initialize]);
 
-  // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
       router.refresh();
@@ -51,14 +71,13 @@ export default function LoginForm() {
     let isValid = true;
     const newErrors = { empCode: '', password: '' };
 
-    // Validation
     if (!empCode.trim()) {
       newErrors.empCode = 'ກະລຸນາປ້ອນລະຫັດພະນັກງານ (Employee Code)';
       isValid = false;
     }
 
     if (!password) {
-      newErrors.password = 'ກະລຸນາປ້ອນລະຫັດຜ່ານ (Password)'; // Please enter password
+      newErrors.password = 'ກະລຸນາປ້ອນລະຫັດຜ່ານ (Password)';
       isValid = false;
     }
 
@@ -68,15 +87,12 @@ export default function LoginForm() {
       try {
         await login(empCode, password);
         toast.success('ເຂົ້າສູ່ລະບົບສຳເລັດ', {
-          description: 'ກຳລັງນຳທາງໄປໜ້າຫຼັກ...', // Navigating to dashboard...
+          description: 'ກຳລັງນຳທາງໄປໜ້າຫຼັກ...',
         });
-        // Force a refresh of the router cache to ensure the middleware/server components 
-        // pick up the new authentication cookie before replacing the route
         router.refresh();
         router.replace(callbackUrl);
       } catch (error: any) {
         const backendMessage = error.response?.data?.message;
-        // Handle array of messages (e.g. validation errors from NestJS)
         const errorMessage = Array.isArray(backendMessage)
           ? backendMessage.join(', ')
           : backendMessage || 'ເຂົ້າສູ່ລະບົບບໍ່ສຳເລັດ. ກະລຸນາລອງໃໝ່.';
@@ -88,67 +104,72 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="flex flex-col p-6 sm:p-8 md:p-12 h-full justify-center bg-white/10">
+    <motion.div
+      variants={formContainerVariants}
+      initial="hidden"
+      animate="visible"
+      className="flex flex-col p-6 sm:p-8 md:p-12 h-full justify-center bg-white/10"
+    >
       {/* Top bar */}
-      <div className="flex items-center justify-between mb-8">
-        {/* <div className="flex items-center gap-2 text-[#185C4D] font-bold text-sm tracking-widest uppercase md:hidden lg:flex">
-          <Waves size={16} />
-          <span className="hidden sm:inline">DocuVault</span>
-        </div> */}
-
-        {/* Level 2 Glass pill */}
-        <div className="ml-auto bg-white/60 backdrop-blur-lg border border-white/80 rounded-xl px-4 py-2 shadow-sm">
+      <motion.div variants={formFieldVariants} className="flex items-center justify-between mb-8">
+        <div className="ml-auto bg-white/60 backdrop-blur-lg border border-white/80 rounded-xl px-4 py-2 shadow-sm transition-transform duration-200 hover:scale-105">
           <Link href="/register" className="text-xs font-bold tracking-widest text-slate-600 uppercase hover:text-[#185C4D] transition-colors">
             Register
           </Link>
         </div>
-      </div>
+      </motion.div>
 
       {/* Heading */}
-      <h2 className="text-2xl md:text-3xl font-bold text-slate-800 mb-6 md:mb-8 tracking-tight text-center sm:text-left">
+      <motion.h2
+        variants={formFieldVariants}
+        className="text-2xl md:text-3xl font-bold text-slate-800 mb-6 md:mb-8 tracking-tight text-center sm:text-left"
+      >
         Welcome Back
-      </h2>
+      </motion.h2>
 
       {/* Fields */}
       <form className="flex flex-col gap-5 font-lao" onSubmit={handleLogin}>
-        <LoginInputField
-          id="empCode"
-          label="ລະຫັດພະນັກງານ"
-          type="text"
-          placeholder="ປ້ອນລະຫັດພະນັກງານ"
-          value={empCode}
-          onChange={(v) => {
-            setEmpCode(v);
-            setErrors(prev => ({ ...prev, empCode: '' }));
-          }}
-          error={errors.empCode}
-        />
+        <motion.div variants={formFieldVariants}>
+          <LoginInputField
+            id="empCode"
+            label="ລະຫັດພະນັກງານ"
+            type="text"
+            placeholder="ປ້ອນລະຫັດພະນັກງານ"
+            value={empCode}
+            onChange={(v) => {
+              setEmpCode(v);
+              setErrors(prev => ({ ...prev, empCode: '' }));
+            }}
+            error={errors.empCode}
+          />
+        </motion.div>
 
-        <LoginInputField
-          id="password"
-          label="Password"
-          type={showPassword ? 'text' : 'password'}
-          placeholder="Enter your password"
-          value={password}
-          onChange={(v) => {
-            setPassword(v);
-            setErrors(prev => ({ ...prev, password: '' }));
-          }}
-          error={errors.password}
-          suffix={
-            <button
-              type="button"
-              onClick={() => setShow(!showPassword)}
-              className="hover:text-[#185C4D] transition-colors focus:outline-none"
-            >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-          }
-        />
+        <motion.div variants={formFieldVariants}>
+          <LoginInputField
+            id="password"
+            label="Password"
+            type={showPassword ? 'text' : 'password'}
+            placeholder="Enter your password"
+            value={password}
+            onChange={(v) => {
+              setPassword(v);
+              setErrors(prev => ({ ...prev, password: '' }));
+            }}
+            error={errors.password}
+            suffix={
+              <button
+                type="button"
+                onClick={() => setShow(!showPassword)}
+                className="hover:text-[#185C4D] transition-colors focus:outline-none cursor-pointer"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            }
+          />
+        </motion.div>
 
         {/* Save + Forgot */}
-        <div className="flex items-center justify-between mt-1">
-          {/* Custom Checkbox */}
+        <motion.div variants={formFieldVariants} className="flex items-center justify-between mt-1">
           <label className="flex items-center gap-2 cursor-pointer group">
             <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${saveUser
               ? 'bg-[#185C4D] border-[#185C4D]'
@@ -171,34 +192,36 @@ export default function LoginForm() {
 
           <button
             type="button"
-            className="text-xs font-bold text-[#185C4D] tracking-widest uppercase hover:underline focus:outline-none"
+            className="text-xs font-bold text-[#185C4D] tracking-widest uppercase hover:underline focus:outline-none cursor-pointer"
           >
             Forget Password?
           </button>
-        </div>
+        </motion.div>
 
         {/* Submit */}
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="w-full mt-4 py-3.5 rounded-xl bg-linear-to-r from-[#185C4D] to-[#30836B] text-white font-bold text-sm tracking-widest uppercase shadow-[0_4px_20px_rgba(24,92,77,0.35)] hover:shadow-[0_6px_28px_rgba(24,92,77,0.5)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-[0_4px_20px_rgba(24,92,77,0.35)]"
-        >
-          {isLoading ? (
-            <span className="flex items-center justify-center gap-2">
-              <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-              Signing in...
-            </span>
-          ) : 'Login'}
-        </button>
+        <motion.div variants={formFieldVariants}>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full mt-4 py-3.5 rounded-xl bg-linear-to-r from-[#185C4D] to-[#30836B] text-white font-bold text-sm tracking-widest uppercase shadow-[0_4px_20px_rgba(24,92,77,0.35)] hover:shadow-[0_6px_28px_rgba(24,92,77,0.5)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-[0_4px_20px_rgba(24,92,77,0.35)] cursor-pointer"
+          >
+            {isLoading ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                Signing in...
+              </span>
+            ) : 'Login'}
+          </button>
+        </motion.div>
       </form>
 
       {/* Footer */}
-      <p className="text-center text-xs text-slate-400 mt-8 md:mt-10">
+      <motion.p variants={formFieldVariants} className="text-center text-xs text-slate-400 mt-8 md:mt-10">
         By logging in you agree to our{' '}
         <span className="text-[#185C4D] font-semibold cursor-pointer hover:underline">Terms of Service</span>
         {' '}&amp;{' '}
         <span className="text-[#185C4D] font-semibold cursor-pointer hover:underline">Privacy Policy</span>
-      </p>
-    </div>
+      </motion.p>
+    </motion.div>
   );
 }

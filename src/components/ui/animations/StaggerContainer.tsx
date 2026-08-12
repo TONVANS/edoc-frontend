@@ -25,24 +25,22 @@ const containerVariants = (staggerDelay: number, delayChildren: number) => ({
 export const itemVariants = {
   hidden: {
     opacity: 0,
-    y: 18,
-    scale: 0.98,
+    y: 10,
   },
   visible: {
     opacity: 1,
     y: 0,
-    scale: 1,
     transition: {
-      duration: 0.4,
-      ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
+      duration: 0.48,
+      ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
     },
   },
 };
 
 export function StaggerContainer({
   children,
-  staggerDelay = 0.08,
-  delayChildren = 0.05,
+  staggerDelay = 0.07,
+  delayChildren = 0.04,
   className = '',
   once = true,
 }: StaggerContainerProps) {

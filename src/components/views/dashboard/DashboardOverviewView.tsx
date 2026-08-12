@@ -16,6 +16,7 @@ import { useDocumentTypeStore } from '@/store/useDocumentTypeStore';
 import SlideshowBanner, { SlideItem } from '@/components/ui/animations/SlideshowBanner';
 import SlideIn from '@/components/ui/animations/SlideIn';
 import { StaggerContainer, StaggerItem } from '@/components/ui/animations/StaggerContainer';
+import PageTransition from '@/components/ui/animations/PageTransition';
 
 // Suppress Recharts width warning
 if (typeof window !== 'undefined') {
@@ -160,196 +161,198 @@ export default function DashboardOverviewView() {
   ];
 
   return (
-    <div className="w-full flex flex-col gap-6 font-lao">
-      {/* Header */}
-      <SlideIn direction="down" duration={0.4}>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-[#1C1C1E] tracking-tight">Dashboard Overview</h1>
-            <p className="text-[#737373] text-sm mt-1">
-              System metrics, storage capacity, and document tracking statistics.
-            </p>
-          </div>
-        </div>
-      </SlideIn>
-
-      {/* Buttery Smooth Slideshow Banner */}
-      <SlideIn direction="up" delay={0.1} duration={0.5}>
-        <SlideshowBanner slides={slideshowItems} autoPlayInterval={6000} />
-      </SlideIn>
-
-      {/* Grid of Main Dashboard Metrics */}
-      <StaggerContainer staggerDelay={0.1} delayChildren={0.2} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 1. Storage Utilization */}
-        <StaggerItem>
-          <div
-            className="bg-white/40 backdrop-blur-2xl border border-white/60 p-6 rounded-[32px] shadow-[0_8px_32px_rgba(31,38,135,0.04)] flex flex-col cursor-pointer transition-all duration-300 hover:bg-white/60 hover:-translate-y-1 hover:shadow-md group"
-            onClick={() => router.push('/dashboard/warehouses')}
-          >
-            <div className="flex items-center gap-2 mb-6">
-              <HardDrive size={20} className="text-[#185C4D] group-hover:scale-110 transition-transform" />
-              <h2 className="text-base font-bold text-[#1C1C1E]">Storage Utilization</h2>
+    <>
+      <div className="w-full flex flex-col gap-6 font-lao">
+        {/* Header */}
+        <SlideIn direction="down" duration={0.4}>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-[#1C1C1E] tracking-tight">Dashboard Overview</h1>
+              <p className="text-[#737373] text-sm mt-1">
+                System metrics, storage capacity, and document tracking statistics.
+              </p>
             </div>
-            <ChartBox height={250}>
-              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                <BarChart data={storageData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#737373' }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#737373' }} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
-                  <Bar dataKey="capacity" name="Max Capacity" fill="#E2D3B8" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="used" name="Currently Used" fill="#185C4D" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartBox>
           </div>
-        </StaggerItem>
+        </SlideIn>
 
-        {/* 2. Tracking & Overdue */}
-        <StaggerItem>
-          <div
-            className="bg-white/40 backdrop-blur-2xl border border-white/60 p-6 rounded-[32px] shadow-[0_8px_32px_rgba(31,38,135,0.04)] flex flex-col cursor-pointer transition-all duration-300 hover:bg-white/60 hover:-translate-y-1 hover:shadow-md group"
-            onClick={() => router.push('/dashboard/tracking')}
-          >
-            <div className="flex items-center gap-2 mb-6">
-              <Activity size={20} className="text-[#185C4D] group-hover:scale-110 transition-transform" />
-              <h2 className="text-base font-bold text-[#1C1C1E]">Tracking & Overdue</h2>
-            </div>
-            <ChartBox height={250}>
-              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                <AreaChart data={trackingData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorBorrowed" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#185C4D" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#185C4D" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#737373' }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#737373' }} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
-                  <Area type="monotone" dataKey="borrowed" name="Borrowed" stroke="#185C4D" fillOpacity={1} fill="url(#colorBorrowed)" />
-                  <Area type="monotone" dataKey="returned" name="Returned" stroke="#1A7A44" fill="none" />
-                  <Area type="monotone" dataKey="overdue" name="Overdue" stroke="#B83131" strokeWidth={2} fill="none" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </ChartBox>
-          </div>
-        </StaggerItem>
-      </StaggerContainer>
+        {/* Buttery Smooth Slideshow Banner */}
+        <SlideIn direction="up" delay={0.1} duration={0.5}>
+          <SlideshowBanner slides={slideshowItems} autoPlayInterval={6000} />
+        </SlideIn>
 
-      {/* Bottom Row */}
-      <StaggerContainer staggerDelay={0.08} delayChildren={0.3} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* 3. Document Statuses */}
-        <StaggerItem>
-          <div
-            className="bg-white/40 backdrop-blur-2xl border border-white/60 p-6 rounded-[32px] shadow-[0_8px_32px_rgba(31,38,135,0.04)] flex flex-col items-center cursor-pointer transition-all duration-300 hover:bg-white/60 hover:-translate-y-1 hover:shadow-md group"
-            onClick={() => router.push('/dashboard/documents')}
-          >
-            <div className="flex items-center gap-2 mb-2 self-start w-full">
-              <Clock size={18} className="text-[#185C4D] group-hover:scale-110 transition-transform" />
-              <h2 className="text-sm font-bold text-[#1C1C1E]">Retention Status</h2>
-            </div>
-            <ChartBox height={180} className="relative">
-              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                <PieChart>
-                  <Pie data={retentionData} innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="value" stroke="none">
-                    {retentionData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-xl font-bold text-[#1C1C1E]">{totalDocs}</span>
-                <span className="text-[10px] text-[#737373]">Total Docs</span>
+        {/* Grid of Main Dashboard Metrics */}
+        <StaggerContainer staggerDelay={0.1} delayChildren={0.2} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* 1. Storage Utilization */}
+          <StaggerItem>
+            <div
+              className="bg-white/40 backdrop-blur-2xl border border-white/60 p-6 rounded-[32px] shadow-[0_8px_32px_rgba(31,38,135,0.04)] flex flex-col cursor-pointer transition-all duration-300 hover:bg-white/60 hover:-translate-y-1 hover:shadow-md group"
+              onClick={() => router.push('/dashboard/warehouses')}
+            >
+              <div className="flex items-center gap-2 mb-6">
+                <HardDrive size={20} className="text-[#185C4D] group-hover:scale-110 transition-transform" />
+                <h2 className="text-base font-bold text-[#1C1C1E]">Storage Utilization</h2>
               </div>
-            </ChartBox>
-            <div className="flex flex-col gap-1 w-full mt-2">
-              {retentionData.map((d, i) => (
-                <div key={i} className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }} />
-                    <span className="text-[#737373]">{d.name}</span>
-                  </div>
-                  <span className="font-bold text-[#1C1C1E]">{d.value}</span>
-                </div>
-              ))}
+              <ChartBox height={250}>
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                  <BarChart data={storageData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#737373' }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#737373' }} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
+                    <Bar dataKey="capacity" name="Max Capacity" fill="#E2D3B8" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="used" name="Currently Used" fill="#185C4D" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartBox>
             </div>
-          </div>
-        </StaggerItem>
+          </StaggerItem>
 
-        {/* 4. Document Types */}
-        <StaggerItem>
-          <div
-            className="bg-white/40 backdrop-blur-2xl border border-white/60 p-6 rounded-[32px] shadow-[0_8px_32px_rgba(31,38,135,0.04)] flex flex-col items-center cursor-pointer transition-all duration-300 hover:bg-white/60 hover:-translate-y-1 hover:shadow-md group"
-            onClick={() => router.push('/dashboard/document-types')}
-          >
-            <div className="flex items-center gap-2 mb-2 self-start w-full">
-              <PieChartIcon size={18} className="text-[#185C4D] group-hover:scale-110 transition-transform" />
-              <h2 className="text-sm font-bold text-[#1C1C1E]">Document Types Distribution</h2>
-            </div>
-            <ChartBox height={180} className="relative">
-              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                <PieChart>
-                  <Pie data={docTypeDistributionMock} innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="value" stroke="none">
-                    {docTypeDistributionMock.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-xl font-bold text-[#1C1C1E]">{totalDocTypes}</span>
-                <span className="text-[10px] text-[#737373]">Categories</span>
+          {/* 2. Tracking & Overdue */}
+          <StaggerItem>
+            <div
+              className="bg-white/40 backdrop-blur-2xl border border-white/60 p-6 rounded-[32px] shadow-[0_8px_32px_rgba(31,38,135,0.04)] flex flex-col cursor-pointer transition-all duration-300 hover:bg-white/60 hover:-translate-y-1 hover:shadow-md group"
+              onClick={() => router.push('/dashboard/tracking')}
+            >
+              <div className="flex items-center gap-2 mb-6">
+                <Activity size={20} className="text-[#185C4D] group-hover:scale-110 transition-transform" />
+                <h2 className="text-base font-bold text-[#1C1C1E]">Tracking & Overdue</h2>
               </div>
-            </ChartBox>
-            <div className="flex flex-col gap-1 w-full mt-2">
-              {docTypeDistributionMock.map((d, i) => (
-                <div key={i} className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }} />
-                    <span className="text-[#737373]">{d.name}</span>
-                  </div>
-                  <span className="font-bold text-[#1C1C1E]">{d.value} Docs</span>
-                </div>
-              ))}
+              <ChartBox height={250}>
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                  <AreaChart data={trackingData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorBorrowed" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#185C4D" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#185C4D" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#737373' }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#737373' }} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
+                    <Area type="monotone" dataKey="borrowed" name="Borrowed" stroke="#185C4D" fillOpacity={1} fill="url(#colorBorrowed)" />
+                    <Area type="monotone" dataKey="returned" name="Returned" stroke="#1A7A44" fill="none" />
+                    <Area type="monotone" dataKey="overdue" name="Overdue" stroke="#B83131" strokeWidth={2} fill="none" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </ChartBox>
             </div>
-          </div>
-        </StaggerItem>
+          </StaggerItem>
+        </StaggerContainer>
 
-        {/* 5. Data Entry Performance */}
-        <StaggerItem>
-          <div
-            className="bg-white/40 backdrop-blur-2xl border border-white/60 p-6 rounded-[32px] shadow-[0_8px_32px_rgba(31,38,135,0.04)] flex flex-col cursor-pointer transition-all duration-300 hover:bg-white/60 hover:-translate-y-1 hover:shadow-md group"
-            onClick={() => router.push('/dashboard/users')}
-          >
-            <div className="flex items-center gap-2 mb-4">
-              <Users size={18} className="text-[#185C4D] group-hover:scale-110 transition-transform" />
-              <h2 className="text-sm font-bold text-[#1C1C1E]">Data Entry (Monthly)</h2>
+        {/* Bottom Row */}
+        <StaggerContainer staggerDelay={0.08} delayChildren={0.3} className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* 3. Document Statuses */}
+          <StaggerItem>
+            <div
+              className="bg-white/40 backdrop-blur-2xl border border-white/60 p-6 rounded-[32px] shadow-[0_8px_32px_rgba(31,38,135,0.04)] flex flex-col items-center cursor-pointer transition-all duration-300 hover:bg-white/60 hover:-translate-y-1 hover:shadow-md group"
+              onClick={() => router.push('/dashboard/documents')}
+            >
+              <div className="flex items-center gap-2 mb-2 self-start w-full">
+                <Clock size={18} className="text-[#185C4D] group-hover:scale-110 transition-transform" />
+                <h2 className="text-sm font-bold text-[#1C1C1E]">Retention Status</h2>
+              </div>
+              <ChartBox height={180} className="relative">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                  <PieChart>
+                    <Pie data={retentionData} innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="value" stroke="none">
+                      {retentionData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-xl font-bold text-[#1C1C1E]">{totalDocs}</span>
+                  <span className="text-[10px] text-[#737373]">Total Docs</span>
+                </div>
+              </ChartBox>
+              <div className="flex flex-col gap-1 w-full mt-2">
+                {retentionData.map((d, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }} />
+                      <span className="text-[#737373]">{d.name}</span>
+                    </div>
+                    <span className="font-bold text-[#1C1C1E]">{d.value}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <ChartBox height={160}>
-              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                <LineChart data={entryData} margin={{ top: 10, right: 10, left: -30, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#737373' }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#737373' }} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Line type="monotone" dataKey="docs" name="New Docs" stroke="#185C4D" strokeWidth={3} dot={{ r: 4, fill: '#185C4D', strokeWidth: 0 }} activeDot={{ r: 6 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartBox>
-            <div className="mt-4 pt-4 border-t border-white/40 w-full flex justify-between items-center">
-              <span className="text-xs text-[#737373]">Total this month</span>
-              <span className="text-sm font-bold text-[#185C4D]">590 Documents</span>
+          </StaggerItem>
+
+          {/* 4. Document Types */}
+          <StaggerItem>
+            <div
+              className="bg-white/40 backdrop-blur-2xl border border-white/60 p-6 rounded-[32px] shadow-[0_8px_32px_rgba(31,38,135,0.04)] flex flex-col items-center cursor-pointer transition-all duration-300 hover:bg-white/60 hover:-translate-y-1 hover:shadow-md group"
+              onClick={() => router.push('/dashboard/document-types')}
+            >
+              <div className="flex items-center gap-2 mb-2 self-start w-full">
+                <PieChartIcon size={18} className="text-[#185C4D] group-hover:scale-110 transition-transform" />
+                <h2 className="text-sm font-bold text-[#1C1C1E]">Document Types Distribution</h2>
+              </div>
+              <ChartBox height={180} className="relative">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                  <PieChart>
+                    <Pie data={docTypeDistributionMock} innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="value" stroke="none">
+                      {docTypeDistributionMock.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-xl font-bold text-[#1C1C1E]">{totalDocTypes}</span>
+                  <span className="text-[10px] text-[#737373]">Categories</span>
+                </div>
+              </ChartBox>
+              <div className="flex flex-col gap-1 w-full mt-2">
+                {docTypeDistributionMock.map((d, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }} />
+                      <span className="text-[#737373]">{d.name}</span>
+                    </div>
+                    <span className="font-bold text-[#1C1C1E]">{d.value} Docs</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        </StaggerItem>
-      </StaggerContainer>
-    </div>
+          </StaggerItem>
+
+          {/* 5. Data Entry Performance */}
+          <StaggerItem>
+            <div
+              className="bg-white/40 backdrop-blur-2xl border border-white/60 p-6 rounded-[32px] shadow-[0_8px_32px_rgba(31,38,135,0.04)] flex flex-col cursor-pointer transition-all duration-300 hover:bg-white/60 hover:-translate-y-1 hover:shadow-md group"
+              onClick={() => router.push('/dashboard/users')}
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <Users size={18} className="text-[#185C4D] group-hover:scale-110 transition-transform" />
+                <h2 className="text-sm font-bold text-[#1C1C1E]">Data Entry (Monthly)</h2>
+              </div>
+              <ChartBox height={160}>
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                  <LineChart data={entryData} margin={{ top: 10, right: 10, left: -30, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#737373' }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#737373' }} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Line type="monotone" dataKey="docs" name="New Docs" stroke="#185C4D" strokeWidth={3} dot={{ r: 4, fill: '#185C4D', strokeWidth: 0 }} activeDot={{ r: 6 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </ChartBox>
+              <div className="mt-4 pt-4 border-t border-white/40 w-full flex justify-between items-center">
+                <span className="text-xs text-[#737373]">Total this month</span>
+                <span className="text-sm font-bold text-[#185C4D]">590 Documents</span>
+              </div>
+            </div>
+          </StaggerItem>
+        </StaggerContainer>
+      </div>
+    </>
   );
 }

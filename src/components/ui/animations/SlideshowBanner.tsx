@@ -25,27 +25,23 @@ interface SlideshowBannerProps {
 
 const slideVariants = {
   enter: (direction: number) => ({
-    x: direction > 0 ? '100%' : '-100%',
+    x: direction > 0 ? '60%' : '-60%',
     opacity: 0,
-    scale: 0.98,
   }),
   center: {
     x: 0,
     opacity: 1,
-    scale: 1,
     transition: {
-      x: { type: 'spring' as const, stiffness: 300, damping: 30 },
-      opacity: { duration: 0.35 },
-      scale: { duration: 0.35, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
+      x: { type: 'spring' as const, stiffness: 220, damping: 26 },
+      opacity: { duration: 0.45, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
     },
   },
   exit: (direction: number) => ({
-    x: direction < 0 ? '100%' : '-100%',
+    x: direction < 0 ? '60%' : '-60%',
     opacity: 0,
-    scale: 0.98,
     transition: {
-      x: { type: 'spring' as const, stiffness: 300, damping: 30 },
-      opacity: { duration: 0.25 },
+      x: { type: 'spring' as const, stiffness: 220, damping: 26 },
+      opacity: { duration: 0.3 },
     },
   }),
 };

@@ -12,6 +12,8 @@ import DocumentTable from './DocumentTable';
 import DocumentFormModal from './DocumentFormModal';
 import DocumentDetailModal from './DocumentDetailModal';
 import MoveFormModal from '@/components/views/storage/MoveFormModal';
+import SlideIn from '@/components/ui/animations/SlideIn';
+import { StaggerContainer, StaggerItem } from '@/components/ui/animations/StaggerContainer';
 
 // Stores & Types
 import { useDocumentTypeStore } from '@/store/useDocumentTypeStore';
@@ -403,53 +405,60 @@ export default function DocumentListView() {
   ];
 
   return (
-    <div className="w-full flex flex-col gap-6">
+    <>
+      <div className="w-full flex flex-col gap-6">
       {contextHolder}
       {modalContextHolder}
 
       {/* Top Header / Actions */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[#1C1C1E] tracking-tight">
-            {activeTab === 'documents' ? 'ຈັດການເອກະສານ' : 'ຈັດການປະເພດເອກະສານ'}
-          </h1>
-          <p className="text-[#737373] text-sm mt-1">
-            {activeTab === 'documents' 
-              ? 'ຈັດການ, ຄົ້ນຫາ ແລະ ຕິດຕາມເອກະສານທັງໝົດໃນລະບົບ' 
-              : 'ຈັດການໝວດໝູ່ ແລະ ປະເພດຂອງເອກະສານ'}
-          </p>
+      <SlideIn direction="down" duration={0.4}>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-[#1C1C1E] tracking-tight">
+              {activeTab === 'documents' ? 'ຈັດການເອກະສານ' : 'ຈັດການປະເພດເອກະສານ'}
+            </h1>
+            <p className="text-[#737373] text-sm mt-1">
+              {activeTab === 'documents' 
+                ? 'ຈັດການ, ຄົ້ນຫາ ແລະ ຕິດຕາມເອກະສານທັງໝົດໃນລະບົບ' 
+                : 'ຈັດການໝວດໝູ່ ແລະ ປະເພດຂອງເອກະສານ'}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {activeTab === 'documents' ? (
+              <Button 
+                type="primary" 
+                icon={<Plus size={16} />} 
+                onClick={handleCreateDoc}
+                className="bg-[#185C4D] border-none shadow-soft hover:-translate-y-0.5 transition-transform cursor-pointer"
+              >
+                ເພີ່ມເອກະສານ
+              </Button>
+            ) : (
+              <Button 
+                type="primary" 
+                icon={<Plus size={16} />} 
+                onClick={handleCreateDocType}
+                className="bg-[#185C4D] border-none shadow-soft hover:-translate-y-0.5 transition-transform cursor-pointer"
+              >
+                ເພີ່ມປະເພດເອກະສານ
+              </Button>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          {activeTab === 'documents' ? (
-            <Button 
-              type="primary" 
-              icon={<Plus size={16} />} 
-              onClick={handleCreateDoc}
-              className="bg-[#185C4D] border-none shadow-soft hover:-translate-y-0.5 transition-transform cursor-pointer"
-            >
-              ເພີ່ມເອກະສານ
-            </Button>
-          ) : (
-            <Button 
-              type="primary" 
-              icon={<Plus size={16} />} 
-              onClick={handleCreateDocType}
-              className="bg-[#185C4D] border-none shadow-soft hover:-translate-y-0.5 transition-transform cursor-pointer"
-            >
-              ເພີ່ມປະເພດເອກະສານ
-            </Button>
-          )}
-        </div>
-      </div>
+      </SlideIn>
 
-      <div className="bg-white/40 backdrop-blur-3xl rounded-3xl p-6 lg:p-8 border border-white/60 shadow-glass relative overflow-hidden">
-        <Tabs 
-          activeKey={activeTab} 
-          onChange={setActiveTab} 
-          items={items}
-          className="[&_.ant-tabs-nav]:mb-8 [&_.ant-tabs-nav]:before:border-b-slate-200/50 [&_.ant-tabs-tab]:text-slate-400 [&_.ant-tabs-tab]:font-bold [&_.ant-tabs-tab]:text-base [&_.ant-tabs-tab]:px-6 [&_.ant-tabs-tab]:py-4 [&_.ant-tabs-tab]:transition-all [&_.ant-tabs-tab]:duration-300 [&_.ant-tabs-tab:hover]:text-slate-600 [&_.ant-tabs-tab-active]:text-[#185C4D]! [&_.ant-tabs-ink-bar]:bg-[#185C4D] [&_.ant-tabs-ink-bar]:h-0.75 [&_.ant-tabs-ink-bar]:rounded-t-full"
-        />
-      </div>
+      <StaggerContainer staggerDelay={0.1} delayChildren={0.2}>
+        <StaggerItem>
+          <div className="bg-white/40 backdrop-blur-3xl rounded-3xl p-6 lg:p-8 border border-white/60 shadow-glass relative overflow-hidden">
+            <Tabs 
+              activeKey={activeTab} 
+              onChange={setActiveTab} 
+              items={items}
+              className="[&_.ant-tabs-nav]:mb-8 [&_.ant-tabs-nav]:before:border-b-slate-200/50 [&_.ant-tabs-tab]:text-slate-400 [&_.ant-tabs-tab]:font-bold [&_.ant-tabs-tab]:text-base [&_.ant-tabs-tab]:px-6 [&_.ant-tabs-tab]:py-4 [&_.ant-tabs-tab]:transition-all [&_.ant-tabs-tab]:duration-300 [&_.ant-tabs-tab:hover]:text-slate-600 [&_.ant-tabs-tab-active]:text-[#185C4D]! [&_.ant-tabs-ink-bar]:bg-[#185C4D] [&_.ant-tabs-ink-bar]:h-0.75 [&_.ant-tabs-ink-bar]:rounded-t-full"
+            />
+          </div>
+        </StaggerItem>
+      </StaggerContainer>
 
       {/* ── Modals ── */}
       {isDocModalOpen && (
@@ -544,5 +553,6 @@ export default function DocumentListView() {
         </div>
       </Modal>
     </div>
+    </>
   );
 }

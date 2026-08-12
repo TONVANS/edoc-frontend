@@ -19,8 +19,8 @@ export default function SlideIn({
   children,
   direction = 'up',
   delay = 0,
-  duration = 0.45,
-  distance = 24,
+  duration = 0.52,
+  distance = 12,
   className = '',
   once = true,
 }: SlideInProps) {
@@ -58,11 +58,11 @@ export default function SlideIn({
         x: 0,
         y: 0,
       }}
-      viewport={{ once, margin: '-40px' }}
+      viewport={{ once, margin: '-20px' }}
       transition={{
         duration,
         delay,
-        ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
+        ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
       }}
       className={className}
       style={{ willChange: 'transform, opacity' }}

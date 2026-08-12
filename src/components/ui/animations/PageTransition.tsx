@@ -12,35 +12,29 @@ interface PageTransitionProps {
 const pageVariants = {
   initial: {
     opacity: 0,
-    y: 16,
-    scale: 0.99,
-    filter: 'blur(4px)',
+    y: 8,
   },
   animate: {
     opacity: 1,
     y: 0,
-    scale: 1,
-    filter: 'blur(0px)',
     transition: {
-      duration: 0.38,
-      ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
+      duration: 0.48,
+      ease: [0.22, 1, 0.36, 1] as [number, number, number, number], // Silky smooth easeOutCubic curve
     },
   },
   exit: {
     opacity: 0,
-    y: -12,
-    scale: 0.99,
-    filter: 'blur(2px)',
+    y: -4,
     transition: {
-      duration: 0.22,
-      ease: [0.7, 0, 0.84, 0] as [number, number, number, number],
+      duration: 0.25,
+      ease: [0.4, 0, 1, 1] as [number, number, number, number],
     },
   },
 };
 
 const reducedMotionVariants = {
   initial: { opacity: 0 },
-  animate: { opacity: 1, transition: { duration: 0.2 } },
+  animate: { opacity: 1, transition: { duration: 0.25 } },
   exit: { opacity: 0, transition: { duration: 0.15 } },
 };
 
@@ -58,7 +52,7 @@ export default function PageTransition({ children, className = '' }: PageTransit
         exit="exit"
         variants={variants}
         className={`w-full min-h-full ${className}`}
-        style={{ willChange: 'transform, opacity, filter' }}
+        style={{ willChange: 'transform, opacity' }}
       >
         {children}
       </motion.div>
