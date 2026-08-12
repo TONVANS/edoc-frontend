@@ -39,42 +39,53 @@ api.interceptors.response.use(
     const backendError = error.response.data?.error;
     const backendMessage = backendError?.message;
 
+    const isLoginRequest = error.config?.url?.includes('/auth/login');
+
     // 400 Bad Request or similar client errors
     if (status >= 400 && status < 500 && status !== 401 && status !== 403) {
-      toast.error('ເກີດຂໍ້ຜິດພາດ', {
-        description: backendMessage || 'ຂໍ້ມູນບໍ່ຖືກຕ້ອງ ຫຼື ມີບາງຢ່າງຜິດພາດ.',
-      });
+      if (!isLoginRequest) {
+        toast.error('ເກີດຂໍ້ຜິດພາດ', {
+          description: backendMessage || 'ຂໍ້ມູນບໍ່ຖືກຕ້ອງ ຫຼື ມີບາງຢ່າງຜິດພາດ.',
+        });
+      }
     }
 
     // 401 Unauthorized — session expired or invalid token
     if (status === 401) {
       Cookies.remove('accessToken');
       localStorage.removeItem('user');
-      toast.error('ເຊດຊັນໝົດອາຍຸ', {
-        description: 'ກະລຸນາເຂົ້າສູ່ລະບົບໃໝ່.',
-        // Session expired — Please log in again.
-      });
-      // Redirect to login (safe for both client & SSR contexts)
-      if (typeof window !== 'undefined') {
-        const callbackUrl = encodeURIComponent(window.location.pathname + window.location.search);
-        window.location.href = `/login?callbackUrl=${callbackUrl}`;
+      
+      if (!isLoginRequest) {
+        toast.error('ເຊດຊັນໝົດອາຍຸ', {
+          description: 'ກະລຸນາເຂົ້າສູ່ລະບົບໃໝ່.',
+          // Session expired — Please log in again.
+        });
+        // Redirect to login (safe for both client & SSR contexts)
+        if (typeof window !== 'undefined') {
+          const callbackUrl = encodeURIComponent(window.location.pathname + window.location.search);
+          window.location.href = `/login?callbackUrl=${callbackUrl}`;
+        }
       }
     }
 
     // 403 Forbidden
     if (status === 403) {
-      toast.error('ບໍ່ມີສິດເຂົ້າເຖິງ', {
-        description: backendMessage || 'ທ່ານບໍ່ມີສິດໃນການດຳເນີນການນີ້.',
-        // Access denied — You do not have permission for this action.
-      });
+      if (!isLoginRequest) {
+        toast.error('ບໍ່ມີສິດເຂົ້າເຖິງ', {
+          description: backendMessage || 'ທ່ານບໍ່ມີສິດໃນການດຳເນີນການນີ້.',
+          // Access denied — You do not have permission for this action.
+        });
+      }
     }
 
     // 500+ Server errors
     if (status >= 500) {
-      toast.error('ເກີດຂໍ້ຜິດພາດຈາກເຊີບເວີ', {
-        description: backendMessage || 'ກະລຸນາລອງໃໝ່ພາຍຫຼັງ ຫຼື ຕິດຕໍ່ຜູ້ດູແລລະບົບ.',
-        // Server error — Please try again later or contact the administrator.
-      });
+      if (!isLoginRequest) {
+        toast.error('ເກີດຂໍ້ຜິດພາດຈາກເຊີບເວີ', {
+          description: backendMessage || 'ກະລຸນາລອງໃໝ່ພາຍຫຼັງ ຫຼື ຕິດຕໍ່ຜູ້ດູແລລະບົບ.',
+          // Server error — Please try again later or contact the administrator.
+        });
+      }
     }
 
     return Promise.reject(error);
