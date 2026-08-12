@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Button, Dropdown, Pagination, Modal, message, Tabs, Upload, Checkbox, Badge, Drawer, Popconfirm, DatePicker } from 'antd';
-import { Eye, Trash2, FileText, FolderOpen, Calendar, Tag, MoreVertical, AlertTriangle, UploadCloud } from 'lucide-react';
+import { Button, Dropdown, Pagination, Modal, message, Tabs, Checkbox } from 'antd';
+import { Eye, Trash2, FileText, FolderOpen, Calendar, Tag, MoreVertical, AlertTriangle } from 'lucide-react';
 import { useDocumentStore } from '@/store/useDocumentStore';
+import { useDeleteCartStore } from '@/store/useDeleteCartStore';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import dayjs from 'dayjs';
@@ -21,13 +22,7 @@ export default function DocumentExpiredTable() {
   const [detailDoc, setDetailDoc] = useState<Document | null>(null);
   const [activeTab, setActiveTab] = useState('EXPIRED');
   
-  // Delete Cart states
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [deleteDrawerOpen, setDeleteDrawerOpen] = useState(false);
-  const [deleteCart, setDeleteCart] = useState<string[]>([]);
-  const [deleteFile, setDeleteFile] = useState<File | null>(null);
-  const [destroyedDate, setDestroyedDate] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const { items: deleteCart, setItems: setDeleteCart, clearCart } = useDeleteCartStore();
 
   useEffect(() => {
     if (activeTab === 'EXPIRED') {
@@ -39,55 +34,6 @@ export default function DocumentExpiredTable() {
     }
   }, [fetchDocuments, fetchExpiredDocuments, fetchDestroyedDocuments, currentPage, activeTab]);
 
-  const handleDeleteConfirm = async () => {
-    if (deleteCart.length === 0) {
-      messageApi.error('ກະລຸນາເລືອກເອກະສານທີ່ຕ້ອງການລຶບ');
-      return;
-    }
-    if (!destroyedDate) {
-      messageApi.error('ກະລຸນາເລືອກວັນທີທຳລາຍເອກະສານ');
-      return;
-    }
-    if (!deleteFile) {
-      messageApi.error('ກະລຸນາແນບເອກະສານອ້າງອີງການທຳລາຍ (PDF)');
-      return;
-    }
-
-    setIsDeleting(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', deleteFile);
-      formData.append('destroyedDate', destroyedDate);
-      
-      // Append each selected document ID
-      deleteCart.forEach(id => {
-        formData.append('ids', id);
-      });
-      
-      await api.delete('/documents/:id', {
-        data: formData,
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      
-      messageApi.success('ລຶບເອກະສານສຳເລັດ');
-      setDeleteModalVisible(false);
-      setDeleteDrawerOpen(false);
-      setDeleteCart([]);
-      setDeleteFile(null);
-      setDestroyedDate(null);
-      
-      if (activeTab === 'EXPIRED') {
-        fetchExpiredDocuments();
-      } else if (activeTab !== 'HISTORY') {
-        fetchDocuments({ page: currentPage, limit: 10, retentionStatus: activeTab });
-      }
-    } catch (error) {
-      messageApi.error('ບໍ່ສາມາດລຶບເອກະສານໄດ້');
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
   const tabItems = [
     { key: 'EXPIRED', label: 'ເອກະສານໝົດອາຍຸ' },
     { key: 'DESTROYABLE_HOLD', label: 'ເກັບຖາວອນ' },
@@ -98,8 +44,7 @@ export default function DocumentExpiredTable() {
   const handleTabChange = (key: string) => {
     setActiveTab(key);
     setCurrentPage(1);
-    setDeleteCart([]); // Clear cart when switching tabs
-    setDeleteDrawerOpen(false);
+    clearCart(); // Clear cart when switching tabs
   };
 
   const dataSource = activeTab === 'EXPIRED' 
@@ -330,7 +275,7 @@ export default function DocumentExpiredTable() {
               <Pagination
                 current={currentPage}
                 onChange={(page) => setCurrentPage(page)}
-                pageSize={10}
+                pageSize={10000}
                 total={currentTotal}
                 showSizeChanger={false}
               />
@@ -339,213 +284,6 @@ export default function DocumentExpiredTable() {
         </div>
       </div>
 
-      {/* Delete Cart FAB */}
-      <div 
-        className={`fixed bottom-32.5 right-8 z-40 transition-all duration-300 ${
-          deleteCart.length > 0 ? "scale-100 opacity-100 translate-y-0" : "scale-50 opacity-0 translate-y-10 pointer-events-none"
-        }`}
-      >
-        <Badge count={deleteCart.length} offset={[-4, 4]} color="#f43f5e">
-          <button
-            onClick={() => setDeleteDrawerOpen(true)}
-            className="w-16 h-16 bg-linear-to-r from-rose-500 to-rose-600 rounded-full flex items-center justify-center text-white shadow-xl shadow-rose-500/30 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-pointer border-none outline-none group"
-            title="ກະຕ່າລຶບເອກະສານ"
-          >
-            <Trash2 size={28} className="group-hover:scale-110 transition-transform duration-300" />
-          </button>
-        </Badge>
-      </div>
-
-      {/* Delete Cart Drawer */}
-      <Drawer
-        title={
-          <div className="flex items-center justify-between font-lao py-1">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-rose-50 flex items-center justify-center border border-rose-100 shadow-xs">
-                <Trash2 size={20} className="text-rose-500" />
-              </div>
-              <div className="flex flex-col">
-                <span className="font-bold text-slate-800 text-lg">ກະຕ່າລຶບເອກະສານ</span>
-                <span className="text-xs text-slate-500 font-medium">
-                  {deleteCart.length > 0
-                    ? `ລວມ ${deleteCart.length} ລາຍການ`
-                    : 'ບໍ່ມີລາຍການ'}
-                </span>
-              </div>
-            </div>
-
-            {deleteCart.length > 0 && (
-              <Popconfirm
-                title="ຢືນຢັນການລຶບ"
-                description="ທ່ານຕ້ອງການລ້າງກະຕ່າລຶບທັງໝົດບໍ່?"
-                onConfirm={() => {
-                  setDeleteCart([]);
-                  setDeleteDrawerOpen(false);
-                }}
-                okText="ລ້າງທັງໝົດ"
-                cancelText="ຍົກເລີກ"
-                okButtonProps={{ danger: true }}
-              >
-                <Button
-                  type="text"
-                  danger
-                  size="small"
-                  icon={<Trash2 size={15} />}
-                  className="rounded-xl flex items-center gap-1 font-medium hover:bg-rose-50"
-                >
-                  ລ້າງທັງໝົດ
-                </Button>
-              </Popconfirm>
-            )}
-          </div>
-        }
-        placement="right"
-        styles={{ wrapper: { width: 450, maxWidth: '100vw' } }}
-        onClose={() => setDeleteDrawerOpen(false)}
-        open={deleteDrawerOpen}
-        className="font-lao [&_.ant-drawer-header]:border-b [&_.ant-drawer-header]:border-slate-100 [&_.ant-drawer-body]:p-4"
-        footer={
-          deleteCart.length > 0 ? (
-            <div className="flex items-center justify-end gap-2 p-2 font-lao bg-slate-50 rounded-2xl border border-slate-200/60">
-              <Button
-                onClick={() => setDeleteDrawerOpen(false)}
-                className="rounded-xl h-11 px-5 border-slate-200 hover:bg-slate-100 font-medium"
-              >
-                ປິດ
-              </Button>
-              <Button
-                type="primary"
-                danger
-                icon={<Trash2 size={18} />}
-                onClick={() => {
-                  setDeleteFile(null);
-                  setDestroyedDate(null);
-                  setDeleteModalVisible(true);
-                }}
-                className="rounded-xl h-11 px-6 font-bold text-sm shadow-md hover:shadow-lg transition-all"
-              >
-                ດຳເນີນການລຶບ ({deleteCart.length})
-              </Button>
-            </div>
-          ) : null
-        }
-      >
-        {deleteCart.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full py-16 text-center font-lao">
-            <div className="w-20 h-20 rounded-3xl bg-slate-100 flex items-center justify-center mb-4 text-slate-300 border border-slate-200/50">
-              <Trash2 size={40} strokeWidth={1.5} />
-            </div>
-            <h3 className="text-slate-700 font-bold text-lg mb-1">ຍັງບໍ່ມີເອກະສານໃນກະຕ່າ</h3>
-            <p className="text-slate-400 text-sm max-w-xs mb-6">
-              ທ່ານສາມາດເລືອກເອກະສານທີ່ໝົດອາຍຸ ຈາກຕາຕະລາງເພື່ອລຶບພ້ອມກັນ
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-col h-full gap-3 font-lao overflow-y-auto pr-1">
-            {deleteCart.map((id, idx) => {
-              const item = [...expiredDocuments, ...destroyedDocuments, ...documents].find(d => d.id === id);
-              if (!item) return null;
-              
-              const docTypeName = item.documentType?.name || 'ບໍ່ລະບຸ';
-
-              return (
-                <div
-                  key={id}
-                  className="group bg-white border border-slate-200/80 hover:border-rose-500/40 rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-xs hover:shadow-md transition-all duration-300"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-500 font-bold text-xs flex items-center justify-center shrink-0 border border-rose-100">
-                      {idx + 1}
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-100/60">
-                          {item.docNo}
-                        </span>
-                        <span className="font-bold text-slate-800 text-sm truncate">
-                          {item.title}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-slate-400 mt-1 truncate">
-                        <span>{docTypeName}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Button
-                    type="text"
-                    danger
-                    icon={<Trash2 size={16} />}
-                    onClick={() => {
-                      const newCart = deleteCart.filter(cartId => cartId !== id);
-                      setDeleteCart(newCart);
-                      if (newCart.length === 0) {
-                        setDeleteDrawerOpen(false);
-                      }
-                    }}
-                    className="rounded-xl opacity-70 group-hover:opacity-100 hover:bg-rose-50 shrink-0"
-                  />
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </Drawer>
-
-      <Modal
-        title={
-          <div className="flex items-center gap-2">
-            <Trash2 className="text-rose-500" size={20} />
-            <span className="text-rose-500">ຢືນຢັນການລຶບເອກະສານ</span>
-          </div>
-        }
-        open={deleteModalVisible}
-        onCancel={() => setDeleteModalVisible(false)}
-        onOk={handleDeleteConfirm}
-        confirmLoading={isDeleting}
-        okText={`ຢືນຢັນລຶບ ${deleteCart.length} ລາຍການ`}
-        cancelText="ຍົກເລີກ"
-        okButtonProps={{ danger: true }}
-        centered
-      >
-        <div className="py-4 flex flex-col gap-4">
-          <p className="text-slate-600 font-medium text-sm">
-            ກະລຸນາເລືອກວັນທີ ແລະ ແນບເອກະສານອ້າງອີງການອະນຸມັດທຳລາຍເອກະສານ (PDF) ເພື່ອຢືນຢັນການລຶບ {deleteCart.length} ລາຍການທີ່ເລືອກໄວ້.
-          </p>
-
-          <div className="flex flex-col gap-2">
-            <span className="text-sm font-bold text-slate-700">ວັນທີອະນຸມັດການທຳລາຍເອກະສານ <span className="text-rose-500">*</span></span>
-            <DatePicker 
-              className="h-11 rounded-xl w-full" 
-              placeholder="ເລືອກວັນທີອະນຸມັດການທຳລາຍເອກະສານ"
-              value={destroyedDate ? dayjs(destroyedDate) : null}
-              onChange={(date) => {
-                setDestroyedDate(date ? date.format('YYYY-MM-DD') : null);
-              }}
-            />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <span className="text-sm font-bold text-slate-700">ເອກະສານອ້າງອີງການອະນຸມັດການທຳລາຍເອກະສານ (PDF) <span className="text-rose-500">*</span></span>
-            <Upload
-              maxCount={1}
-              beforeUpload={(file) => {
-                const isPdf = file.type === 'application/pdf';
-                if (!isPdf) {
-                  messageApi.error('ອະນຸຍາດສະເພາະໄຟລ໌ PDF ເທົ່ານັ້ນ!');
-                  return Upload.LIST_IGNORE;
-                }
-                setDeleteFile(file);
-                return false;
-              }}
-              onRemove={() => setDeleteFile(null)}
-              accept=".pdf"
-            >
-              <Button icon={<UploadCloud size={16} />}>ອັບໂຫຼດເອກະສານອ້າງອີງ</Button>
-            </Upload>
-          </div>
-        </div>
-      </Modal>
     </section>
   );
 }

@@ -4,6 +4,7 @@ import DashboardShell from '@/components/layout/DashboardShell';
 import RoleGuard from '@/components/auth/RoleGuard';
 import BorrowCartFAB from '@/components/views/borrow/BorrowCartFAB';
 import FolderPrintCartFAB from '@/components/views/storage/FolderPrintCartFAB';
+import DeleteCartFAB from '@/components/views/document-expired/DeleteCartFAB';
 
 function DashboardLayoutFallback() {
   return (
@@ -23,6 +24,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <DashboardShell>{children}</DashboardShell>
         <FolderPrintCartFAB />
         <BorrowCartFAB />
+        <DeleteCartFAB />
       </RoleGuard>
     </Suspense>
   );

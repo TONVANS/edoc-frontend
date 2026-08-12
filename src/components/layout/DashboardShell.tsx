@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { Drawer } from 'antd';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
+import MobileNav from './MobileNav';
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -60,11 +61,12 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       <div className="flex flex-col flex-1 min-w-0 min-h-screen">
         <Topbar onMobileMenuToggle={() => setMobileOpen(true)} />
         {/* เลเยอร์นี้ให้ใช้ Layer 0 แบบ Glassmorphism */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+        <main className="flex-1 overflow-y-auto p-4 pb-32 md:p-6 lg:p-8">
           <div className="max-w-7xl mx-auto">
             {children}
           </div>
         </main>
+        <MobileNav onMenuClick={() => setMobileOpen(true)} />
       </div>
     </div>
   );

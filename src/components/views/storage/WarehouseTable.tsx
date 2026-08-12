@@ -55,11 +55,11 @@ export default function WarehouseTable({
             onChange={(e) => onSearchChange(e.target.value)}
             size="large"
             allowClear
-            className="flex-1 min-w-[240px] max-w-[320px] rounded-[16px] bg-white/60 border-white/80 hover:bg-white focus-within:bg-white shadow-sm transition-all duration-300 focus-within:border-[#185C4D] h-[48px]"
+            className="w-full md:flex-1 min-w-[240px] md:max-w-[320px] rounded-[16px] bg-white/60 border-white/80 hover:bg-white focus-within:bg-white shadow-sm transition-all duration-300 focus-within:border-[#185C4D] h-[48px]"
           />
 
           {!hideFilters && (
-            <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0 w-full md:w-auto">
               <Select
                 value={filterDepartment}
                 onChange={onFilterDepartmentChange}
@@ -67,7 +67,7 @@ export default function WarehouseTable({
                 size="large"
                 showSearch
                 optionFilterProp="label"
-                className="min-w-[160px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-12! [&_.ant-select-selection-item]:leading-11.5!"
+                className="w-full sm:min-w-[160px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-12! [&_.ant-select-selection-item]:leading-11.5!"
               />
 
               <Select
@@ -77,7 +77,7 @@ export default function WarehouseTable({
                 size="large"
                 showSearch
                 optionFilterProp="label"
-                className="min-w-[160px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-12! [&_.ant-select-selection-item]:leading-11.5!"
+                className="w-full sm:min-w-[160px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-12! [&_.ant-select-selection-item]:leading-11.5!"
                 disabled={filterDepartment === 'all'}
               />
 

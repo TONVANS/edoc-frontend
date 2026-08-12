@@ -62,25 +62,25 @@ export default function LockerTable({
             onChange={(e) => onSearchChange(e.target.value)}
             size="large"
             allowClear
-            className="flex-1 min-w-[240px] max-w-[320px] rounded-[16px] bg-white/60 border-white/80 hover:bg-white focus-within:bg-white shadow-sm transition-all duration-300 focus-within:border-[#185C4D] h-[48px]"
+            className="w-full md:flex-1 min-w-[240px] md:max-w-[320px] rounded-[16px] bg-white/60 border-white/80 hover:bg-white focus-within:bg-white shadow-sm transition-all duration-300 focus-within:border-[#185C4D] h-[48px]"
           />
 
           {!hideFilters && (
-            <div className="flex items-center gap-3 shrink-0">
-              <SlidersHorizontal size={16} className="text-slate-400 mr-1" />
+            <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0 w-full md:w-auto">
+              <SlidersHorizontal size={16} className="text-slate-400 mr-1 hidden sm:block" />
               <Select
                 value={filterDepartment || 'all'}
                 onChange={onFilterDepartmentChange}
                 options={[{ value: 'all', label: 'ທັງໝົດ (ຝ່າຍ)' }, ...departmentOptions]}
                 size="large"
-                className="min-w-[170px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
+                className="w-full sm:min-w-[170px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
               />
               <Select
                 value={filterDivision || 'all'}
                 onChange={onFilterDivisionChange}
                 options={[{ value: 'all', label: 'ທັງໝົດ (ພະແນກ)' }, ...divisionOptions]}
                 size="large"
-                className="min-w-[170px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
+                className="w-full sm:min-w-[170px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
                 disabled={divisionOptions.length === 0 && !!filterDepartment && filterDepartment !== 'all'}
               />
               <Select
@@ -88,7 +88,7 @@ export default function LockerTable({
                 onChange={onFilterWarehouseChange}
                 options={[{ value: 'all', label: 'ທັງໝົດ (ສາງ)' }, ...warehouseOptions]}
                 size="large"
-                className="min-w-[170px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
+                className="w-full sm:min-w-[170px] [&_.ant-select-selector]:rounded-[16px]! shadow-sm [&_.ant-select-selector]:h-[48px]! [&_.ant-select-selection-item]:leading-[46px]!"
                 disabled={warehouseOptions.length === 0 && !!filterDepartment && filterDepartment !== 'all'}
               />
             </div>
