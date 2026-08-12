@@ -83,7 +83,7 @@ export default function MoveFormModal({
   const loadWarehouses = async () => {
     setLoadingWarehouses(true);
     try {
-      const response = await api.get('/warehouses');
+      const response = await api.get('/warehouses/dropdown');
       const resData = response.data.data;
       const data = Array.isArray(resData) ? resData : (resData as any)?.data || [];
       setWarehousesList(data);
@@ -106,7 +106,7 @@ export default function MoveFormModal({
 
     setLoadingLockers(true);
     try {
-      const response = await api.get(`/lockers/warehouse/${warehouseId}`);
+      const response = await api.get(`/lockers/dropdown?warehouseId=${warehouseId}`);
       const resData = response.data.data;
       const data = Array.isArray(resData) ? resData : (resData as any)?.data || [];
       setLockersList(data);
@@ -127,7 +127,8 @@ export default function MoveFormModal({
 
     setLoadingShelves(true);
     try {
-      const response = await api.get(`/shelves/locker/${lockerId}`);
+      const warehouseId = form.getFieldValue('warehouseId') || '';
+      const response = await api.get(`/shelves/dropdown?lockerId=${lockerId}&warehouseId=${warehouseId}`);
       const resData = response.data.data;
       const data = Array.isArray(resData) ? resData : (resData as any)?.data || [];
       setShelvesList(data);
@@ -147,7 +148,11 @@ export default function MoveFormModal({
 
     setLoadingFolders(true);
     try {
-      const response = await api.get('/folders', { params: { shelfId } });
+      const lockerId = form.getFieldValue('lockerId') || '';
+      const warehouseId = form.getFieldValue('warehouseId') || '';
+      const response = await api.get('/folders/dropdown', { 
+        params: { shelfId, lockerId, warehouseId } 
+      });
       const resData = response.data.data;
       const data = Array.isArray(resData) ? resData : (resData as any)?.data || [];
       setFoldersList(data);

@@ -188,7 +188,7 @@ export default function FolderTagPrint({
                 >
                   <div
                     style={{
-                      fontFamily: 'var(--font-noto-sans-lao), "Phetsarath OT", sans-serif',
+                      fontFamily: 'var(--font-noto-sans-lao, "Noto Sans Lao"), "Phetsarath OT", sans-serif',
                       textAlign: 'center',
                       fontSize: '15px',
                       fontWeight: 'bold',
@@ -211,7 +211,7 @@ export default function FolderTagPrint({
                 >
                   <div
                     style={{
-                      fontFamily: 'var(--font-noto-sans-lao), "Phetsarath OT", sans-serif',
+                      fontFamily: 'var(--font-noto-sans-lao, "Noto Sans Lao"), "Phetsarath OT", sans-serif',
                       fontWeight: 'bold',
                       fontSize:
                         item.folderName.length > 60
@@ -261,7 +261,7 @@ export default function FolderTagPrint({
                 >
                   <div
                     style={{
-                      fontFamily: '"Times New Roman", Times, serif',
+                      fontFamily: 'var(--font-noto-sans-lao, "Noto Sans Lao"), "Phetsarath OT", sans-serif',
                       fontWeight: 'bold',
                       fontSize:
                         item.locationRef.length > 20
