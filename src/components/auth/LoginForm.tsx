@@ -95,7 +95,7 @@ export default function LoginForm() {
         const backendMessage = error.response?.data?.message;
         const errorMessage = Array.isArray(backendMessage)
           ? backendMessage.join(', ')
-          : backendMessage || 'ເຂົ້າສູ່ລະບົບບໍ່ສຳເລັດ. ກະລຸນາລອງໃໝ່.';
+          : backendMessage || 'ID ຫຼື ລະຫັດບໍ່ຖືກຕ້ອງ ກະລຸນາກວດສອບລະຫັດອີກຄັ້ງ.';
         toast.error('ເຂົ້າສູ່ລະບົບບໍ່ສຳເລັດ', {
           description: errorMessage,
         });
