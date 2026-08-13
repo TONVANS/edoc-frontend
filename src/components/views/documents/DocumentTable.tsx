@@ -562,16 +562,7 @@ export default function DocumentTable({
                               icon: <QrCode size={16} className="text-amber-500" />,
                               label: <span className="text-slate-700 font-medium text-[13px]">ເບິ່ງ QR Code</span>,
                               onClick: () => onViewQrCode(item),
-                            } : null,
-                            {
-                              type: 'divider',
-                            },
-                            {
-                              key: 'delete',
-                              icon: <Trash2 size={16} className="text-rose-500" />,
-                              label: <span className="text-rose-500 font-semibold text-[13px]">ລຶບເອກະສານ</span>,
-                              onClick: () => onDelete?.(item.id),
-                            }
+                            } : null
                           ].filter(Boolean) as any,
                           className: "min-w-[170px] p-2 rounded-2xl border border-white/60 shadow-glass bg-white/80 backdrop-blur-xl"
                         }}
