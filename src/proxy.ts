@@ -26,7 +26,7 @@ const routePermissions = [
   { path: '/dashboard/shelves', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN', 'BRANCH_ADMIN'] },
   { path: '/dashboard/document-expired', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN', 'BRANCH_ADMIN'] },
   { path: '/dashboard/document-types', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN'] },
-  { path: '/dashboard/users', allowedRoles: ['SUPER_ADMIN'] },
+  { path: '/dashboard/users', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN'] },
   { path: '/dashboard/departments', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN'] },
   { path: '/dashboard/divisions', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN'] },
   { path: '/dashboard/offices', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN'] },
