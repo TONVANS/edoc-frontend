@@ -1,3 +1,4 @@
+// src/proxy.ts
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
@@ -33,6 +34,8 @@ const routePermissions = [
   { path: '/dashboard/units', allowedRoles: ['SUPER_ADMIN', 'HQ_ADMIN'] },
 ];
 
+const dashboardOverviewAllowedRoles = ['SUPER_ADMIN', 'HQ_ADMIN', 'BRANCH_ADMIN'];
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -52,13 +55,22 @@ export function proxy(request: NextRequest) {
     const decodedToken = decodeJwt(token);
     const userRole = decodedToken?.role;
 
+    // Default landing page for USER role is /dashboard/folder
+    const defaultAuthorizedUrl = userRole === 'USER' ? '/dashboard/folder' : '/dashboard';
+
+    // Check dashboard root overview permission (/dashboard or /dashboard/)
+    if (pathname === '/dashboard' || pathname === '/dashboard/') {
+      if (!userRole || !dashboardOverviewAllowedRoles.includes(userRole)) {
+        return NextResponse.redirect(new URL('/dashboard/folder', request.url));
+      }
+    }
+
     // Check route permissions
     for (const route of routePermissions) {
       if (pathname.startsWith(route.path)) {
         if (!userRole || !route.allowedRoles.includes(userRole)) {
-          // User does not have permission, redirect to a default authorized page (like /dashboard)
-          // or an unauthorized page if you have one. Here we redirect to /dashboard.
-          return NextResponse.redirect(new URL('/dashboard', request.url));
+          // User does not have permission, redirect to their default authorized landing page
+          return NextResponse.redirect(new URL(defaultAuthorizedUrl, request.url));
         }
         break; // Match found and allowed, no need to check other rules
       }

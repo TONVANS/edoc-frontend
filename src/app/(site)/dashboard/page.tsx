@@ -1,5 +1,6 @@
 // src/app/(site)/dashboard/page.tsx
 import DashboardOverviewView from '@/components/views/dashboard/DashboardOverviewView';
+import RoleGuard from '@/components/auth/RoleGuard';
 
 export const metadata = {
   title: 'Dashboard Overview | E-Document Management',
@@ -8,8 +9,10 @@ export const metadata = {
 
 export default function DashboardPage() {
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto min-h-full">
-      <DashboardOverviewView />
-    </div>
+    <RoleGuard allowedRoles={['SUPER_ADMIN', 'HQ_ADMIN', 'BRANCH_ADMIN']}>
+      <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto min-h-full">
+        <DashboardOverviewView />
+      </div>
+    </RoleGuard>
   );
 }

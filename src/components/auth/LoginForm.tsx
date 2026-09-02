@@ -46,7 +46,7 @@ export default function LoginForm() {
     callbackUrl = '/dashboard';
   }
 
-  const { login, isLoading, isAuthenticated, initialize } = useAuthStore();
+  const { user, login, isLoading, isAuthenticated, initialize } = useAuthStore();
 
   const [empCode, setEmpCode] = useState('');
   const [password, setPassword] = useState('');
@@ -58,12 +58,22 @@ export default function LoginForm() {
     initialize();
   }, [initialize]);
 
+  const getRoleTargetUrl = (userRole?: string, url?: string) => {
+    const rawTarget = url && url.startsWith('/') && !url.startsWith('//') ? url : '/dashboard';
+    const target = rawTarget.startsWith('/login') ? '/dashboard' : rawTarget;
+    if (userRole === 'USER' && (target === '/dashboard' || target === '/dashboard/')) {
+      return '/dashboard/folder';
+    }
+    return target;
+  };
+
   useEffect(() => {
     if (isAuthenticated) {
+      const target = getRoleTargetUrl(user?.role, callbackUrl);
       router.refresh();
-      router.replace(callbackUrl);
+      router.replace(target);
     }
-  }, [isAuthenticated, router, callbackUrl]);
+  }, [isAuthenticated, user, router, callbackUrl]);
 
   const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -86,11 +96,13 @@ export default function LoginForm() {
     if (isValid) {
       try {
         await login(empCode, password);
+        const loggedInUser = useAuthStore.getState().user;
+        const target = getRoleTargetUrl(loggedInUser?.role, callbackUrl);
         toast.success('ເຂົ້າສູ່ລະບົບສຳເລັດ', {
           description: 'ກຳລັງນຳທາງໄປໜ້າຫຼັກ...',
         });
         router.refresh();
-        router.replace(callbackUrl);
+        router.replace(target);
       } catch (error: any) {
         const backendMessage = error.response?.data?.message;
         const errorMessage = Array.isArray(backendMessage)

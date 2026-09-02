@@ -35,8 +35,9 @@ export default function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
         router.replace(`/login?callbackUrl=${encodeURIComponent(currentUrl)}`);
       } else if (allowedRoles && allowedRoles.length > 0) {
         if (!user?.role || !allowedRoles.includes(user.role)) {
-          // If logged in but role not allowed, redirect to dashboard root or show not authorized
-          router.replace('/dashboard');
+          // If logged in but role not allowed, redirect USER to /dashboard/folder and others to /dashboard
+          const fallbackPath = user?.role === 'USER' ? '/dashboard/folder' : '/dashboard';
+          router.replace(fallbackPath);
         } else {
           setIsReady(true);
         }
